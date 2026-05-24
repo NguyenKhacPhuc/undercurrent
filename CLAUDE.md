@@ -16,6 +16,21 @@ The Weft SDK is in a sibling directory: `../weft`. Wired via
 cloned side-by-side for the build to resolve. Weft SDK is published as
 <https://github.com/NguyenKhacPhuc/android-harness>.
 
+## The architectural rule (read first)
+
+> **The SDK provides everything. The app just registers.**
+
+Full split documented in `../weft/docs/architecture-vision.md`. When
+adding logic to this repo, ask: *would another Weft host need this
+same behavior?* If yes, it goes in `../weft`, not here. The app's
+responsibilities are: identity (preamble + theme), screens (the
+Compose UI shell), DI wiring (Koin module), and *which* tools /
+components / data-sources / MCP-servers / integrations to register.
+The data-binding system, `$exec` action interception, `$binding`
+resolution, prompt assembly, memory tools, etc. all live in the SDK
+and are exposed via registration hooks. Don't duplicate substrate
+behavior into the app — fix it in the SDK and let it flow back.
+
 ## Build & test
 
 ```bash

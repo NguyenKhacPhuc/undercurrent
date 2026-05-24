@@ -19,9 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -113,6 +115,16 @@ private fun App() {
     // process-restart helper without prop-drilling the Activity reference
     // through the navigation tree.
     val context = LocalContext.current
+
+    // Save-as-feature dialog state for the RenderedTree screen's Save
+    // button. Lives at the App level (not inside any specific screen
+    // branch) so the dialog stays mounted while the user is on
+    // RenderedTree — opening it from a screen-scoped state would
+    // dismount on the navigate-back.
+    val appSavedFeaturesRepo: dev.weft.undercurrent.features.savedfeatures.SavedFeaturesRepository =
+        koinInject()
+    val appSavedFeaturesScope = rememberCoroutineScope()
+    var saveFromRenderDraft by remember { mutableStateOf<String?>(null) }
     val systemDark = isSystemInDarkTheme()
     val darkMode = when (state.themePrefs.mode) {
         ThemeMode.Auto -> systemDark
@@ -144,6 +156,23 @@ private fun App() {
                 is AppEffect.Error -> snackbarHostState.showSnackbar(effect.message)
             }
         }
+    }
+
+    // System back routing. Without this, the Android back gesture /
+    // button does nothing on sub-screens (Compose doesn't pop a back
+    // stack we never built), and the user can get stranded — most
+    // common report: opens a tracker mini-app via a saved feature,
+    // can't find their way back to chat. Behavior:
+    //
+    //   - On Chat: don't intercept. System back exits the app as usual.
+    //   - On RenderedTree: clear the bridge update + go to chat.
+    //   - On any other screen: go to chat. Drawer-reachable screens
+    //     don't have a sub-hierarchy worth preserving.
+    androidx.activity.compose.BackHandler(enabled = state.screen != Screen.Chat) {
+        if (state.screen is Screen.RenderedTree) {
+            uiBridge.clearLastUpdate()
+        }
+        store.dispatch(AppIntent.Navigate(Screen.Chat))
     }
 
     UndercurrentTheme(palette = state.themePrefs.palette, darkMode = darkMode) {
@@ -237,6 +266,21 @@ private fun App() {
                             // mutations update the displayed numbers
                             // without an LLM round-trip.
                             dataSources = runtime.dataSources,
+                            // In-place save. Without this affordance, users
+                            // who build a tracker via "make me a water
+                            // tracker" have no obvious way to keep it
+                            // around — they'd have to back out to chat
+                            // and find the assistant reply's "Save as
+                            // feature" link. This puts the save right
+                            // where they're looking at the mini-app.
+                            onSaveAsFeature = onSaveAsFeature@{
+                                val lastUserText = store.displayMessages
+                                    .lastOrNull { it.role == dev.weft.undercurrent.features.chat.DisplayRole.USER }
+                                    ?.text
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?: return@onSaveAsFeature
+                                saveFromRenderDraft = lastUserText
+                            },
                         )
                     }
                     Screen.Traces -> TraceViewerScreen(
@@ -374,6 +418,44 @@ private fun App() {
                         },
                         onDismiss = {
                             store.dispatch(AppIntent.DismissPermissionDialog)
+                        },
+                    )
+                }
+
+                // Save-as-feature dialog for the RenderedTree screen.
+                // Opens when the user taps "Save" on a mini-app surface.
+                // Captures both the trigger prompt (the user's latest
+                // message, from chat history) AND the current render
+                // tree (so a future tap on the chip shows the cached
+                // UI instantly while the agent re-runs).
+                saveFromRenderDraft?.let { draft ->
+                    dev.weft.undercurrent.features.savedfeatures.SaveAsFeatureDialog(
+                        initial = null,
+                        suggestedPrompt = draft,
+                        onDismiss = { saveFromRenderDraft = null },
+                        onSave = { name, emoji, triggerPrompt ->
+                            saveFromRenderDraft = null
+                            appSavedFeaturesScope.launch {
+                                val created = appSavedFeaturesRepo.add(name, emoji, triggerPrompt)
+                                // Capture the current rendered tree so
+                                // the next invocation can show it
+                                // instantly. The bridge always has a
+                                // tree when this dialog is open (the
+                                // Save button only renders on
+                                // RenderedTree), so the cast is safe.
+                                val tree = (uiBridge.lastUpdate as?
+                                    dev.weft.contracts.UIUpdate.RenderTree)?.tree
+                                if (tree != null) {
+                                    val json = kotlinx.serialization.json.Json.encodeToString(
+                                        dev.weft.contracts.ComponentNode.serializer(),
+                                        tree,
+                                    )
+                                    appSavedFeaturesRepo.setCachedRender(created.id, json)
+                                }
+                                snackbarHostState.showSnackbar(
+                                    "Saved $emoji $name. Find it in My features.",
+                                )
+                            }
                         },
                     )
                 }

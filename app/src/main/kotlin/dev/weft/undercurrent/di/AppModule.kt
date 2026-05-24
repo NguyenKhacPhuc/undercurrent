@@ -145,14 +145,24 @@ val appModule = module {
                 dataSources = listOf(
                     // SQLDelight-backed — survives app restarts. Both
                     // sources share the same `records` table; the
-                    // `source` column separates them. The agent treats
-                    // these as named buckets (notes for free-form
-                    // entries, tasks for to-do items); novel tracker
-                    // categories (water log, mood, …) ride inside
-                    // `notes` distinguished by a `type` field in the
-                    // record payload.
-                    SqlDelightDataSource(name = "notes", database = get()),
-                    SqlDelightDataSource(name = "tasks", database = get()),
+                    // `source` column separates them. Descriptions
+                    // here are auto-rendered into the system prompt
+                    // by the SDK's `assembleSystemPrompt`, so we no
+                    // longer need to hand-document the data layer in
+                    // AppPreamble. Update these strings (not the
+                    // preamble) when adding new collection categories.
+                    SqlDelightDataSource(
+                        name = "notes",
+                        database = get(),
+                        description = "Free-form entries: water logs, mood notes, " +
+                            "bookmarks, journal snippets, anything text-shaped. " +
+                            "Add a `type` field on each record to discriminate categories.",
+                    ),
+                    SqlDelightDataSource(
+                        name = "tasks",
+                        database = get(),
+                        description = "To-do items the user wants to track.",
+                    ),
                 ),
                 networkPolicy = NetworkPolicy.OPEN,
                 componentMetadata = get<WeftUi>().components,

@@ -45,6 +45,7 @@ import java.util.UUID
 internal class SqlDelightDataSource(
     override val name: String,
     private val database: AppDatabase,
+    override val description: String = "",
 ) : DataSource {
 
     private val json = Json { ignoreUnknownKeys = true }
