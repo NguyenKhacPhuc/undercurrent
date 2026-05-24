@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+        Koog 1.0.0 ships EVERY Android sub-module AAR with minSdkVersion=35
+        baked into the AAR's AndroidManifest — a JetBrains build-config
+        default rather than a real API-26 incompatibility. The sub-modules
+        are pure-Kotlin agent/prompt/RAG code with no Android-specific
+        platform calls (we inspected agents-core / prompt-* and they don't
+        touch APIs >26). Manifest merge has to see an explicit override
+        for each package id; AGP doesn't support a wildcard.
+
+        If a future Koog version actually starts using API 35+ APIs we'll
+        see runtime ClassNotFoundError / NoSuchMethodError on older devices
+        and need to revisit. Track Koog's manifest in upgrades — when
+        adding/upgrading koog versions, run:
+
+            find ~/.gradle/caches -name "AndroidManifest.xml" \
+                -path "*koog*" -exec grep -l 'minSdkVersion="35"' {} \;
+
+        and add any new modules to the list below.
+    -->
+    <uses-sdk tools:overrideLibrary="
+        ai.koog.koog.agents,
+        ai.koog.agents.core,
+        ai.koog.agents.features.event.handler,
+        ai.koog.agents.features.memory,
+        ai.koog.agents.features.opentelemetry,
+        ai.koog.agents.features.snapshot,
+        ai.koog.agents.features.tokenizer,
+        ai.koog.agents.features.trace,
+        ai.koog.agents.mcp.metadata,
+        ai.koog.agents.tools,
+        ai.koog.agents.utils,
+        ai.koog.embeddings.base,
+        ai.koog.embeddings.llm,
+        ai.koog.http.client.core,
+        ai.koog.http.client.ktor,
+        ai.koog.prompt.cache.files,
+        ai.koog.prompt.cache.model,
+        ai.koog.prompt.executor.anthropic.client,
+        ai.koog.prompt.executor.bedrock.client,
+        ai.koog.prompt.executor.cached,
+        ai.koog.prompt.executor.clients,
+        ai.koog.prompt.executor.model,
+        ai.koog.prompt.executor.ollama.client,
+        ai.koog.prompt.executor.openai.client,
+        ai.koog.prompt.executor.openai.client.base,
+        ai.koog.prompt.executor.openrouter.client,
+        ai.koog.prompt.llm,
+        ai.koog.prompt.markdown,
+        ai.koog.prompt.model,
+        ai.koog.prompt.processor,
+        ai.koog.prompt.structure,
+        ai.koog.prompt.tokenizer,
+        ai.koog.prompt.xml,
+        ai.koog.rag.base,
+        ai.koog.serialization.core,
+        ai.koog.utils
+    " />
+
+    <!--
+        Required for DirectAnthropicClient to reach api.anthropic.com.
+        The substrate's NetworkPolicy further restricts WHICH hosts can be
+        contacted (default allowlist: api.anthropic.com only).
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
+        Voice input. RECORD_AUDIO is a runtime permission (since Android 6.0)
+        — we request it the first time the user presses-and-holds the mic
+        button in the chat input row. Without it SpeechRecognizer.startListening
+        silently fails.
+    -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!--
+        Bluetooth — backs `bluetooth_list_paired` + `bluetooth_device_battery`.
+        BLUETOOTH_CONNECT is a runtime permission on Android 12+ (API 31+);
+        the legacy BLUETOOTH permission below covers older OS versions.
+        We don't scan (BLUETOOTH_SCAN) since none of the BT tools need it.
+    -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+
+    <!--
+        Android 11+ requires explicit declaration of intents we want to
+        resolve. SpeechRecognizer's installed-on-device handler matches
+        the RECOGNIZE_SPEECH intent; without this <queries> block,
+        `SpeechRecognizer.isRecognitionAvailable()` returns false on R+
+        even when a recognizer service exists.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".core.UndercurrentApp"
+        android:label="Undercurrent"
+        android:theme="@style/Theme.Undercurrent"
+        android:allowBackup="false"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".core.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
