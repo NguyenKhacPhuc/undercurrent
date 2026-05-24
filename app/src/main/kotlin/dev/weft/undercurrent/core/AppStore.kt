@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.weft.android.WeftRuntime
 import dev.weft.contracts.FileSaveSpec
+import dev.weft.harness.agents.WeftAgent
 import dev.weft.contracts.ShareContent
 import dev.weft.contracts.ShareTarget
 import dev.weft.contracts.UIUpdate
@@ -211,6 +212,9 @@ internal class AppStore(
             is AppIntent.SetModelForTier -> viewModelScope.launch {
                 handleSetModelForTier(intent.provider, intent.tier, intent.modelId)
             }
+            is AppIntent.SelectAgent -> viewModelScope.launch {
+                handleSelectAgent(intent.name)
+            }
         }
     }
 
@@ -233,7 +237,12 @@ internal class AppStore(
             withContext(Dispatchers.IO) { a.sendEvent(action, sourceLabel, fieldValues) }
         }
         result.fold(
-            onSuccess = { reply -> displayMessages += DisplayMessage.assistant(reply) },
+            onSuccess = { reply ->
+                displayMessages += DisplayMessage.assistant(
+                    text = reply,
+                    agentName = _state.value.activeAgentName,
+                )
+            },
             onFailure = { t ->
                 displayMessages += DisplayMessage.toolFail(
                     "ui_event",
@@ -274,13 +283,61 @@ internal class AppStore(
             _state.update { it.copy(screen = Screen.KeyPaste) }
             return
         }
-        val a = runtime.buildAgent(
-            credentialProviderFor(activeProvider, storedKey),
-            modelPoolOverride = modelPoolOverrideFor(activeProvider),
+        // Snapshot the registered agents into UI-projection form once
+        // at boot. The runtime's declaration map is fixed for the
+        // process lifetime (no hot-reload of agents — that's a runtime
+        // recreate), so a one-shot read is correct.
+        val agentSummaries = runtime.agentDeclarations.values
+            .filter { it.userAddressable }
+            .map { AgentSummary(it.name, it.displayName, it.description) }
+        val a = buildAgentFor(
+            agentName = _state.value.activeAgentName,
+            provider = activeProvider,
+            apiKey = storedKey,
         )
         a.resume()
         hydrateMessages(a.currentConversationId.value)
-        _state.update { it.copy(agent = a, screen = Screen.Chat) }
+        _state.update {
+            it.copy(
+                agent = a,
+                screen = Screen.Chat,
+                availableAgents = agentSummaries,
+            )
+        }
+    }
+
+    /**
+     * Build a [WeftAgent] for the given declaration name. Replaces the
+     * inline `runtime.buildAgent(provider, ...)` calls across the
+     * provider/key/model handlers — all rebuilds route through this so
+     * the active [AppState.activeAgentName] applies consistently.
+     */
+    private suspend fun buildAgentFor(
+        agentName: String,
+        provider: ProviderKind,
+        apiKey: String,
+    ): WeftAgent = runtime.buildAgent(
+        agentName = agentName,
+        provider = credentialProviderFor(provider, apiKey),
+        modelPoolOverride = modelPoolOverrideFor(provider),
+    )
+
+    private suspend fun handleSelectAgent(name: String) {
+        val current = _state.value
+        if (name == current.activeAgentName) return
+        if (current.availableAgents.none { it.name == name }) return  // unknown
+        val provider = providerPrefsRepo.activeProviderNow()
+        val key = withContext(Dispatchers.IO) {
+            runtime.keyVault.get(provider.keyAlias())
+        } ?: return  // no key yet → can't rebuild; selector will retry after paste
+        // Rebuild against the same conversation so the user doesn't lose
+        // history when switching agents mid-thread. The new declaration's
+        // tool allowlist + system fragment + strategy take effect on the
+        // next send.
+        val a = buildAgentFor(agentName = name, provider = provider, apiKey = key)
+        a.resume()
+        hydrateMessages(a.currentConversationId.value)
+        _state.update { it.copy(agent = a, activeAgentName = name) }
     }
 
     /**
@@ -348,10 +405,10 @@ internal class AppStore(
             val key = withContext(Dispatchers.IO) {
                 runtime.keyVault.get(provider.keyAlias())
             } ?: return  // no key yet → nothing to rebuild
-            val override = modelPoolOverrideFor(provider)
-            val a = runtime.buildAgent(
-                credentialProviderFor(provider, key),
-                modelPoolOverride = override,
+            val a = buildAgentFor(
+                agentName = _state.value.activeAgentName,
+                provider = provider,
+                apiKey = key,
             )
             a.resume()
             hydrateMessages(a.currentConversationId.value)
@@ -361,9 +418,10 @@ internal class AppStore(
 
     private suspend fun handleSubmitKey(key: String) {
         val activeProvider = providerPrefsRepo.activeProviderNow()
-        val a = runtime.buildAgent(
-            credentialProviderFor(activeProvider, key),
-            modelPoolOverride = modelPoolOverrideFor(activeProvider),
+        val a = buildAgentFor(
+            agentName = _state.value.activeAgentName,
+            provider = activeProvider,
+            apiKey = key,
         )
         a.resume()
         _state.update { it.copy(agent = a, screen = Screen.Chat) }
@@ -381,9 +439,10 @@ internal class AppStore(
             runtime.keyVault.get(provider.keyAlias())
         }
         if (key != null) {
-            val a = runtime.buildAgent(
-                credentialProviderFor(provider, key),
-                modelPoolOverride = modelPoolOverrideFor(provider),
+            val a = buildAgentFor(
+                agentName = _state.value.activeAgentName,
+                provider = provider,
+                apiKey = key,
             )
             a.resume()
             hydrateMessages(a.currentConversationId.value)
@@ -406,9 +465,10 @@ internal class AppStore(
         }
         val activeProvider = providerPrefsRepo.activeProviderNow()
         if (provider == activeProvider) {
-            val a = runtime.buildAgent(
-                credentialProviderFor(provider, key),
-                modelPoolOverride = modelPoolOverrideFor(provider),
+            val a = buildAgentFor(
+                agentName = _state.value.activeAgentName,
+                provider = provider,
+                apiKey = key,
             )
             a.resume()
             hydrateMessages(a.currentConversationId.value)
@@ -570,7 +630,10 @@ internal class AppStore(
                     is StreamChunk.TextDelta -> {
                         val existingId = streamingMessageId
                         if (existingId == null) {
-                            val msg = DisplayMessage.assistant(chunk.text)
+                            val msg = DisplayMessage.assistant(
+                                text = chunk.text,
+                                agentName = _state.value.activeAgentName,
+                            )
                             streamingMessageId = msg.id
                             displayMessages += msg
                         } else {
@@ -614,7 +677,10 @@ internal class AppStore(
                         // a tool call only, no follow-up text) append the final
                         // reply now.
                         if (streamingMessageId == null && chunk.finalReply.isNotBlank()) {
-                            displayMessages += DisplayMessage.assistant(chunk.finalReply)
+                            displayMessages += DisplayMessage.assistant(
+                                text = chunk.finalReply,
+                                agentName = _state.value.activeAgentName,
+                            )
                         }
                     }
                     is StreamChunk.Failed ->
@@ -788,7 +854,10 @@ internal class AppStore(
         for (m in msgs) {
             displayMessages += when (m.role) {
                 PersistedRole.USER -> DisplayMessage.user(m.content)
-                PersistedRole.ASSISTANT -> DisplayMessage.assistant(m.content)
+                PersistedRole.ASSISTANT -> DisplayMessage.assistant(
+                    text = m.content,
+                    agentName = m.agentName,
+                )
             }
         }
     }

@@ -2,10 +2,12 @@ package dev.weft.undercurrent.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,7 +38,14 @@ internal fun ScreenScaffold(
     title: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    trailing: @Composable (() -> Unit)? = null,
+    /**
+     * Trailing actions, laid out as a horizontal row at the right edge
+     * of the header. The lambda runs inside a `RowScope` so emitting
+     * multiple [ScaffoldTextAction]s back-to-back flows them
+     * left-to-right with a small gap between them (rather than stacking
+     * them on top of each other, which was the pre-fix shape).
+     */
+    trailing: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = UndercurrentTheme.colors
@@ -67,7 +76,12 @@ internal fun ScreenScaffold(
             )
             Spacer(Modifier.weight(1f))
             if (trailing != null) {
-                Box(modifier = Modifier.padding(end = 8.dp)) { trailing() }
+                Row(
+                    modifier = Modifier.padding(end = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    content = trailing,
+                )
             }
         }
         Box(

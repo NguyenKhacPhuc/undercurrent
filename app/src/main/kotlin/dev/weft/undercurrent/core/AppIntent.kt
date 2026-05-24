@@ -99,6 +99,15 @@ internal sealed interface AppIntent {
     data object DismissPermissionDialog : AppIntent
 
     /**
+     * Switch the active agent. The chat surface's selector dispatches
+     * this; AppStore validates the name against [AppState.availableAgents],
+     * updates [AppState.activeAgentName], and rebuilds the [WeftAgent]
+     * via the named overload so the next turn carries the new
+     * declaration's tool allowlist + system fragment + strategy.
+     */
+    data class SelectAgent(val name: String) : AppIntent
+
+    /**
      * Invoke a saved feature — dispatches the feature's trigger prompt
      * through the agent loop and (separately) caches whatever
      * `ui_render` payload the agent emits so the next invocation can

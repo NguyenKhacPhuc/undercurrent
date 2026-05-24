@@ -4,6 +4,7 @@ import dev.weft.android.WeftRuntime
 import dev.weft.compose.ComposeUiBridge
 import dev.weft.compose.WeftUi
 import dev.weft.contracts.KeyVault
+import dev.weft.harness.agents.AgentDeclaration
 import dev.weft.mcp.McpServerConfig
 import dev.weft.oauth.AndroidOAuthClient
 import dev.weft.oauth.OAuthCallbackChannel
@@ -128,44 +129,74 @@ val appModule = module {
         // hint on the next 401.
         val mcpServers = mcpServersFor(integrationsRepo, tokenStore)
 
-        // `createWithMcpServers` does network discovery (HTTP
-        // initialize + tools/list) on Dispatchers.IO. We runBlocking
-        // here because Koin's `single { }` is synchronous — first
-        // resolution happens on the main thread during App composition.
+        // Sync factory — MCP discovery runs in the background on
+        // Dispatchers.IO inside the runtime. The first buildAgent call
+        // (in viewModelScope, from AppStore) awaits discovery before
+        // returning, so the user sees the same "first turn might take
+        // a moment" UX but the DI graph isn't blocked at app startup.
         // Empty integration set = ~instant. One connected integration
-        // adds ~500-1500ms to cold start. Acceptable for v1; replace
-        // with substrate-side hot-swap when the integration count
-        // grows.
-        runBlocking {
-            WeftRuntime.createWithMcpServers(
-                context = androidContext(),
-                uiBridge = get<ComposeUiBridge>(),
-                appPromptPreamble = ASSISTANT_APP_PREAMBLE,
-                mcpServers = mcpServers,
-                dataSources = listOf(
-                    // SQLDelight-backed — survives app restarts. Both
-                    // sources share the same `records` table; the
-                    // `source` column separates them. Descriptions
-                    // here are auto-rendered into the system prompt
-                    // by the SDK's `assembleSystemPrompt`, so we no
-                    // longer need to hand-document the data layer in
-                    // AppPreamble. Update these strings (not the
-                    // preamble) when adding new collection categories.
-                    SqlDelightDataSource(
-                        name = "notes",
-                        database = get(),
-                        description = "Free-form entries: water logs, mood notes, " +
-                            "bookmarks, journal snippets, anything text-shaped. " +
-                            "Add a `type` field on each record to discriminate categories.",
-                    ),
-                    SqlDelightDataSource(
-                        name = "tasks",
-                        database = get(),
-                        description = "To-do items the user wants to track.",
-                    ),
+        // adds ~500-1500ms to first-turn latency instead of cold start.
+        WeftRuntime.create(
+            context = androidContext(),
+            uiBridge = get<ComposeUiBridge>(),
+            appPromptPreamble = ASSISTANT_APP_PREAMBLE,
+            mcpServers = mcpServers,
+            dataSources = listOf(
+                // SQLDelight-backed — survives app restarts. Both
+                // sources share the same `records` table; the
+                // `source` column separates them. Descriptions
+                // here are auto-rendered into the system prompt
+                // by the SDK's `assembleSystemPrompt`, so we no
+                // longer need to hand-document the data layer in
+                // AppPreamble. Update these strings (not the
+                // preamble) when adding new collection categories.
+                SqlDelightDataSource(
+                    name = "notes",
+                    database = get(),
+                    description = "Free-form entries: water logs, mood notes, " +
+                        "bookmarks, journal snippets, anything text-shaped. " +
+                        "Add a `type` field on each record to discriminate categories.",
                 ),
-                networkPolicy = NetworkPolicy.OPEN,
-                componentMetadata = get<WeftUi>().components,
+                SqlDelightDataSource(
+                    name = "tasks",
+                    database = get(),
+                    description = "To-do items the user wants to track.",
+                ),
+            ),
+            networkPolicy = NetworkPolicy.OPEN,
+            componentMetadata = get<WeftUi>().components,
+            // Multi-agent registry. "default" is auto-synthesized if we
+            // omitted it; declaring it explicitly here makes the
+            // registered set self-documenting. "writer" is a worked
+            // example of a specialized agent — system fragment focuses
+            // the model on long-form prose without changing tools.
+            agents = listOf(
+                AgentDeclaration(
+                    name = AgentDeclaration.DEFAULT_AGENT_NAME,
+                    displayName = "Assistant",
+                    description = "Default agent. Handles every turn unless the user " +
+                        "addresses another agent via the selector.",
+                ),
+                AgentDeclaration(
+                    name = "writer",
+                    displayName = "Writer",
+                    description = "Long-form prose: drafts, edits, rewrites. Same tools as " +
+                        "the default agent; system fragment biases toward clarity, voice, " +
+                        "and structural revision.",
+                    systemFragment = """
+                        You are now in writing mode. Bias toward long-form prose:
+                        drafts, edits, rewrites. When the user asks for a draft,
+                        produce a complete piece — don't stop at an outline unless
+                        they asked for one. When asked to edit, return the revised
+                        text inline; reserve commentary for a brief "Changes" section
+                        at the end. Voice and structure matter: prefer concrete nouns
+                        over abstract ones, keep paragraphs purposeful, vary sentence
+                        rhythm. Tools are still available, but reach for them only
+                        when factual lookup is required — most writing turns are
+                        pure-text round-trips.
+                    """.trimIndent(),
+                ),
+            ),
             // App-defined agent tools layered on top of the substrate's
             // built-in catalog. Closures over the Koin-resolved
             // ThemeRepository so the LLM can change palette / mode via
@@ -217,8 +248,7 @@ val appModule = module {
                     }
                 }
             },
-            )
-        }
+        )
     }
 
     // ─── ViewModels ────────────────────────────────────────────────────

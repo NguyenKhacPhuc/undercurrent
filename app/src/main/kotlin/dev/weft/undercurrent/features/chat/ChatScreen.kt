@@ -69,6 +69,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import dev.weft.compose.components.AgentOption
+import dev.weft.compose.components.AgentSelector
+import dev.weft.harness.agents.AgentDeclaration
 import dev.weft.harness.agents.routing.ModelTier
 import dev.weft.harness.cost.UsageStore
 import dev.weft.harness.reliability.CircuitBreaker
@@ -163,6 +166,26 @@ public fun ChatScreen(
      * is hidden — useful for hosts that don't want to surface the sheet.
      */
     addToChatConfig: AddToChatConfig? = null,
+    /**
+     * Registered user-addressable agents the runtime knows about.
+     * Single-element list (or empty) hides the [AgentSelector] —
+     * single-agent hosts pay zero screen-space cost. App-layer
+     * projection sourced from `runtime.agentDeclarations` via
+     * [AppStore].
+     */
+    agents: List<AgentOption> = emptyList(),
+    /**
+     * Name of the active agent. Passed to [AgentSelector] as the
+     * selected option; dispatched via [onSelectAgent] when the user
+     * picks a different one.
+     */
+    activeAgentName: String = AgentDeclaration.DEFAULT_AGENT_NAME,
+    /**
+     * Switch the active agent. Wired to `AppIntent.SelectAgent` in
+     * `App.kt`. The store rebuilds the [WeftAgent] under the new
+     * declaration's tool allowlist + system fragment + strategy.
+     */
+    onSelectAgent: (String) -> Unit = {},
 ) {
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
@@ -326,6 +349,15 @@ public fun ChatScreen(
             default = defaultTier,
             lastModelId = lastModelId,
             onSelect = { messageTierOverride = it },
+        )
+
+        // Multi-agent selector. Renders nothing when only one agent
+        // (or zero) is registered — single-agent hosts keep the
+        // original chat layout unchanged.
+        AgentSelector(
+            options = agents,
+            selectedName = activeAgentName,
+            onSelect = onSelectAgent,
         )
 
         InputRow(
@@ -623,6 +655,7 @@ private fun MessageBlock(msg: DisplayMessage, activePersonaName: String) {
         DisplayRole.ASSISTANT -> AssistantBlock(
             text = msg.text,
             personaName = activePersonaName,
+            agentName = msg.agentName,
         )
         DisplayRole.TOOL -> {
             val info = msg.tool
@@ -662,7 +695,7 @@ private fun UserCard(text: String) {
  * "document feel" pays off most.
  */
 @Composable
-private fun AssistantBlock(text: String, personaName: String) {
+private fun AssistantBlock(text: String, personaName: String, agentName: String?) {
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -683,6 +716,23 @@ private fun AssistantBlock(text: String, personaName: String) {
                     fontWeight = FontWeight.Normal,
                 ),
             )
+            // Agent name only when present AND non-default. The default
+            // agent ("Assistant") is the unswitched experience and would
+            // make every assistant turn carry an "ASSISTANT" tag — visual
+            // noise. Specialized agents (the "Writer" demo agent, host
+            // additions) get the tag so users can tell which agent
+            // produced each turn at a glance.
+            if (!agentName.isNullOrBlank() &&
+                agentName != AgentDeclaration.DEFAULT_AGENT_NAME
+            ) {
+                Text(
+                    text = "  ·  ${agentName.uppercase()}",
+                    style = typography.sansLabel.copy(
+                        color = colors.inkSubtle,
+                        fontWeight = FontWeight.Normal,
+                    ),
+                )
+            }
         }
         Spacer(Modifier.height(8.dp))
         MarkdownText(text = text)
@@ -1252,6 +1302,14 @@ public data class DisplayMessage(
      * the SDK starts forwarding them through StreamChunk.
      */
     val tool: ToolInfo? = null,
+    /**
+     * Which registered agent produced an assistant turn. Null for USER,
+     * TOOL, and EVENT roles, and for assistant turns that pre-date the
+     * multi-agent registry (loaded from conversation rows without an
+     * `agent_name` value). Non-null values render as a small label
+     * next to the assistant bubble's role tag.
+     */
+    val agentName: String? = null,
 ) {
     public companion object {
         private var counter = 0L
@@ -1259,8 +1317,8 @@ public data class DisplayMessage(
         public fun user(text: String): DisplayMessage =
             DisplayMessage(role = DisplayRole.USER, text = text)
 
-        public fun assistant(text: String): DisplayMessage =
-            DisplayMessage(role = DisplayRole.ASSISTANT, text = text)
+        public fun assistant(text: String, agentName: String? = null): DisplayMessage =
+            DisplayMessage(role = DisplayRole.ASSISTANT, text = text, agentName = agentName)
 
         public fun toolStart(name: String): DisplayMessage =
             DisplayMessage(

@@ -1,6 +1,7 @@
 package dev.weft.undercurrent.core
 
 import dev.weft.contracts.ProviderKind
+import dev.weft.harness.agents.AgentDeclaration
 import dev.weft.harness.agents.WeftAgent
 import dev.weft.harness.agents.routing.ModelTier
 import dev.weft.undercurrent.theme.ThemePrefs
@@ -53,6 +54,25 @@ internal data class AppState(
     val activeProvider: ProviderKind = ProviderKind.Anthropic,
     val defaultTier: ModelTier? = null,
     /**
+     * Name of the active [dev.weft.harness.agents.AgentDeclaration].
+     * Defaults to [AgentDeclaration.DEFAULT_AGENT_NAME] for the
+     * unswitched experience. Mutated via [AppIntent.SelectAgent] (the
+     * chat-surface selector) or by parsing an `@mention` from user
+     * input. Every [WeftAgent] rebuild routes through this — the
+     * runtime's per-agent tool allowlist + system fragment + strategy
+     * follow from the declaration this name resolves to.
+     */
+    val activeAgentName: String = AgentDeclaration.DEFAULT_AGENT_NAME,
+    /**
+     * User-addressable agents the host registered, in registration
+     * order. Populated once at boot from `runtime.agentDeclarations`
+     * and held here so the chat surface's [AgentSelector] can render
+     * without reaching back into the runtime. Empty/single-element
+     * lists hide the selector (see `AgentSelector` composable
+     * behavior).
+     */
+    val availableAgents: List<AgentSummary> = emptyList(),
+    /**
      * Set when a tool execution fails because Android denied a runtime
      * permission. The chat surface observes this and renders an
      * AlertDialog with an "Open Settings" deep-link button so the user
@@ -100,6 +120,19 @@ internal data class PermissionDialogState(
     val toolName: String,
     val friendlyTitle: String,
     val friendlyBody: String,
+)
+
+/**
+ * App-layer projection of [dev.weft.harness.agents.AgentDeclaration]
+ * for use by the chat-surface [AgentSelector] composable. We don't
+ * pass the SDK's declaration into the Compose layer because the
+ * `:android-compose-defaults` module deliberately doesn't depend on
+ * `:harness:agents`; this small DTO is the contract between the two.
+ */
+internal data class AgentSummary(
+    val name: String,
+    val displayName: String,
+    val description: String,
 )
 
 /**

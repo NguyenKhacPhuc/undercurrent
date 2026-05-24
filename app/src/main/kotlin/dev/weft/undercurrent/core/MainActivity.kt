@@ -598,6 +598,19 @@ private fun ChatRouteWithDrawer(
                 skills = store.skills,
                 usageStore = runtime.usageStore,
                 circuitBreaker = circuitBreaker,
+                // Multi-agent selector wiring. The state's AgentSummary
+                // list maps 1:1 to AgentSelector's AgentOption DTO; the
+                // composable hides itself when fewer than two agents are
+                // registered, so single-agent hosts pay nothing.
+                agents = state.availableAgents.map {
+                    dev.weft.compose.components.AgentOption(
+                        name = it.name,
+                        displayName = it.displayName,
+                        description = it.description,
+                    )
+                },
+                activeAgentName = state.activeAgentName,
+                onSelectAgent = { name -> store.dispatch(AppIntent.SelectAgent(name)) },
                 // Wire the "Add to Chat" sheet. Theme controls live inline
                 // (palette + mode) so we route the picker callbacks through
                 // the existing intents — same path Settings used before
