@@ -230,6 +230,13 @@ private fun App() {
                                 uiBridge.clearLastUpdate()
                                 store.dispatch(AppIntent.Navigate(Screen.Chat))
                             },
+                            // Pass the runtime's data-source registry so the
+                            // screen's BindingAwareRenderer can resolve
+                            // `$binding` sentinels in agent-emitted props
+                            // against live data — taps that fire $exec
+                            // mutations update the displayed numbers
+                            // without an LLM round-trip.
+                            dataSources = runtime.dataSources,
                         )
                     }
                     Screen.Traces -> TraceViewerScreen(

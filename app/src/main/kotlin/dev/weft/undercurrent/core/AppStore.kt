@@ -221,6 +221,25 @@ internal class AppStore(
      * single source of truth for that list.
      */
     suspend fun sendUiEvent(action: String, sourceLabel: String?, fieldValues: Map<String, String>) {
+        // Layer 2 fast-path: action bindings.
+        //
+        // The agent can emit a button's `action` prop as a JSON object
+        // with a `$exec` sentinel — e.g.
+        //   "action": "{\"$exec\":{\"tool\":\"data_upsert\",\"args\":{...}}}"
+        // — to bypass the LLM entirely on tap. We parse, dispatch directly
+        // to the named data tool, and return. The DataSource's `changes`
+        // flow fires after the mutation; Layer 3's binding-aware renderer
+        // picks that up to refresh display values.
+        //
+        // Falls through to the legacy LLM path on parse failure or
+        // unknown sentinel — opaque action strings ("add_4") keep working
+        // exactly as before.
+        val exec = parseExecAction(action)
+        if (exec != null) {
+            executeDirectAction(exec, sourceLabel)
+            return
+        }
+
         displayMessages += DisplayMessage.event(action, sourceLabel, fieldValues)
         val a = _state.value.agent ?: return
         val result = runCatching {
@@ -231,6 +250,85 @@ internal class AppStore(
             onFailure = { t ->
                 displayMessages += DisplayMessage.toolFail(
                     "ui_event",
+                    t.message ?: t::class.simpleName.orEmpty(),
+                )
+            },
+        )
+    }
+
+    /**
+     * Bundle the parsed `$exec` action carries from the agent's render
+     * tree into the dispatch path.
+     */
+    private data class ExecAction(val tool: String, val args: kotlinx.serialization.json.JsonObject)
+
+    /**
+     * Try to interpret [action] as a Layer-2 direct-execute payload.
+     * Returns null when it's not JSON, isn't an object, or doesn't have
+     * the `$exec` sentinel — the caller falls back to the LLM path.
+     */
+    private fun parseExecAction(action: String): ExecAction? {
+        val parsed = runCatching {
+            kotlinx.serialization.json.Json.parseToJsonElement(action)
+        }.getOrNull() ?: return null
+        val obj = parsed as? kotlinx.serialization.json.JsonObject ?: return null
+        val exec = obj["\$exec"] as? kotlinx.serialization.json.JsonObject ?: return null
+        val tool = (exec["tool"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+            ?: return null
+        val args = exec["args"] as? kotlinx.serialization.json.JsonObject
+            ?: kotlinx.serialization.json.JsonObject(emptyMap())
+        return ExecAction(tool = tool, args = args)
+    }
+
+    /**
+     * Dispatch a [Layer-2] action to the substrate's data tools without
+     * an LLM round-trip. v1 fast-path covers the three data-* tools —
+     * the ones tracker mini-apps overwhelmingly call from button taps.
+     *
+     * Anything outside this set silently falls back to the LLM path
+     * (we re-dispatch the original action). That keeps the surface
+     * conservative: agents can still emit arbitrary `$exec` sentinels;
+     * unrecognized ones just take the slow path instead of failing.
+     */
+    private suspend fun executeDirectAction(exec: ExecAction, sourceLabel: String?) {
+        // Cosmetic chat entry so the user sees what happened. We don't
+        // surface the raw JSON; the source label (button text) is
+        // enough context.
+        displayMessages += DisplayMessage.toolStart("${exec.tool}${sourceLabel?.let { " ($it)" } ?: ""}")
+
+        val result = runCatching {
+            withContext(Dispatchers.IO) {
+                when (exec.tool) {
+                    "data_upsert" -> {
+                        val name = (exec.args["source"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: error("data_upsert missing 'source'")
+                        val record = exec.args["record"] as? kotlinx.serialization.json.JsonObject
+                            ?: error("data_upsert missing 'record'")
+                        val source = runtime.dataSources.get(name)
+                            ?: error("Unknown data source '$name'")
+                        source.upsert(record)
+                        "Saved to $name"
+                    }
+                    "data_delete" -> {
+                        val name = (exec.args["source"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: error("data_delete missing 'source'")
+                        val id = (exec.args["id"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: error("data_delete missing 'id'")
+                        val source = runtime.dataSources.get(name)
+                            ?: error("Unknown data source '$name'")
+                        val removed = source.delete(id)
+                        if (removed) "Removed from $name" else "Nothing to remove"
+                    }
+                    else -> error("\$exec tool '${exec.tool}' is not in the Layer-2 fast-path. " +
+                        "Supported: data_upsert, data_delete.")
+                }
+            }
+        }
+        result.fold(
+            onSuccess = { msg -> displayMessages += DisplayMessage.toolDone(msg) },
+            onFailure = { t ->
+                displayMessages += DisplayMessage.toolFail(
+                    exec.tool,
                     t.message ?: t::class.simpleName.orEmpty(),
                 )
             },

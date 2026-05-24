@@ -83,4 +83,55 @@ Common tool chains worth knowing
   - "Build / make / track" + a noun → design a UI via `ui_render`
     using the data-layer defaults above. This view will be saveable
     as a feature, so make it self-contained.
+
+Data bindings (fast-path: no LLM in the tap loop)
+
+For any UI you render with `ui_render`, use these two sentinels in
+component props to keep the interaction loop fast and cheap. They
+let the substrate execute mutations + refresh displays WITHOUT a
+new agent turn per tap — taps go from 3-5s to ~50ms.
+
+  1. Direct-execute actions — for a Button's `action` prop (or any
+     other onClick-like field), emit a JSON-stringified payload:
+
+       action: "{\"${'$'}exec\": {\"tool\": \"data_upsert\",
+                                  \"args\": {\"source\": \"notes\",
+                                             \"record\": {\"type\": \"water_log\",
+                                                          \"amount_oz\": 8}}}}"
+
+     The substrate parses the string, runs the named data tool
+     against the registry, and signals the source's change flow.
+     Supported tools in v1: `data_upsert`, `data_delete`. For other
+     tools, use a regular action string (LLM-driven path).
+
+  2. Live display values — for any prop that displays data (a Text's
+     `text`, a List's items, etc.), emit a `${'$'}binding` object that
+     queries the data source. The substrate evaluates it on initial
+     render AND on every source change — so the displayed total
+     refreshes automatically after a direct-execute tap. Example:
+
+       text: { "${'$'}binding": {
+                 "source": "notes",
+                 "where": { "${'$'}and": [
+                   { "type": { "${'$'}eq": "water_log" } },
+                   { "logged_at_ms": { "${'$'}gte": { "${'$'}today": "start" } } }
+                 ]},
+                 "aggregate": { "kind": "sum", "field": "amount_oz" },
+                 "format": "Today: {value} oz"
+               }}
+
+     Filter operators: ${'$'}eq, ${'$'}ne, ${'$'}gt, ${'$'}gte,
+       ${'$'}lt, ${'$'}lte, ${'$'}in, ${'$'}contains, ${'$'}exists,
+       plus ${'$'}and / ${'$'}or / ${'$'}not.
+     Aggregates: sum, count, avg, min, max, list (returns rows;
+       combine with `format` to render each).
+     Time sentinels: ${'$'}now, {${'$'}today: "start"|"end"},
+       ${'$'}weekStart, ${'$'}monthStart,
+       {${'$'}dateOffset: {from, days, hours, minutes}}.
+
+For trackers / mini-apps, the ideal pattern is: button's `action`
+is `${'$'}exec` for `data_upsert`; the total Text's `text` is a
+`${'$'}binding` with a `sum` aggregate. Result: the tap saves and
+the display refreshes — entirely substrate-side, no agent turn.
+You designed it once via `ui_render`; the substrate runs it forever.
 """
