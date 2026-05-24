@@ -4,6 +4,9 @@ import dev.weft.contracts.DataSource
 import dev.weft.contracts.QueryResult
 import dev.weft.contracts.SortSpec
 import dev.weft.contracts.UpsertResult
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -29,6 +32,9 @@ public class InMemoryDataSource(
     private val byId = mutableMapOf<String, JsonObject>()
     private var nextId = 1L
 
+    private val _changes = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 8)
+    override val changes: SharedFlow<Unit> = _changes.asSharedFlow()
+
     init {
         seed.forEach { record ->
             val id = record["id"]?.jsonPrimitive?.content ?: nextId().toString()
@@ -51,7 +57,7 @@ public class InMemoryDataSource(
 
     override suspend fun upsert(record: JsonObject, idempotencyKey: String?): UpsertResult {
         val explicitId = record["id"]?.jsonPrimitive?.content
-        return if (explicitId != null && byId.containsKey(explicitId)) {
+        val result = if (explicitId != null && byId.containsKey(explicitId)) {
             byId[explicitId] = ensureId(record, explicitId)
             UpsertResult(id = explicitId, created = false)
         } else {
@@ -59,9 +65,15 @@ public class InMemoryDataSource(
             byId[id] = ensureId(record, id)
             UpsertResult(id = id, created = true)
         }
+        _changes.tryEmit(Unit)
+        return result
     }
 
-    override suspend fun delete(id: String): Boolean = byId.remove(id) != null
+    override suspend fun delete(id: String): Boolean {
+        val removed = byId.remove(id) != null
+        if (removed) _changes.tryEmit(Unit)
+        return removed
+    }
 
     public fun snapshot(): Map<String, JsonObject> = byId.toMap()
 

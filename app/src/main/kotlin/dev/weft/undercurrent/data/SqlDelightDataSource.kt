@@ -10,6 +10,9 @@ import dev.weft.contracts.SortSpec
 import dev.weft.contracts.UpsertResult
 import dev.weft.undercurrent.db.AppDatabase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -45,6 +48,16 @@ internal class SqlDelightDataSource(
 ) : DataSource {
 
     private val json = Json { ignoreUnknownKeys = true }
+
+    // Local change signal — emitted after every successful upsert /
+    // delete on THIS source. The buffer absorbs bursty mutations (e.g.
+    // tracker UI firing several taps in quick succession) so no
+    // subscriber misses an event even when collecting from a slow
+    // dispatcher. Each `SqlDelightDataSource` instance has its own
+    // flow because subscribers binding to `name = "notes"` shouldn't
+    // wake up for a mutation on `tasks`.
+    private val _changes = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 8)
+    override val changes: SharedFlow<Unit> = _changes.asSharedFlow()
 
     override suspend fun query(
         filter: JsonObject,
@@ -116,12 +129,18 @@ internal class SqlDelightDataSource(
                 created_at_ms = now,
             )
         }
+        // Signal AFTER the durable write commits so subscribers can
+        // trust an immediate re-query to reflect the change.
+        _changes.tryEmit(Unit)
         UpsertResult(id = id, created = created)
     }
 
     override suspend fun delete(id: String): Boolean = withContext(Dispatchers.IO) {
         val existed = database.recordsQueries.selectById(id).executeAsOneOrNull() != null
-        if (existed) database.recordsQueries.deleteById(id)
+        if (existed) {
+            database.recordsQueries.deleteById(id)
+            _changes.tryEmit(Unit)
+        }
         existed
     }
 
