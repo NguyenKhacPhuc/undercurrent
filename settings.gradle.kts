@@ -48,6 +48,8 @@ includeBuild("../weft") {
             .using(project(":android-compose"))
         substitute(module("dev.weft:weft-android-compose-defaults"))
             .using(project(":android-compose-defaults"))
+        substitute(module("dev.weft:weft-oauth"))
+            .using(project(":oauth"))
         // Opt-in debug overlay. Apps usually pull this in via
         // `debugImplementation` so the FAB doesn't ship in release builds.
         substitute(module("dev.weft.devtools:weft-android-devtools"))

@@ -35,11 +35,9 @@ import dev.weft.undercurrent.theme.UndercurrentTheme
 @Composable
 internal fun SettingsScreen(
     activeProvider: ProviderKind,
-    paletteDisplayName: String,
-    modeDisplayName: String,
     onShowProvider: () -> Unit,
-    onShowAppearance: () -> Unit,
     onShowUsage: () -> Unit,
+    onShowIntegrations: () -> Unit,
     onBack: () -> Unit,
 ) {
     ScreenScaffold(title = "Settings", onBack = onBack) {
@@ -55,18 +53,22 @@ internal fun SettingsScreen(
                     onClick = onShowProvider,
                 )
             }
-            item {
-                SettingsLinkRow(
-                    label = "Appearance",
-                    subtitle = "$paletteDisplayName · $modeDisplayName",
-                    onClick = onShowAppearance,
-                )
-            }
+            // Appearance row removed — theme controls now live in the
+            // "Add to Chat" bottom sheet (chat input → `+`). The
+            // Appearance screen is still in the nav graph for backward
+            // compatibility but has no in-app entry point.
             item {
                 SettingsLinkRow(
                     label = "Usage",
                     subtitle = "Tokens and cost",
                     onClick = onShowUsage,
+                )
+            }
+            item {
+                SettingsLinkRow(
+                    label = "Integrations",
+                    subtitle = "Connect third-party services",
+                    onClick = onShowIntegrations,
                 )
             }
         }

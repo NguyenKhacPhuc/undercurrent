@@ -153,6 +153,16 @@ public fun ChatScreen(
     skills: SkillRegistry? = null,
     usageStore: UsageStore? = null,
     circuitBreaker: CircuitBreaker? = null,
+    /**
+     * State + callbacks for the "Add to Chat" bottom sheet — opened from
+     * the `+` button on the input row. Theme controls live inline in the
+     * sheet (was previously in Settings → Appearance). Style + Connectors
+     * are drill-downs to the existing Personas / Integrations screens.
+     *
+     * Nullable as a group: if [addToChatConfig] is null, the `+` button
+     * is hidden — useful for hosts that don't want to surface the sheet.
+     */
+    addToChatConfig: AddToChatConfig? = null,
 ) {
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
@@ -161,6 +171,7 @@ public fun ChatScreen(
 
     var inputText by remember { mutableStateOf("") }
     var quickActionsOpen by remember { mutableStateOf(false) }
+    var addToChatOpen by remember { mutableStateOf(false) }
     val inputFocus = remember { FocusRequester() }
     // Per-message tier override. null = "Auto" → falls back to defaultTier
     // (or router heuristic if defaultTier is also null). Reset to null
@@ -305,6 +316,8 @@ public fun ChatScreen(
             skills = skills,
             quickActionsOpen = quickActionsOpen,
             onQuickActionsToggle = { quickActionsOpen = it },
+            showAddToChat = addToChatConfig != null,
+            onOpenAddToChat = { addToChatOpen = true },
             onSkillSelected = { skillName ->
                 inputText = "/$skillName "
                 inputFocus.requestFocus()
@@ -329,8 +342,65 @@ public fun ChatScreen(
             },
             onMicRelease = { voice.stop() },
         )
+
+        // "Add to Chat" bottom sheet — opened from the `+` button on the
+        // input row. Theme picker lives inline here; Choose style and
+        // Connectors are drill-downs that close the sheet first to keep
+        // the back-button semantics clean (sheet → screen → back → chat).
+        val sheetCfg = addToChatConfig
+        if (addToChatOpen && sheetCfg != null) {
+            AddToChatSheet(
+                activePersonaLabel = activePersonaName,
+                activePalette = sheetCfg.activePalette,
+                activeMode = sheetCfg.activeMode,
+                connectedIntegrationsCount = sheetCfg.connectedIntegrationsCount,
+                onSelectPalette = sheetCfg.onSelectPalette,
+                onSelectMode = sheetCfg.onSelectMode,
+                onShowPersonas = sheetCfg.onShowPersonas,
+                onShowIntegrations = sheetCfg.onShowIntegrations,
+                onDismiss = { addToChatOpen = false },
+            )
+        }
     }
 }
+
+/**
+ * Bundle of state + callbacks the host passes in to wire the "Add to
+ * Chat" bottom sheet. Grouping them keeps [ChatScreen]'s signature from
+ * ballooning further — and lets a host that doesn't want the sheet pass
+ * `null` to suppress the `+` button entirely.
+ */
+public class AddToChatConfig internal constructor(
+    internal val activePalette: dev.weft.undercurrent.theme.AppPalette,
+    internal val activeMode: dev.weft.undercurrent.theme.ThemeMode,
+    internal val connectedIntegrationsCount: Int,
+    internal val onSelectPalette: (dev.weft.undercurrent.theme.AppPalette) -> Unit,
+    internal val onSelectMode: (dev.weft.undercurrent.theme.ThemeMode) -> Unit,
+    internal val onShowPersonas: () -> Unit,
+    internal val onShowIntegrations: () -> Unit,
+)
+
+/**
+ * Internal helper for hosts inside this module — composes an
+ * [AddToChatConfig] without exposing the constructor publicly.
+ */
+internal fun addToChatConfig(
+    activePalette: dev.weft.undercurrent.theme.AppPalette,
+    activeMode: dev.weft.undercurrent.theme.ThemeMode,
+    connectedIntegrationsCount: Int,
+    onSelectPalette: (dev.weft.undercurrent.theme.AppPalette) -> Unit,
+    onSelectMode: (dev.weft.undercurrent.theme.ThemeMode) -> Unit,
+    onShowPersonas: () -> Unit,
+    onShowIntegrations: () -> Unit,
+): AddToChatConfig = AddToChatConfig(
+    activePalette = activePalette,
+    activeMode = activeMode,
+    connectedIntegrationsCount = connectedIntegrationsCount,
+    onSelectPalette = onSelectPalette,
+    onSelectMode = onSelectMode,
+    onShowPersonas = onShowPersonas,
+    onShowIntegrations = onShowIntegrations,
+)
 
 // ─────────────────────────────────────────────────────────────────────────
 // Header
@@ -711,6 +781,9 @@ private fun InputRow(
     skills: SkillRegistry?,
     quickActionsOpen: Boolean,
     onQuickActionsToggle: (Boolean) -> Unit,
+    /** When true, render the `+` button that opens the "Add to Chat" sheet. */
+    showAddToChat: Boolean,
+    onOpenAddToChat: () -> Unit,
     onSkillSelected: (String) -> Unit,
     onSend: () -> Unit,
     voiceAvailable: Boolean,
@@ -735,6 +808,13 @@ private fun InputRow(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Leading "+" — opens the "Add to Chat" bottom sheet. Hidden
+        // when the host didn't supply an AddToChatConfig (lets embedders
+        // suppress the feature without forking the input row).
+        if (showAddToChat) {
+            AddToChatButton(onClick = onOpenAddToChat, enabled = !inFlight)
+            Spacer(Modifier.width(6.dp))
+        }
         // Custom BasicTextField so we can fully theme the border + placeholder
         // — Material's OutlinedTextField bakes in chrome (label, indicator
         // line, focus halo) that fights the minimal document aesthetic.
@@ -939,6 +1019,37 @@ private fun ModelTier.shortName(): String = when (this) {
     ModelTier.Standard -> "Standard"
     ModelTier.Vision -> "Vision"
     ModelTier.Heavy -> "Heavy"
+}
+
+/**
+ * Leading `+` button on the input row — opens the "Add to Chat" sheet.
+ *
+ * Uses the same 44dp size + medium-rounded surface as [MicButton] so the
+ * two flanking affordances on the input row read as a matched pair (left:
+ * add, right: mic). Disabled while a turn is in flight to discourage
+ * mid-stream config tweaks (which would surface mid-response — confusing).
+ */
+@Composable
+private fun AddToChatButton(onClick: () -> Unit, enabled: Boolean) {
+    val colors = UndercurrentTheme.colors
+    val typography = UndercurrentTheme.typography
+    val shapes = UndercurrentTheme.shapes
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(shapes.medium)
+            .background(colors.surface)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "+",
+            style = typography.sansHeader.copy(
+                color = if (enabled) colors.ink else colors.inkSubtle,
+                fontSize = 24.sp,
+            ),
+        )
+    }
 }
 
 /**

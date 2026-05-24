@@ -95,6 +95,9 @@ internal sealed interface AppIntent {
      */
     data object CompleteOnboarding : AppIntent
 
+    /** Dismiss the "permission needed" AlertDialog without opening Settings. */
+    data object DismissPermissionDialog : AppIntent
+
     // Persona intents (SetActivePersona / AddCustomPersona /
     // DeleteCustomPersona) moved to dev.weft.undercurrent.features.personas.PersonasViewModel
     // — the Personas screen was their only caller, and PersonasViewModel

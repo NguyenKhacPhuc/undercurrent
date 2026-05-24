@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.weft.android.WeftRuntime
@@ -34,6 +35,8 @@ import dev.weft.compose.WeftOverlayHost
 import dev.weft.compose.WeftUi
 import dev.weft.compose.components.AgentRenderedTreeScreen
 import dev.weft.contracts.ProviderKind
+import dev.weft.oauth.OAuthCallbackChannel
+import dev.weft.undercurrent.features.integrations.IntegrationsScreen
 import dev.weft.undercurrent.features.personas.PersonaRepository
 import dev.weft.undercurrent.features.providers.keyAlias
 import dev.weft.undercurrent.theme.ThemeMode
@@ -51,6 +54,7 @@ import dev.weft.undercurrent.features.settings.SettingsScreen
 import dev.weft.undercurrent.features.traces.TraceViewerScreen
 import dev.weft.undercurrent.features.usage.UsageScreen
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.get
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import kotlinx.coroutines.withContext
@@ -66,7 +70,30 @@ class MainActivity : FragmentActivity() {
         // this call lifts the app into edge-to-edge mode explicitly. Inset
         // handling happens at the Compose root via [safeDrawingPadding].
         enableEdgeToEdge()
+        // OAuth deep-link routing — cold-start case. If the OS launched us
+        // via the `undercurrent://oauth/…` redirect, feed the URI into the
+        // substrate's callback channel so the suspending `authorize()` call
+        // resumes. Warm-start path is in `onNewIntent` below. See
+        // [OAuthCallbackChannel] for the channel's role in the OAuth flow.
+        intent?.data?.let { uri ->
+            get<OAuthCallbackChannel>().submit(uri)
+        }
         setContent { App() }
+    }
+
+    /**
+     * Warm-start OAuth redirect. Manifest declares MainActivity with
+     * `launchMode="singleTop"`, so a deep link delivered while the app is
+     * already running fires onNewIntent instead of recreating us. The OS
+     * also routes back here when the user finishes the Custom Tabs flow
+     * — Custom Tabs preserves the source activity, so the redirect URI
+     * lands on whatever activity opened the tab.
+     */
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        intent.data?.let { uri ->
+            get<OAuthCallbackChannel>().submit(uri)
+        }
     }
 }
 
@@ -82,6 +109,10 @@ private fun App() {
     val store: AppStore = koinViewModel()
     val state by store.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    // Captured here so the Integrations screen's `onRestart` can call the
+    // process-restart helper without prop-drilling the Activity reference
+    // through the navigation tree.
+    val context = LocalContext.current
     val systemDark = isSystemInDarkTheme()
     val darkMode = when (state.themePrefs.mode) {
         ThemeMode.Auto -> systemDark
@@ -210,12 +241,27 @@ private fun App() {
                     )
                     Screen.Settings -> SettingsScreen(
                         activeProvider = state.activeProvider,
-                        paletteDisplayName = state.themePrefs.palette.displayName,
-                        modeDisplayName = state.themePrefs.mode.displayName,
                         onShowProvider = { store.dispatch(AppIntent.Navigate(Screen.Providers)) },
-                        onShowAppearance = { store.dispatch(AppIntent.Navigate(Screen.Appearance)) },
                         onShowUsage = { store.dispatch(AppIntent.Navigate(Screen.Usage)) },
+                        onShowIntegrations = { store.dispatch(AppIntent.Navigate(Screen.Integrations)) },
                         onBack = { store.dispatch(AppIntent.Navigate(Screen.Chat)) },
+                    )
+                    Screen.Integrations -> IntegrationsScreen(
+                        // Integrations is reachable from two places:
+                        // Settings (drill-down) and the Chat input's
+                        // "Add to Chat" sheet (Connectors row). Route
+                        // back to wherever we came from instead of a
+                        // fixed target. `state.previousScreen` is set
+                        // by `AppIntent.Navigate` in the reducer.
+                        onBack = {
+                            store.dispatch(AppIntent.Navigate(state.previousScreen))
+                        },
+                        // Process-level restart so the WeftRuntime rebuilds
+                        // with the new MCP server list. The substrate
+                        // doesn't support hot-swapping MCP servers — see
+                        // the README of the integrations feature for the
+                        // restart-to-apply rationale.
+                        onRestart = { restartProcess(context) },
                     )
                     Screen.Providers -> {
                         // Observe the model-overrides StateFlow so the
@@ -301,6 +347,25 @@ private fun App() {
                     hostState = snackbarHostState,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
+
+                // "Permission needed" dialog — surfaces when an agent
+                // tool call fails because Android denied a runtime
+                // permission (typically the user hit "Don't allow"
+                // twice, so the system stops showing its own prompt).
+                // Rendered at the App root so it appears over any
+                // screen the user is on when the tool fired.
+                state.pendingPermissionDialog?.let { pending ->
+                    PermissionNeededDialog(
+                        state = pending,
+                        onOpenSettings = {
+                            openAppDetailsSettings(context)
+                            store.dispatch(AppIntent.DismissPermissionDialog)
+                        },
+                        onDismiss = {
+                            store.dispatch(AppIntent.DismissPermissionDialog)
+                        },
+                    )
+                }
                 } // close Box
             }
         }
@@ -394,6 +459,15 @@ private fun ChatRouteWithDrawer(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             NotificationsPermissionBanner()
+            // Connected-integrations count for the "Add to Chat" sheet's
+            // Connectors row. Pulled from IntegrationsRepository so the
+            // trailing label is always live ("1 connected" / "None").
+            // No restart-on-change concerns here — the count is a UI hint,
+            // not something the agent reads.
+            val integrationsRepo: dev.weft.undercurrent.features.integrations.IntegrationsRepository =
+                koinInject()
+            val enabledIntegrationIds by integrationsRepo.enabledIdsFlow
+                .collectAsState(initial = emptySet())
             ChatScreen(
                 displayMessages = store.displayMessages,
                 inFlight = state.chat.inFlight,
@@ -412,9 +486,102 @@ private fun ChatRouteWithDrawer(
                 skills = store.skills,
                 usageStore = runtime.usageStore,
                 circuitBreaker = circuitBreaker,
+                // Wire the "Add to Chat" sheet. Theme controls live inline
+                // (palette + mode) so we route the picker callbacks through
+                // the existing intents — same path Settings used before
+                // Appearance was removed from there. Style + Connectors
+                // navigate to their dedicated screens.
+                addToChatConfig = dev.weft.undercurrent.features.chat.addToChatConfig(
+                    activePalette = state.themePrefs.palette,
+                    activeMode = state.themePrefs.mode,
+                    connectedIntegrationsCount = enabledIntegrationIds.size,
+                    onSelectPalette = { p -> store.dispatch(AppIntent.SetPalette(p)) },
+                    onSelectMode = { m -> store.dispatch(AppIntent.SetThemeMode(m)) },
+                    onShowPersonas = {
+                        store.dispatch(AppIntent.Navigate(Screen.Personas))
+                    },
+                    onShowIntegrations = {
+                        store.dispatch(AppIntent.Navigate(Screen.Integrations))
+                    },
+                ),
             )
         }
     }
+}
+
+/**
+ * AlertDialog surfaced when a tool fails because of a denied runtime
+ * permission. Two outcomes: tap **Open Settings** to deep-link into the
+ * system app-details page (where the user can flip the permission
+ * toggle), or **Cancel** to dismiss. Either path clears the pending
+ * dialog state via [AppIntent.DismissPermissionDialog].
+ */
+@Composable
+private fun PermissionNeededDialog(
+    state: PermissionDialogState,
+    onOpenSettings: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { androidx.compose.material3.Text(state.friendlyTitle) },
+        text = { androidx.compose.material3.Text(state.friendlyBody) },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onOpenSettings) {
+                androidx.compose.material3.Text("Open Settings")
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                androidx.compose.material3.Text("Not now")
+            }
+        },
+    )
+}
+
+/**
+ * Deep-link into the system's "App info" page for this app. From there
+ * the user can tap "Permissions" → flip the relevant switch.
+ *
+ * This is the only path back to GRANTED once Android has marked a
+ * permission as "denied forever" (the user picked "Don't allow" twice
+ * on Android 11+, or "Never ask again" on older releases) — the
+ * standard runtime-permission API silently returns DENIED without
+ * showing the system dialog.
+ */
+private fun openAppDetailsSettings(context: android.content.Context) {
+    val intent = android.content.Intent(
+        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+    ).apply {
+        data = android.net.Uri.fromParts("package", context.packageName, null)
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    runCatching { context.startActivity(intent) }
+}
+
+/**
+ * Process-level restart. Called from Integrations after a Connect or
+ * Disconnect: the WeftRuntime's tool registry is fixed at construction
+ * time, so the only way to pick up new MCP tools is to rebuild the
+ * runtime — which we do by killing the process and letting the OS
+ * resurrect us via the launcher intent.
+ *
+ * The launch intent uses `FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK`
+ * so the back stack starts clean (no chance of resuming into the old,
+ * stale runtime). `Runtime.getRuntime().exit(0)` terminates the process
+ * after the new task is queued; the OS then starts a fresh process to
+ * service the queued launch.
+ */
+private fun restartProcess(context: android.content.Context) {
+    val pm = context.packageManager
+    val launchIntent = pm.getLaunchIntentForPackage(context.packageName)
+        ?: return
+    launchIntent.addFlags(
+        android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+            android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK,
+    )
+    context.startActivity(launchIntent)
+    Runtime.getRuntime().exit(0)
 }
 
 /**

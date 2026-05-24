@@ -84,6 +84,10 @@ dependencies {
     // holder. Skip this dep if you're rolling your own palette / surfaces.
     implementation("dev.weft:weft-android-compose-defaults")
 
+    // OAuth 2.0 + PKCE client. Used by the Integrations feature to
+    // connect MCP servers behind per-user auth (Linear, etc.).
+    implementation("dev.weft:weft-oauth")
+
     // Compose BOM — controls every unversioned Compose dep below. The SDK's
     // `:android-compose` `api()`-exports the same BOM, but BOM platform
     // constraints don't always transit across composite-build edges cleanly.

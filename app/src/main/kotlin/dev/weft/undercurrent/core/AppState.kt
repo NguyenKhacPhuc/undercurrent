@@ -18,6 +18,16 @@ import dev.weft.undercurrent.theme.ThemePrefs
  */
 internal data class AppState(
     val screen: Screen,
+    /**
+     * The screen we navigated *from* on the most recent [AppIntent.Navigate].
+     * Used by screens reachable from more than one entry point (e.g. the
+     * Integrations screen, which is opened from both Settings and the
+     * chat input's "Add to Chat" sheet) so their back buttons land on the
+     * right place. Single-step only — not a full back stack. If we grow
+     * past one level of dynamic back-routing, replace this with a
+     * `List<Screen>` and push/pop in the reducer.
+     */
+    val previousScreen: Screen = Screen.Chat,
     val agent: WeftAgent?,
     val chat: ChatStatus = ChatStatus(),
     /**
@@ -42,6 +52,18 @@ internal data class AppState(
      */
     val activeProvider: ProviderKind = ProviderKind.Anthropic,
     val defaultTier: ModelTier? = null,
+    /**
+     * Set when a tool execution fails because Android denied a runtime
+     * permission. The chat surface observes this and renders an
+     * AlertDialog with an "Open Settings" deep-link button so the user
+     * can grant the permission and try again — the system-prompt path
+     * doesn't help once the user has hit "Don't allow" twice, because
+     * Android stops showing the prompt entirely.
+     *
+     * Null when no dialog is pending. Cleared via
+     * [AppIntent.DismissPermissionDialog].
+     */
+    val pendingPermissionDialog: PermissionDialogState? = null,
 ) {
     companion object {
         fun initial(): AppState = AppState(
@@ -55,6 +77,30 @@ internal data class AppState(
         )
     }
 }
+
+/**
+ * Payload for the "permission needed" dialog surfaced when a tool fails
+ * because the user has denied (often "forever") a runtime permission.
+ *
+ * The substrate throws [dev.weft.tools.PermissionDeniedException] from
+ * the tool's permission gate, which the agent loop converts to a
+ * [dev.weft.harness.agents.streaming.StreamChunk.ToolFailed] with the
+ * stock message format `"Permission denied for {tool}: {PERM_NAME(s)}."`.
+ * [AppStore] parses that message into this state instead of letting
+ * the cryptic stack-trace-shaped text land in the chat as a tool-fail
+ * bubble.
+ *
+ * @property toolName the substrate tool that failed (e.g. `location_current`).
+ * @property friendlyTitle short human-readable title for the dialog —
+ *   e.g. "Location access needed". Mapped from [toolName] in AppStore.
+ * @property friendlyBody one or two sentences explaining what the
+ *   permission unlocks and inviting the user to open Settings.
+ */
+internal data class PermissionDialogState(
+    val toolName: String,
+    val friendlyTitle: String,
+    val friendlyBody: String,
+)
 
 /**
  * Chat-surface UI state. Drives the "Thinking…" indicator, the disabled
@@ -90,4 +136,10 @@ internal sealed interface Screen {
     data object Appearance : Screen
     data object Usage : Screen
     data object Personas : Screen
+    /**
+     * Settings → Integrations sub-screen. Lists supported third-party
+     * integrations (Linear, Notion, …); Connect kicks off the
+     * substrate's OAuth + MCP wiring.
+     */
+    data object Integrations : Screen
 }

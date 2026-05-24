@@ -25,6 +25,7 @@ import dev.weft.harness.agents.routing.ModelTier
 import dev.weft.harness.agents.routing.ModelPool
 import dev.weft.harness.skills.SkillRegistry
 import dev.weft.harness.skills.SkillResult
+import dev.weft.undercurrent.features.navigation.NavigationChannel
 import dev.weft.undercurrent.features.onboarding.OnboardingRepository
 import dev.weft.undercurrent.features.providers.ModelPrefsRepository
 import dev.weft.undercurrent.features.providers.ProviderPrefsRepository
@@ -72,6 +73,14 @@ internal class AppStore(
     // next agent turn without AppStore needing the reference.
     private val providerPrefsRepo: ProviderPrefsRepository,
     val modelPrefsRepo: ModelPrefsRepository,
+    /**
+     * Singleton channel that agent navigation tools (`open_personas`,
+     * `open_integrations`, …) emit into. We collect from it here so a
+     * tool fire routes through the same Navigate intent + reducer path
+     * as a UI tap — keeps [AppState.previousScreen] accurate even when
+     * the entry point is the model.
+     */
+    private val navigationChannel: NavigationChannel,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppState.initial())
@@ -98,6 +107,14 @@ internal class AppStore(
                 _state.update { it.copy(activeProvider = provider) }
             }
         }
+        // Agent-initiated navigation — `open_personas` etc. emit Screen
+        // values that route through Navigate so the reducer's
+        // previousScreen capture stays consistent with UI taps.
+        viewModelScope.launch {
+            navigationChannel.requests.collect { screen ->
+                dispatch(AppIntent.Navigate(screen))
+            }
+        }
         viewModelScope.launch {
             providerPrefsRepo.defaultTier.collect { tier ->
                 _state.update { it.copy(defaultTier = tier) }
@@ -121,7 +138,18 @@ internal class AppStore(
         when (intent) {
             AppIntent.Resume -> viewModelScope.launch { handleResume() }
             is AppIntent.SubmitKey -> viewModelScope.launch { handleSubmitKey(intent.key) }
-            is AppIntent.Navigate -> _state.update { it.copy(screen = intent.screen) }
+            is AppIntent.Navigate -> _state.update { current ->
+                // Capture the outgoing screen as `previousScreen` so the
+                // landing screen's back button can route home to the right
+                // place. We skip the capture when re-navigating to the
+                // same screen (no-op) so a stray Navigate(currentScreen)
+                // doesn't poison the back target.
+                if (current.screen == intent.screen) current
+                else current.copy(
+                    screen = intent.screen,
+                    previousScreen = current.screen,
+                )
+            }
             is AppIntent.SelectConversation -> viewModelScope.launch { handleSelectConversation(intent.id) }
             AppIntent.NewChat -> viewModelScope.launch { handleNewChat() }
             AppIntent.DeleteCurrentConversation -> viewModelScope.launch {
@@ -140,6 +168,9 @@ internal class AppStore(
             AppIntent.CompleteOnboarding -> viewModelScope.launch {
                 onboardingRepo.markCompleted()
                 _state.update { it.copy(screen = Screen.KeyPaste) }
+            }
+            AppIntent.DismissPermissionDialog -> _state.update {
+                it.copy(pendingPermissionDialog = null)
             }
             is AppIntent.SetProvider -> viewModelScope.launch { handleSetProvider(intent.provider) }
             is AppIntent.SaveProviderKey -> viewModelScope.launch {
@@ -524,8 +555,28 @@ internal class AppStore(
                         displayMessages += DisplayMessage.toolStart(chunk.toolName)
                     is StreamChunk.ToolCompleted ->
                         displayMessages += DisplayMessage.toolDone(chunk.toolName)
-                    is StreamChunk.ToolFailed ->
-                        displayMessages += DisplayMessage.toolFail(chunk.toolName, chunk.message)
+                    is StreamChunk.ToolFailed -> {
+                        // Special-case the substrate's PermissionDenied
+                        // exception. The agent emits "Permission denied
+                        // for <tool>: <PERM>." as the message — when we
+                        // see that shape, pull the permission dialog up
+                        // instead of leaving a cryptic toolFail bubble
+                        // in chat (which the user can't recover from
+                        // without knowing they need to dig into Android
+                        // Settings). We still drop a one-line bubble so
+                        // the conversation transcript explains why the
+                        // tool didn't run.
+                        val dialog = parsePermissionFailure(chunk.toolName, chunk.message)
+                        if (dialog != null) {
+                            displayMessages += DisplayMessage.toolFail(
+                                chunk.toolName,
+                                "Needs permission — see dialog.",
+                            )
+                            _state.update { it.copy(pendingPermissionDialog = dialog) }
+                        } else {
+                            displayMessages += DisplayMessage.toolFail(chunk.toolName, chunk.message)
+                        }
+                    }
                     is StreamChunk.Done -> {
                         // If no TextDelta arrived (rare — the response ended with
                         // a tool call only, no follow-up text) append the final
@@ -584,6 +635,70 @@ internal class AppStore(
         if (update is UIUpdate.RenderTree && _state.value.screen !is Screen.RenderedTree) {
             _state.update { it.copy(screen = Screen.RenderedTree) }
         }
+    }
+
+    /**
+     * Recognize the substrate's permission-denied message shape and
+     * translate to a user-friendly [PermissionDialogState].
+     *
+     * Two layers of wrapping to look through:
+     *   - Substrate's [dev.weft.tools.PermissionDeniedException] sets
+     *     its message to `"Permission denied for {tool}: {PERMS}."`
+     *   - The agent loop then wraps that in
+     *     `"Tool with name '{tool}' failed to execute due to the error: {message}"`
+     *     before it reaches us as `StreamChunk.ToolFailed.message`.
+     *
+     * So we match on `contains("Permission denied")` rather than the
+     * prefix — the original exception message is buried inside the
+     * agent-loop wrapper. If a future substrate refactor changes the
+     * "Permission denied" wording we'll regress to a normal tool-fail
+     * bubble, which is the pre-fix behavior. Safe degradation.
+     *
+     * Returns null when the message doesn't look like a permission
+     * failure; caller falls back to the standard toolFail rendering.
+     */
+    private fun parsePermissionFailure(toolName: String, message: String): PermissionDialogState? {
+        val marker = "Permission denied"
+        if (!message.contains(marker)) return null
+        // Walk past "Permission denied for {tool}: " to get the
+        // comma-separated permission name list. Trim trailing
+        // punctuation (the exception's '.' plus any extra glyph the
+        // agent wrapper might append, e.g. '!').
+        val tail = message.substringAfter(marker)
+        val perms = tail.substringAfter(": ", missingDelimiterValue = "")
+            .trimEnd('.', '!', ' ', '"', '\'')
+        return PermissionDialogState(
+            toolName = toolName,
+            friendlyTitle = friendlyTitleForTool(toolName),
+            friendlyBody = friendlyBodyForTool(toolName, perms),
+        )
+    }
+
+    private fun friendlyTitleForTool(toolName: String): String = when {
+        toolName.startsWith("location_") -> "Location access needed"
+        toolName.startsWith("calendar_") -> "Calendar access needed"
+        toolName.startsWith("contacts_") -> "Contacts access needed"
+        toolName.startsWith("camera_") -> "Camera access needed"
+        toolName == "notify_show" || toolName.startsWith("schedule_") -> "Notification permission needed"
+        toolName.startsWith("bluetooth_") -> "Bluetooth permission needed"
+        toolName.startsWith("audio_") -> "Microphone access needed"
+        else -> "Permission needed"
+    }
+
+    private fun friendlyBodyForTool(toolName: String, perms: String): String {
+        val action = when {
+            toolName.startsWith("location_") -> "find your location"
+            toolName.startsWith("calendar_") -> "read or update your calendar"
+            toolName.startsWith("contacts_") -> "look up your contacts"
+            toolName.startsWith("camera_") -> "take a photo"
+            toolName == "notify_show" -> "post notifications"
+            toolName.startsWith("schedule_") -> "schedule a notification"
+            toolName.startsWith("bluetooth_") -> "see your paired Bluetooth devices"
+            toolName.startsWith("audio_") -> "record audio"
+            else -> "use this capability ($perms)"
+        }
+        return "Undercurrent needs permission to $action. Android won't show the system prompt again — " +
+            "open Settings to grant the permission, then try once more."
     }
 
     private suspend fun hydrateMessages(convId: String) {
