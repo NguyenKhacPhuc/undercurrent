@@ -24,6 +24,15 @@ rootProject.name = "undercurrent"
 
 // Composite build wiring — the Weft SDK lives in a sibling directory.
 //
+// Source: https://github.com/NguyenKhacPhuc/android-harness
+// Clone it next to this repo, keeping the directory name `weft`:
+//
+//   git clone https://github.com/NguyenKhacPhuc/android-harness.git weft
+//
+// Expected on-disk layout:
+//   <parent>/weft/           (Weft SDK — the cloned android-harness repo)
+//   <parent>/undercurrent/   (this app)
+//
 // Why the `dependencySubstitution` block: composite-build auto-substitution
 // matches by `group:project.name`, where `project.name` is the *directory*
 // name (`:android` → "android"). Each Weft module's `archivesName.set(...)`
@@ -31,10 +40,6 @@ rootProject.name = "undercurrent"
 // Gradle's internal composite-build resolver doesn't honor that. So we
 // declare explicit substitutions that map the friendly coordinates to the
 // real project paths.
-//
-// Layout expected:
-//   ~/Documents/mas/mobile-agent-substrate/  (Weft SDK repo)
-//   ~/Documents/mas/undercurrent/            (this app repo)
 includeBuild("../weft") {
     dependencySubstitution {
         substitute(module("dev.weft:weft-android"))
