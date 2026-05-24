@@ -142,4 +142,10 @@ internal sealed interface Screen {
      * substrate's OAuth + MCP wiring.
      */
     data object Integrations : Screen
+    /**
+     * Drawer → My features. Management view for user-saved prompt
+     * shortcuts (rename / edit / delete). Invocation lives in the
+     * chat input's Add-to-Chat sheet, not here.
+     */
+    data object SavedFeatures : Screen
 }

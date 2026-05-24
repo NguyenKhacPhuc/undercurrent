@@ -98,6 +98,21 @@ internal sealed interface AppIntent {
     /** Dismiss the "permission needed" AlertDialog without opening Settings. */
     data object DismissPermissionDialog : AppIntent
 
+    /**
+     * Invoke a saved feature — dispatches the feature's trigger prompt
+     * through the agent loop and (separately) caches whatever
+     * `ui_render` payload the agent emits so the next invocation can
+     * show the UI instantly. Persists usage count too.
+     *
+     * The cached-tree seeding happens in the UI layer (MainActivity)
+     * because that's where the [dev.weft.compose.ComposeUiBridge]
+     * lives. AppStore only handles the agent-turn side.
+     */
+    data class InvokeSavedFeature(
+        val featureId: String,
+        val triggerPrompt: String,
+    ) : AppIntent
+
     // Persona intents (SetActivePersona / AddCustomPersona /
     // DeleteCustomPersona) moved to dev.weft.undercurrent.features.personas.PersonasViewModel
     // — the Personas screen was their only caller, and PersonasViewModel

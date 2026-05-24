@@ -172,6 +172,10 @@ public fun ChatScreen(
     var inputText by remember { mutableStateOf("") }
     var quickActionsOpen by remember { mutableStateOf(false) }
     var addToChatOpen by remember { mutableStateOf(false) }
+    // When non-null, the "Save as feature" dialog is open with this
+    // string pre-filled as the trigger prompt. Set by the affordance
+    // on an assistant message; cleared on save/cancel.
+    var saveFeaturePromptDraft by remember { mutableStateOf<String?>(null) }
     val inputFocus = remember { FocusRequester() }
     // Per-message tier override. null = "Auto" → falls back to defaultTier
     // (or router heuristic if defaultTier is also null). Reset to null
@@ -266,9 +270,25 @@ public fun ChatScreen(
                         // has arrived.
                         BlinkingCursor()
                     } else {
+                        // "Save as feature" is only available when the
+                        // host wired the saved-features system AND we can
+                        // find a preceding user message to use as the
+                        // trigger prompt (no source = nothing to save).
+                        val precedingUserPrompt = remember(displayMessages, idx) {
+                            (idx - 1 downTo 0)
+                                .asSequence()
+                                .map { displayMessages[it] }
+                                .firstOrNull { it.role == DisplayRole.USER }
+                                ?.text
+                                ?.takeIf { it.isNotBlank() }
+                        }
+                        val canSaveFeature = addToChatConfig != null && precedingUserPrompt != null
                         AssistantActions(
                             onCopy = { clipboard.setText(AnnotatedString(msg.text)) },
                             onRegenerate = if (isLast) onRegenerate else null,
+                            onSaveAsFeature = if (canSaveFeature) {
+                                { saveFeaturePromptDraft = precedingUserPrompt }
+                            } else null,
                         )
                     }
                 }
@@ -354,11 +374,32 @@ public fun ChatScreen(
                 activePalette = sheetCfg.activePalette,
                 activeMode = sheetCfg.activeMode,
                 connectedIntegrationsCount = sheetCfg.connectedIntegrationsCount,
+                savedFeatures = sheetCfg.savedFeatures,
                 onSelectPalette = sheetCfg.onSelectPalette,
                 onSelectMode = sheetCfg.onSelectMode,
                 onShowPersonas = sheetCfg.onShowPersonas,
                 onShowIntegrations = sheetCfg.onShowIntegrations,
+                onShowSavedFeatures = sheetCfg.onShowSavedFeatures,
+                onInvokeFeature = sheetCfg.onInvokeFeature,
                 onDismiss = { addToChatOpen = false },
+            )
+        }
+
+        // "Save as feature" dialog — opened from the affordance under
+        // an assistant message. The draft holds the trigger prompt
+        // (the preceding user message). Save dispatches through the
+        // host-supplied callback so the repo write happens in the
+        // ViewModel layer, not here.
+        val saveDraft = saveFeaturePromptDraft
+        if (saveDraft != null && sheetCfg != null) {
+            dev.weft.undercurrent.features.savedfeatures.SaveAsFeatureDialog(
+                initial = null,
+                suggestedPrompt = saveDraft,
+                onDismiss = { saveFeaturePromptDraft = null },
+                onSave = { name, emoji, prompt ->
+                    saveFeaturePromptDraft = null
+                    sheetCfg.onAddSavedFeature(name, emoji, prompt)
+                },
             )
         }
     }
@@ -374,10 +415,14 @@ public class AddToChatConfig internal constructor(
     internal val activePalette: dev.weft.undercurrent.theme.AppPalette,
     internal val activeMode: dev.weft.undercurrent.theme.ThemeMode,
     internal val connectedIntegrationsCount: Int,
+    internal val savedFeatures: List<dev.weft.undercurrent.features.savedfeatures.SavedFeature>,
     internal val onSelectPalette: (dev.weft.undercurrent.theme.AppPalette) -> Unit,
     internal val onSelectMode: (dev.weft.undercurrent.theme.ThemeMode) -> Unit,
     internal val onShowPersonas: () -> Unit,
     internal val onShowIntegrations: () -> Unit,
+    internal val onShowSavedFeatures: () -> Unit,
+    internal val onInvokeFeature: (dev.weft.undercurrent.features.savedfeatures.SavedFeature) -> Unit,
+    internal val onAddSavedFeature: (name: String, emoji: String, triggerPrompt: String) -> Unit,
 )
 
 /**
@@ -388,18 +433,26 @@ internal fun addToChatConfig(
     activePalette: dev.weft.undercurrent.theme.AppPalette,
     activeMode: dev.weft.undercurrent.theme.ThemeMode,
     connectedIntegrationsCount: Int,
+    savedFeatures: List<dev.weft.undercurrent.features.savedfeatures.SavedFeature>,
     onSelectPalette: (dev.weft.undercurrent.theme.AppPalette) -> Unit,
     onSelectMode: (dev.weft.undercurrent.theme.ThemeMode) -> Unit,
     onShowPersonas: () -> Unit,
     onShowIntegrations: () -> Unit,
+    onShowSavedFeatures: () -> Unit,
+    onInvokeFeature: (dev.weft.undercurrent.features.savedfeatures.SavedFeature) -> Unit,
+    onAddSavedFeature: (name: String, emoji: String, triggerPrompt: String) -> Unit,
 ): AddToChatConfig = AddToChatConfig(
     activePalette = activePalette,
     activeMode = activeMode,
     connectedIntegrationsCount = connectedIntegrationsCount,
+    savedFeatures = savedFeatures,
     onSelectPalette = onSelectPalette,
     onSelectMode = onSelectMode,
     onShowPersonas = onShowPersonas,
     onShowIntegrations = onShowIntegrations,
+    onShowSavedFeatures = onShowSavedFeatures,
+    onInvokeFeature = onInvokeFeature,
+    onAddSavedFeature = onAddSavedFeature,
 )
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -1111,14 +1164,23 @@ private fun MicButton(
 }
 
 /**
- * Small Copy / Regenerate actions rendered under an assistant message.
- * [onRegenerate] is null on every message except the final one — only the
- * latest reply can be regenerated.
+ * Small Copy / Regenerate / Save-as-feature actions rendered under an
+ * assistant message.
+ *
+ * [onRegenerate] is null on every message except the final one — only
+ * the latest reply can be regenerated.
+ *
+ * [onSaveAsFeature] is null when the host hasn't wired the saved-
+ * features system, OR when the message can't be turned into a feature
+ * (e.g. no preceding user message — the trigger prompt source). The
+ * host decides; we just render the affordance when the lambda is
+ * non-null.
  */
 @Composable
 private fun AssistantActions(
     onCopy: () -> Unit,
     onRegenerate: (() -> Unit)?,
+    onSaveAsFeature: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier.padding(top = 4.dp),
@@ -1127,6 +1189,9 @@ private fun AssistantActions(
         ActionLink(label = "Copy", onClick = onCopy)
         if (onRegenerate != null) {
             ActionLink(label = "Regenerate", onClick = onRegenerate)
+        }
+        if (onSaveAsFeature != null) {
+            ActionLink(label = "Save as feature", onClick = onSaveAsFeature)
         }
     }
 }

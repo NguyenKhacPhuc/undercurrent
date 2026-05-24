@@ -326,6 +326,10 @@ private fun App() {
                     Screen.Personas -> PersonasScreen(
                         onBack = { store.dispatch(AppIntent.Navigate(Screen.Chat)) },
                     )
+                    Screen.SavedFeatures ->
+                        dev.weft.undercurrent.features.savedfeatures.SavedFeaturesScreen(
+                            onBack = { store.dispatch(AppIntent.Navigate(Screen.Chat)) },
+                        )
                     Screen.Conversations -> {
                         val a = state.agent
                         if (a == null) {
@@ -392,6 +396,11 @@ private fun ChatRouteWithDrawer(
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
+    // The bridge is the canonical Compose-side surface where agent
+    // ui_render payloads land. Pulled in here so the saved-feature
+    // invoke path can seed `lastUpdate` with the cached tree for the
+    // "instant on tap" UX — without waiting for the agent's refresh.
+    val uiBridge: ComposeUiBridge = koinInject()
     val conversations by remember { runtime.conversationStore.search("") }
         .collectAsState(initial = emptyList())
 
@@ -451,6 +460,9 @@ private fun ChatRouteWithDrawer(
                     closeAnd { store.dispatch(AppIntent.Navigate(Screen.Conversations)) }
                 },
                 onShowPersonas = { closeAnd { store.dispatch(AppIntent.Navigate(Screen.Personas)) } },
+                onShowSavedFeatures = {
+                    closeAnd { store.dispatch(AppIntent.Navigate(Screen.SavedFeatures)) }
+                },
                 onShowMemories = { closeAnd { store.dispatch(AppIntent.Navigate(Screen.Memories)) } },
                 onShowTraces = { closeAnd { store.dispatch(AppIntent.Navigate(Screen.Traces)) } },
                 onShowSettings = { closeAnd { store.dispatch(AppIntent.Navigate(Screen.Settings)) } },
@@ -468,6 +480,17 @@ private fun ChatRouteWithDrawer(
                 koinInject()
             val enabledIntegrationIds by integrationsRepo.enabledIdsFlow
                 .collectAsState(initial = emptySet())
+
+            // Saved features for the "Add to Chat" chip row +
+            // post-reply "Save as feature" affordance. Process-scoped
+            // repo collected as state here so the sheet always reflects
+            // the latest list (newly-saved features show up immediately
+            // on the next open). Invocation goes through the existing
+            // SendChat intent — feels indistinguishable from typing.
+            val savedFeaturesRepo: dev.weft.undercurrent.features.savedfeatures.SavedFeaturesRepository =
+                koinInject()
+            val savedFeatures by savedFeaturesRepo.features.collectAsState()
+            val savedFeaturesScope = rememberCoroutineScope()
             ChatScreen(
                 displayMessages = store.displayMessages,
                 inFlight = state.chat.inFlight,
@@ -495,6 +518,7 @@ private fun ChatRouteWithDrawer(
                     activePalette = state.themePrefs.palette,
                     activeMode = state.themePrefs.mode,
                     connectedIntegrationsCount = enabledIntegrationIds.size,
+                    savedFeatures = savedFeatures,
                     onSelectPalette = { p -> store.dispatch(AppIntent.SetPalette(p)) },
                     onSelectMode = { m -> store.dispatch(AppIntent.SetThemeMode(m)) },
                     onShowPersonas = {
@@ -502,6 +526,56 @@ private fun ChatRouteWithDrawer(
                     },
                     onShowIntegrations = {
                         store.dispatch(AppIntent.Navigate(Screen.Integrations))
+                    },
+                    onShowSavedFeatures = {
+                        store.dispatch(AppIntent.Navigate(Screen.SavedFeatures))
+                    },
+                    // Invocation: if the feature has a cached UI tree
+                    // from a previous run, seed the Compose UI bridge
+                    // synchronously + navigate to the rendered-tree
+                    // screen so the user sees the mini-app instantly.
+                    // THEN dispatch InvokeSavedFeature so the agent
+                    // re-runs the trigger prompt to refresh whatever
+                    // data the UI reads — capturing the new tree onto
+                    // the feature happens in AppStore.
+                    //
+                    // Features without a cached tree fall through to
+                    // the normal chat flow: prompt visible in history,
+                    // ui_render (if the agent emits one) auto-navigates
+                    // via the existing handleUiBridgeUpdate path.
+                    onInvokeFeature = { feature ->
+                        val cached = feature.lastRenderTreeJson
+                        if (cached != null) {
+                            // `lastUpdate` has `private set` on the bridge,
+                            // so we seed via the public suspend `emit(...)`
+                            // — same path the substrate's `ui_render` tool
+                            // uses internally. Launch on the activity scope
+                            // because the lambda itself isn't suspend.
+                            coroutineScope.launch {
+                                runCatching {
+                                    val tree = kotlinx.serialization.json.Json
+                                        .decodeFromString(
+                                            dev.weft.contracts.ComponentNode.serializer(),
+                                            cached,
+                                        )
+                                    uiBridge.emit(
+                                        dev.weft.contracts.UIUpdate.RenderTree(tree),
+                                    )
+                                }
+                            }
+                            store.dispatch(AppIntent.Navigate(Screen.RenderedTree))
+                        }
+                        store.dispatch(
+                            AppIntent.InvokeSavedFeature(
+                                featureId = feature.id,
+                                triggerPrompt = feature.triggerPrompt,
+                            ),
+                        )
+                    },
+                    onAddSavedFeature = { name, emoji, prompt ->
+                        savedFeaturesScope.launch {
+                            savedFeaturesRepo.add(name, emoji, prompt)
+                        }
                     },
                 ),
             )

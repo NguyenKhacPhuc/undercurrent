@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -14,11 +15,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,7 +30,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
 import androidx.compose.ui.unit.sp
+import dev.weft.undercurrent.features.savedfeatures.SavedFeature
 import dev.weft.undercurrent.theme.AppPalette
 import dev.weft.undercurrent.theme.ThemeMode
 import dev.weft.undercurrent.theme.UndercurrentTheme
@@ -58,10 +64,13 @@ internal fun AddToChatSheet(
     activePalette: AppPalette,
     activeMode: ThemeMode,
     connectedIntegrationsCount: Int,
+    savedFeatures: List<SavedFeature>,
     onSelectPalette: (AppPalette) -> Unit,
     onSelectMode: (ThemeMode) -> Unit,
     onShowPersonas: () -> Unit,
     onShowIntegrations: () -> Unit,
+    onShowSavedFeatures: () -> Unit,
+    onInvokeFeature: (SavedFeature) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = UndercurrentTheme.colors
@@ -102,6 +111,24 @@ internal fun AddToChatSheet(
             }
             Spacer(Modifier.height(20.dp))
 
+            // ─── Saved features chip row ────────────────────────────────
+            // Most-used-first horizontal scroll. Only rendered when the
+            // user has at least one saved feature — empty state would
+            // just be visual noise above the more important rows.
+            if (savedFeatures.isNotEmpty()) {
+                SavedFeaturesChipRow(
+                    features = savedFeatures,
+                    onInvoke = { feature ->
+                        // Close the sheet first; the actual dispatch
+                        // happens via the host's onInvokeFeature
+                        // (ChatScreen → AppStore via SendChat).
+                        closeThen { onInvokeFeature(feature) }
+                    },
+                    onShowAll = { closeThen(onShowSavedFeatures) },
+                )
+                Spacer(Modifier.height(20.dp))
+            }
+
             // ─── Row: Choose style ──────────────────────────────────────
             SheetLinkRow(
                 label = "Choose style",
@@ -136,6 +163,106 @@ internal fun AddToChatSheet(
             )
             Spacer(Modifier.height(8.dp))
         }
+    }
+}
+
+/**
+ * Horizontal-scroll row of saved-feature chips at the top of the
+ * sheet. Each chip = one saved prompt the user can fire with one tap.
+ * Sorted most-used-first so muscle memory works ("the leftmost chip
+ * is the one I always tap"). A trailing "Manage" pill drills into the
+ * full management screen.
+ */
+@Composable
+private fun SavedFeaturesChipRow(
+    features: List<SavedFeature>,
+    onInvoke: (SavedFeature) -> Unit,
+    onShowAll: () -> Unit,
+) {
+    val colors = UndercurrentTheme.colors
+    val typography = UndercurrentTheme.typography
+
+    // Sort happens here (vs. in the repo) because "most used" is a
+    // view-time concern — the repo persists creation order, and other
+    // screens (the management list) want stable alphabetical / by-
+    // recent ordering instead.
+    val sorted = remember(features) {
+        features.sortedWith(
+            compareByDescending<SavedFeature> { it.usageCount }
+                .thenByDescending { it.createdAtEpochMs },
+        )
+    }
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 14.dp, end = 14.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "MY FEATURES",
+                style = typography.sansLabel.copy(color = colors.inkSubtle),
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = "Manage",
+                style = typography.sansLabel.copy(
+                    color = colors.ink,
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                modifier = Modifier
+                    .clip(UndercurrentTheme.shapes.xsmall)
+                    .clickable(onClick = onShowAll)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(sorted, key = { it.id }) { feature ->
+                FeatureChip(feature = feature, onClick = { onInvoke(feature) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeatureChip(
+    feature: SavedFeature,
+    onClick: () -> Unit,
+) {
+    val colors = UndercurrentTheme.colors
+    val typography = UndercurrentTheme.typography
+    val shapes = UndercurrentTheme.shapes
+    Row(
+        modifier = Modifier
+            .clip(shapes.medium)
+            .background(colors.surface)
+            .border(width = 1.dp, color = colors.divider, shape = shapes.medium)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = feature.emoji,
+            style = typography.serifBody.copy(
+                color = colors.ink,
+                fontSize = 18.sp,
+            ),
+        )
+        Spacer(Modifier.size(8.dp))
+        Text(
+            text = feature.name,
+            style = typography.serifBody.copy(
+                color = colors.ink,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+            ),
+            maxLines = 1,
+        )
     }
 }
 

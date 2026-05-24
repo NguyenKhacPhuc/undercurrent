@@ -13,7 +13,9 @@ import dev.weft.osbridge.keyvault.AndroidKeyVault
 import dev.weft.security.NetworkPolicy
 import dev.weft.undercurrent.core.ASSISTANT_APP_PREAMBLE
 import dev.weft.undercurrent.core.AppStore
-import dev.weft.undercurrent.data.InMemoryDataSource
+import dev.weft.undercurrent.data.AppDatabaseFactory
+import dev.weft.undercurrent.data.SqlDelightDataSource
+import dev.weft.undercurrent.db.AppDatabase
 import dev.weft.undercurrent.features.integrations.Integration
 import dev.weft.undercurrent.features.integrations.Integrations
 import dev.weft.undercurrent.features.integrations.IntegrationsRepository
@@ -27,6 +29,8 @@ import dev.weft.undercurrent.features.navigation.OpenPersonasTool
 import dev.weft.undercurrent.features.navigation.OpenUsageTool
 import dev.weft.undercurrent.features.onboarding.OnboardingRepository
 import dev.weft.undercurrent.features.personas.PersonaRepository
+import dev.weft.undercurrent.features.savedfeatures.SavedFeaturesRepository
+import dev.weft.undercurrent.features.savedfeatures.SavedFeaturesViewModel
 import dev.weft.undercurrent.features.providers.ModelPrefsRepository
 import dev.weft.undercurrent.features.providers.ProviderPrefsRepository
 import dev.weft.undercurrent.features.theme.SetThemeModeTool
@@ -68,6 +72,10 @@ val appModule = module {
     single { ProviderPrefsRepository(androidContext()) }
     single { ModelPrefsRepository(androidContext()) }
     single { IntegrationsRepository(androidContext()) }
+    single { SavedFeaturesRepository(androidContext()) }
+    // SQLDelight-backed records database. Shared across every
+    // SqlDelightDataSource instance (one per source name).
+    single<AppDatabase> { AppDatabaseFactory.create(androidContext()) }
     // Process-scoped pipe for agent-initiated navigation. AppStore
     // collects from it; navigation tools emit into it. One singleton
     // is enough because all tools share the same destination space.
@@ -135,8 +143,16 @@ val appModule = module {
                 appPromptPreamble = ASSISTANT_APP_PREAMBLE,
                 mcpServers = mcpServers,
                 dataSources = listOf(
-                    InMemoryDataSource(name = "notes"),
-                    InMemoryDataSource(name = "tasks"),
+                    // SQLDelight-backed — survives app restarts. Both
+                    // sources share the same `records` table; the
+                    // `source` column separates them. The agent treats
+                    // these as named buckets (notes for free-form
+                    // entries, tasks for to-do items); novel tracker
+                    // categories (water log, mood, …) ride inside
+                    // `notes` distinguished by a `type` field in the
+                    // record payload.
+                    SqlDelightDataSource(name = "notes", database = get()),
+                    SqlDelightDataSource(name = "tasks", database = get()),
                 ),
                 networkPolicy = NetworkPolicy.OPEN,
                 componentMetadata = get<WeftUi>().components,
@@ -205,6 +221,7 @@ val appModule = module {
             providerPrefsRepo = get(),
             modelPrefsRepo = get(),
             navigationChannel = get(),
+            savedFeaturesRepo = get(),
         )
     }
     // Per-screen VMs — own the dependency for one surface so the screen
@@ -213,6 +230,7 @@ val appModule = module {
     // the screen composes under (in practice: MainActivity), so they
     // share lifetime with the activity.
     viewModel { PersonasViewModel(repo = get()) }
+    viewModel { SavedFeaturesViewModel(repo = get()) }
     viewModel { UsageViewModel(runtime = get()) }
     viewModel { MemoriesViewModel(runtime = get()) }
     viewModel { TracesViewModel(runtime = get()) }

@@ -30,6 +30,7 @@ import dev.weft.undercurrent.features.onboarding.OnboardingRepository
 import dev.weft.undercurrent.features.providers.ModelPrefsRepository
 import dev.weft.undercurrent.features.providers.ProviderPrefsRepository
 import dev.weft.undercurrent.features.providers.keyAlias
+import dev.weft.undercurrent.features.savedfeatures.SavedFeaturesRepository
 import dev.weft.undercurrent.theme.ThemeRepository
 import dev.weft.undercurrent.features.chat.DisplayMessage
 import dev.weft.undercurrent.features.chat.DisplayRole
@@ -81,6 +82,13 @@ internal class AppStore(
      * the entry point is the model.
      */
     private val navigationChannel: NavigationChannel,
+    /**
+     * Saved-feature persistence. AppStore reads it when capturing
+     * agent-rendered UI for the currently-invoked feature; the
+     * read-side (feature list, name, prompt) lives on
+     * `SavedFeaturesViewModel`.
+     */
+    private val savedFeaturesRepo: SavedFeaturesRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppState.initial())
@@ -128,6 +136,21 @@ internal class AppStore(
     val displayMessages: SnapshotStateList<DisplayMessage> = mutableStateListOf()
 
     /**
+     * When non-null, the agent is currently running a turn triggered
+     * by a [dev.weft.undercurrent.features.savedfeatures.SavedFeature]
+     * invocation, and any `UIUpdate.RenderTree` that arrives during
+     * this window gets cached onto that feature for instant replay
+     * on the next tap. Cleared when the stream completes (success or
+     * failure) so a follow-up user message doesn't accidentally
+     * overwrite the feature's UI cache.
+     *
+     * Held outside [AppState] because it's transient invocation
+     * scaffolding — not something the UI needs to react to.
+     */
+    @Volatile
+    private var activeFeatureInvocationId: String? = null
+
+    /**
      * Skill registry, derived from the runtime. Exposed read-only so
      * [ui.ChatScreen] can render the `[+]` quick-actions menu. Resolution
      * (the fast-path that bypasses the LLM) happens inside [handleSendChat].
@@ -171,6 +194,9 @@ internal class AppStore(
             }
             AppIntent.DismissPermissionDialog -> _state.update {
                 it.copy(pendingPermissionDialog = null)
+            }
+            is AppIntent.InvokeSavedFeature -> viewModelScope.launch {
+                handleInvokeSavedFeature(intent.featureId, intent.triggerPrompt)
             }
             is AppIntent.SetProvider -> viewModelScope.launch { handleSetProvider(intent.provider) }
             is AppIntent.SaveProviderKey -> viewModelScope.launch {
@@ -634,6 +660,53 @@ internal class AppStore(
     private fun handleUiBridgeUpdate(update: UIUpdate?) {
         if (update is UIUpdate.RenderTree && _state.value.screen !is Screen.RenderedTree) {
             _state.update { it.copy(screen = Screen.RenderedTree) }
+        }
+        // Capture the rendered tree onto the currently-invoked saved
+        // feature so the next tap can seed it instantly. Only fires
+        // during a feature-invoked turn; normal chat ui_renders pass
+        // through untouched.
+        if (update is UIUpdate.RenderTree) {
+            val featureId = activeFeatureInvocationId
+            if (featureId != null) {
+                val treeJson = TRACE_JSON.encodeToString(
+                    dev.weft.contracts.ComponentNode.serializer(),
+                    update.tree,
+                )
+                viewModelScope.launch {
+                    runCatching { savedFeaturesRepo.setCachedRender(featureId, treeJson) }
+                }
+            }
+        }
+    }
+
+    /**
+     * Run a saved-feature invocation through the agent turn. The
+     * trigger prompt is dispatched as if the user had typed it — the
+     * agent picks whatever tools it needs (data_query, ui_render,
+     * etc.) and the resulting render tree gets cached on the feature
+     * via [handleUiBridgeUpdate].
+     *
+     * The cached-tree seeding (the "instant on tap" half) happens in
+     * MainActivity before this intent dispatches, because that's
+     * where the ComposeUiBridge is wired. By the time we're here,
+     * the bridge already shows the cached tree; this method just
+     * triggers the refresh.
+     */
+    private suspend fun handleInvokeSavedFeature(featureId: String, triggerPrompt: String) {
+        activeFeatureInvocationId = featureId
+        try {
+            // Usage bump happens here (not in the UI callback) so it
+            // only records when the invocation actually runs — if
+            // the agent is null (no key), we skip the bump.
+            savedFeaturesRepo.recordUsage(featureId)
+            handleSendChat(triggerPrompt, modelTier = null)
+        } finally {
+            // Clear so a follow-up user message in the same chat
+            // doesn't overwrite the feature's cached UI. The clear
+            // is in `finally` because handleSendChat may throw (or
+            // be cancelled by viewModelScope teardown) and we still
+            // want the state reset.
+            activeFeatureInvocationId = null
         }
     }
 

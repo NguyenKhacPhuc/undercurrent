@@ -1,0 +1,58 @@
+-- Generic record table backing the substrate's data_* tools (notes,
+-- tasks, and any future structured collections). One row per record;
+-- the payload is a JSON object so adding fields needs no migration.
+--
+-- We deliberately don't shard per-source into separate tables. Sources
+-- are user-defined product slots (notes, tasks, …), not schemas — and
+-- the agent treats them as buckets where the JSON shape varies per
+-- entry (a "note" can be a free-form thought or a water-log entry
+-- with a `type` field). One table + a source column keeps that
+-- generality.
+--
+-- Filtering by JSON keys (e.g. WHERE type = 'water_log') is handled
+-- in Kotlin after a per-source SELECT. SQLite's JSON1 extension would
+-- let us push that down, but for the dataset sizes a personal app
+-- sees (hundreds of entries per source, tops), the Kotlin pass is
+-- fine and avoids the JSON1 portability concerns.
+
+CREATE TABLE records (
+    id TEXT NOT NULL PRIMARY KEY,
+    source TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    created_at_ms INTEGER NOT NULL
+);
+
+CREATE INDEX records_by_source ON records(source);
+CREATE INDEX records_by_created_at ON records(created_at_ms DESC);
+
+-- Read all rows for one source, newest first. The DataSource impl
+-- filters + paginates in Kotlin after this fetch.
+selectBySource:
+SELECT id, source, payload_json, created_at_ms
+FROM records
+WHERE source = :source
+ORDER BY created_at_ms DESC;
+
+-- Single-row read by id. Used by DataSource.delete() to confirm a
+-- delete actually removed something (returns true/false).
+selectById:
+SELECT id, source, payload_json, created_at_ms
+FROM records
+WHERE id = :id;
+
+insertRecord:
+INSERT INTO records(id, source, payload_json, created_at_ms)
+VALUES (?, ?, ?, ?);
+
+-- Update existing row. Used by upsert when idempotencyKey matches an
+-- existing id.
+updateRecord:
+UPDATE records
+SET payload_json = :payload_json, created_at_ms = :created_at_ms
+WHERE id = :id;
+
+deleteById:
+DELETE FROM records WHERE id = :id;
+
+deleteBySource:
+DELETE FROM records WHERE source = :source;

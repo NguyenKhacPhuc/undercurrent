@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.sqldelight)
 }
 
 android {
@@ -65,6 +66,18 @@ kotlin {
     }
 }
 
+// SQLDelight — generates the typed query API from src/main/sqldelight/.
+// One database for app-owned data (Records). Substrate has its own
+// (WeftDatabase) for conversations / memory / traces / usage — they
+// stay separate so app and SDK schemas can evolve independently.
+sqldelight {
+    databases {
+        create("AppDatabase") {
+            packageName.set("dev.weft.undercurrent.db")
+        }
+    }
+}
+
 // Weft SDK — resolved via composite build (`includeBuild(...)` in the root
 // `settings.gradle.kts`). The coordinates below match each SDK module's
 // declared `group:archivesName`; Gradle substitutes them with the in-tree
@@ -113,6 +126,12 @@ dependencies {
     // Persists theme prefs (palette + Auto/Light/Dark) across launches.
     // Flow-based, async, no synchronous read on the main thread.
     implementation(libs.androidx.datastore.preferences)
+
+    // SQLDelight Android driver — backs the persistent DataSource used
+    // by the substrate's data_* tools (notes, tasks, and any tracker
+    // data the agent persists). Schema in src/main/sqldelight/.
+    implementation(libs.sqldelight.android.driver)
+    implementation(libs.sqldelight.coroutines.extensions)
 
     // Koin DI — replaces hand-wired UndercurrentApp lateinit fields +
     // the old AppStore.factory(...) call site. See di/AppModule.kt.
