@@ -9,11 +9,23 @@ compileSdk = "35"
 minSdk = "26"
 targetSdk = "35"
 
-# Compose (Android)
+# Compose Multiplatform — drives commonMain UI for both Android +
+# iOS targets. Used together with the kotlin-compose compiler
+# plugin. Version chosen for Kotlin 2.2.21 compatibility.
+composeMultiplatform = "1.7.3"
+
+# Compose (Android-specific BOM) — only used by `:androidApp` for any
+# Android-only Compose APIs not exposed by CMP (predictive back,
+# activity-compose). KMP modules pull Compose entirely through the
+# CMP plugin above, not this BOM.
 composeBom = "2025.01.00"
 activityCompose = "1.9.3"
 lifecycle = "2.8.7"
 datastore = "1.1.1"
+
+# Koin DI — KMP-capable. `koin-core` + `koin-compose` (multiplatform)
+# in commonMain; `koin-android` + `koin-androidx-compose` (Android-
+# only) in androidMain. Aligned via a single `koin` version.
 koin = "4.0.0"
 
 # Coroutines & Serialization
@@ -23,21 +35,20 @@ serializationJson = "1.7.3"
 # Networking & HTTP
 ktor = "3.0.1"
 
-# Koog (JetBrains agent framework) — see docs/adr/ADR-006-koog-adoption.md
+# Koog (JetBrains agent framework). Pinned to whatever the Weft
+# SDK ships against; updates need to land in Weft first.
 koog = "0.8.0"
 
 # Storage
 sqldelight = "2.0.2"
-# Bundled SQLite for Android — guarantees FTS5 + modern SQLite features
-# regardless of the device's framework version. See SubstrateDatabaseFactory.
-# Osmerion is the maintained fork of requery/sqlite-android, hosted on
-# Maven Central with full ABI coverage (arm64-v8a, armeabi-v7a, x86, x86_64).
+# Bundled SQLite for Android — guarantees FTS5 + modern SQLite
+# features regardless of device. Osmerion fork of requery/sqlite-android.
 osmerionSqlite = "0.3.0"
 
 # AndroidX Security (Keystore + EncryptedSharedPreferences)
 androidxSecurity = "1.1.0-alpha06"
 
-# Coil — image loading for the Image component
+# Coil — image loading. Use the multiplatform Coil for CMP modules.
 coil = "2.7.0"
 
 # Logging
@@ -52,14 +63,23 @@ turbine = "1.2.0"
 detekt = "1.23.7"
 
 [libraries]
-# kotlinx
+# kotlinx — KMP-friendly (works in commonMain).
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serializationJson" }
-kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.6.1" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.7.1" }
 
-# Compose (Android)
+# Compose Multiplatform — the commonMain dependencies that feature
+# modules + composeApp use. Pulled in via the compose-multiplatform
+# Gradle plugin which provides the BOM-equivalent alignment.
+compose-multiplatform-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
+compose-multiplatform-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
+compose-multiplatform-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMultiplatform" }
+compose-multiplatform-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
+compose-multiplatform-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
+
+# Compose (Android-only — for :androidApp shell)
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
@@ -69,23 +89,19 @@ androidx-compose-foundation = { module = "androidx.compose.foundation:foundation
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 
-# Ktor
+# Ktor — multiplatform HTTP client. Used in shared modules that need
+# direct network access (most flows route through Weft / repositories).
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
-
-# OkHttp version-alignment patch. Koog's AWS Smithy http engine pulls
-# OkHttp 5.3.2; Ktor's ktor-client-okhttp brings in OkHttp 4.12.0 + the
-# matching `okhttp-sse:4.12.0`. Gradle resolves core OkHttp to 5.3.2 (the
-# higher of the two) but `okhttp-sse` stays at 4.12.0 unless we force it
-# explicitly. The mismatch crashes streaming because 4.12.0's
-# `RealEventSource` references `okhttp3.internal.Util` which 5.x moved.
-# Forcing the SSE module to 5.3.2 keeps the pair coherent.
-okhttp-sse = { module = "com.squareup.okhttp3:okhttp-sse", version = "5.3.2" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
-# AndroidX
+# OkHttp version-alignment patch — see comment in Weft's libs.versions.toml.
+okhttp-sse = { module = "com.squareup.okhttp3:okhttp-sse", version = "5.3.2" }
+
+# AndroidX (androidMain only)
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidxSecurity" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version = "1.13.1" }
 androidx-browser = { module = "androidx.browser:browser", version = "1.8.0" }
@@ -96,50 +112,77 @@ androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 
-# Koin DI — replaces the hand-wired UndercurrentApp.lateinit fields + the
-# AppStore.factory(...) 6-arg call site. koin-android brings Application
-# context + Android lifecycle integration; koin-androidx-compose adds
-# koinViewModel/koinInject for use inside @Composable.
+# Koin DI — KMP-capable. Used in commonMain via koin-core/koin-compose
+# and in androidMain via koin-android/koin-androidx-compose. iosMain
+# uses koin-core directly.
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }
 
-# ML Kit (on-device vision)
+# ML Kit (Android-only). Used by Weft, mirrored here so app code can
+# reference the same versions when adding ML Kit usage outside Weft.
 mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version = "16.0.1" }
 mlkit-barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version = "17.3.0" }
 
-# Google Play services
+# Google Play services (Android-only)
 play-services-location = { module = "com.google.android.gms:play-services-location", version = "21.3.0" }
 
-# Koog
+# Koog (JVM/Android-only — bridged through Weft)
 koog-agents = { module = "ai.koog:koog-agents", version.ref = "koog" }
 
-# Coil
+# Coil (Android-only image loading; CMP-friendly variant is coil3 — not
+# wired yet; CMP modules use the compose-resources image loader for now)
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 
-# SQLDelight
+# SQLDelight — multiplatform persistence. Each platform uses its own
+# driver: AndroidSqliteDriver on Android, NativeSqliteDriver on iOS.
+sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
 sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
 sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
+sqldelight-native-driver = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
 sqldelight-coroutines-extensions = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
 
-# Osmerion's bundled SQLite for Android — ships a modern SQLite with FTS5
-# always compiled in so we don't depend on whatever the device's framework
-# SQLite happens to support. AndroidSqliteDriver takes a custom
-# SupportSQLiteOpenHelper.Factory; we feed it OsmerionSQLiteOpenHelperFactory.
+# Osmerion's bundled SQLite for Android
 osmerion-sqlite-android = { module = "com.osmerion.sqlite.android:sqlite-android", version.ref = "osmerionSqlite" }
 
-# Test
+# Test — commonTest
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
+# --- Convention-plugin compile classpath ---
+# build-logic/convention/build.gradle.kts depends on these as
+# `compileOnly` so it can write convention plugins against the AGP /
+# Kotlin / Compose plugin APIs. They never go into a feature module's
+# classpath — only into the plugin authors' compile scope.
+android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlin-compose-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
+compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "composeMultiplatform" }
+
 [plugins]
+# Stock plugin IDs (consumed by the convention plugins above)
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+
+# Convention plugins (live in build-logic/, applied via
+# `alias(libs.plugins.undercurrent.kmp.feature)` etc.). No version
+# because they're produced by an includeBuild composite.
+undercurrent-kmp-library = { id = "undercurrent.kmp.library" }
+undercurrent-kmp-library-compose = { id = "undercurrent.kmp.library.compose" }
+undercurrent-kmp-koin = { id = "undercurrent.kmp.koin" }
+undercurrent-kmp-feature = { id = "undercurrent.kmp.feature" }
+undercurrent-kmp-application = { id = "undercurrent.kmp.application" }
+undercurrent-android-application = { id = "undercurrent.android.application" }

@@ -46,7 +46,7 @@ git clone https://github.com/NguyenKhacPhuc/android-harness.git weft
 git clone https://github.com/NguyenKhacPhuc/undercurrent.git
 
 cd undercurrent
-./gradlew :app:assembleDebug
+./gradlew :androidApp:assembleDebug
 ```
 
 Open the project in Android Studio (Hedgehog or newer). Run on a device

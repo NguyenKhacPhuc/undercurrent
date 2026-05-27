@@ -34,18 +34,47 @@ behavior into the app — fix it in the SDK and let it flow back.
 ## Build & test
 
 ```bash
-# Debug APK.
-./gradlew :app:assembleDebug
+# Debug APK (NEW: the entrypoint module is :androidApp, not :app).
+./gradlew :androidApp:assembleDebug
 
 # Just the Kotlin compile (faster when iterating).
-./gradlew :app:compileDebugKotlin
+./gradlew :androidApp:compileDebugKotlin
 
-# Install + start + tail logs (most useful combo).
+# A single feature module — verifies BOTH Android + iOS compile
+# (catches features that accidentally touch Android-only APIs from
+# commonMain).
+./gradlew :feature:chat:compileKotlinAndroid
+./gradlew :feature:chat:compileKotlinIosSimulatorArm64
+
+# Install + start + tail logs.
 adb shell am force-stop dev.weft.undercurrent
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -n dev.weft.undercurrent/.core.MainActivity
+adb install -r androidApp/build/outputs/apk/debug/androidApp-debug.apk
+adb shell am start -n dev.weft.undercurrent/.MainActivity
 adb logcat | grep -E "Undercurrent|YourTag"
 ```
+
+## Module layout (KMP)
+
+```
+undercurrent/
+├── androidApp/          Android entry — Application + MainActivity
+├── composeApp/          CMP shared UI (commonMain + androidMain + iosMain)
+├── iosApp/              iOS Xcode project (embeds ComposeApp.framework)
+├── shared/              KMP business interfaces (AgentEngine, etc.)
+├── core/                model, ui, design-system, navigation, resources, domain, ext
+├── data/                repository, datastore, sqldelight, network, weft (Android-only)
+├── feature/             one Gradle module per screen/flow (17 features)
+├── build-logic/         convention plugins (undercurrent.kmp.feature etc.)
+└── app/                 OLD single-module — being emptied into the above
+```
+
+**Weft stays Android-only.** Feature modules MUST NOT depend on
+Weft directly (would break iOS compilation). Weft access goes
+through `:data:weft` which exposes Android implementations of
+KMP-shared interfaces declared in `:shared`.
+
+See [`docs/kmp-migration-playbook.md`](docs/kmp-migration-playbook.md)
+for the file-by-file migration recipe.
 
 **Force-stop is important** when iterating on tools. The
 `WeftRuntime`'s tool catalog is built once at process start; reinstalling
@@ -55,6 +84,12 @@ catalog.
 ## Architecture
 
 MVI with Koin DI.
+
+**⚠️ KMP migration in progress.** The paths below describe the
+pre-migration single-`:app` layout. Code is being moved into the new
+KMP-modular structure (see Module layout section above + the
+playbook). Until the migration is complete, both layouts coexist:
+new modules are empty skeletons; `app/` still has the working code.
 
 - `core/AppStore.kt` — root `ViewModel`. Holds the `WeftAgent`, the
   conversation list, and the screen state machine. All state mutations

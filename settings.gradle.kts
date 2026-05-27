@@ -1,4 +1,8 @@
 pluginManagement {
+    // Convention plugins live in `build-logic/` and are made available
+    // to every module via the includeBuild below. Module build.gradle.kts
+    // files reference them as `alias(libs.plugins.undercurrent.kmp.feature)`.
+    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -20,26 +24,23 @@ dependencyResolutionManagement {
     }
 }
 
+// Type-safe project accessors — modules reference each other as
+// `implementation(projects.core.model)` instead of `:core:model`.
+// Match r10's convention.
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 rootProject.name = "undercurrent"
 
-// Composite build wiring — the Weft SDK lives in a sibling directory.
-//
+// =============================================================
+// Weft SDK — composite build from sibling directory.
+// =============================================================
 // Source: https://github.com/NguyenKhacPhuc/android-harness
-// Clone it next to this repo, keeping the directory name `weft`:
-//
-//   git clone https://github.com/NguyenKhacPhuc/android-harness.git weft
-//
-// Expected on-disk layout:
-//   <parent>/weft/           (Weft SDK — the cloned android-harness repo)
+// Expected layout:
+//   <parent>/weft/           (Weft SDK)
 //   <parent>/undercurrent/   (this app)
 //
-// Why the `dependencySubstitution` block: composite-build auto-substitution
-// matches by `group:project.name`, where `project.name` is the *directory*
-// name (`:android` → "android"). Each Weft module's `archivesName.set(...)`
-// gives it a friendlier published artifact name (`weft-android`), but
-// Gradle's internal composite-build resolver doesn't honor that. So we
-// declare explicit substitutions that map the friendly coordinates to the
-// real project paths.
+// Weft is Android-only (per the KMP migration decision: Weft stays
+// Android-only; Undercurrent's `:data:weft` module is the bridge).
 includeBuild("../weft") {
     dependencySubstitution {
         substitute(module("dev.weft:weft-android"))
@@ -50,15 +51,57 @@ includeBuild("../weft") {
             .using(project(":android-compose-defaults"))
         substitute(module("dev.weft:weft-oauth"))
             .using(project(":oauth"))
-        // Opt-in debug overlay. Apps usually pull this in via
-        // `debugImplementation` so the FAB doesn't ship in release builds.
         substitute(module("dev.weft.devtools:weft-android-devtools"))
             .using(project(":android-devtools"))
-        // Add more lines here if the app starts depending on SDK modules
-        // directly (e.g. `dev.weft:weft-contracts` → `project(":contracts")`).
-        // Apps typically only touch the top-level weft-android* artifacts;
-        // everything else transits as `api()` deps.
     }
 }
 
-include(":app")
+// =============================================================
+// Entry-point modules
+// =============================================================
+include(":androidApp")        // Android app shell (Application + MainActivity)
+include(":composeApp")        // CMP shared UI surface
+// include(":iosApp")         // iOS Xcode project — not a Gradle module
+include(":shared")            // KMP shared business logic
+include(":sharedCatalog")     // KMP shared design tokens (for sibling apps)
+
+// =============================================================
+// Core modules — shared infrastructure
+// =============================================================
+include(":core:model")           // domain types (KMP, pure Kotlin)
+include(":core:ui")              // shared composables (loading, error, …)
+include(":core:design-system")   // colors, typography, spacing tokens
+include(":core:navigation")      // navigation primitives
+include(":core:resources")       // strings, drawables, icons
+include(":core:domain")          // use cases
+include(":core:ext")             // Kotlin extensions
+
+// =============================================================
+// Data modules — persistence + network + integrations
+// =============================================================
+include(":data:repository")      // top-level repositories (KMP common API)
+include(":data:datastore")       // preferences (multiplatform-settings or platform-specific)
+include(":data:sqldelight")      // SQLDelight schema + drivers
+include(":data:network")         // Ktor HTTP client (when needed outside Weft)
+include(":data:weft")            // Weft bridge — Android-only; wraps WeftRuntime
+
+// =============================================================
+// Feature modules — one per screen / flow
+// =============================================================
+include(":feature:chat")
+include(":feature:conversations")
+include(":feature:memories")
+include(":feature:personas")
+include(":feature:traces")
+include(":feature:settings")
+include(":feature:onboarding")
+include(":feature:providers")
+include(":feature:voice")
+include(":feature:maps")
+include(":feature:creator")
+include(":feature:theme")
+include(":feature:usage")
+include(":feature:miniapps")
+include(":feature:keypaste")
+include(":feature:integrations")
+include(":feature:navigation")
