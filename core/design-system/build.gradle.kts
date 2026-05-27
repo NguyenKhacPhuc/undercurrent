@@ -10,7 +10,10 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // module-specific deps go here
+            // AppPalette enum lives in :core:model (Compose-free). The
+            // color tables backing it + the `colors(dark)` extension
+            // are this module's responsibility.
+            api(projects.core.model)
         }
     }
 }
