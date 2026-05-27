@@ -10,7 +10,8 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // module-specific deps go here
+            // Theme tokens + UndercurrentTheme accessor.
+            api(projects.core.designSystem)
         }
     }
 }
