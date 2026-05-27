@@ -37,6 +37,20 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
             }
         }
 
+        // expect/actual classes are still flagged "in Beta" by Kotlin
+        // 2.x even though they're widely used. -Xexpect-actual-classes
+        // opts in across every KMP module so we don't get the warning
+        // for every DatabaseDriverFactory-style class.
+        kotlin.targets.configureEach {
+            compilations.configureEach {
+                compileTaskProvider.configure {
+                    compilerOptions {
+                        freeCompilerArgs.add("-Xexpect-actual-classes")
+                    }
+                }
+            }
+        }
+
         kotlin.iosArm64()
         kotlin.iosSimulatorArm64()
 
