@@ -28,6 +28,11 @@ datastore = "1.1.1"
 # only) in androidMain. Aligned via a single `koin` version.
 koin = "4.0.0"
 
+# okio — multiplatform file-system path APIs. DataStore-preferences-core
+# uses okio.Path for file location, and we use it directly in the iOS
+# DataStore factory to interop with NSDocumentDirectory paths.
+okio = "3.9.1"
+
 # Coroutines & Serialization
 coroutines = "1.9.0"
 serializationJson = "1.7.3"
@@ -111,6 +116,14 @@ androidx-activity = { module = "androidx.activity:activity", version.ref = "acti
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+# KMP-multiplatform core of DataStore-Preferences — works on Android +
+# iOS + JVM. Use this from commonMain; Android can layer the Context
+# delegate (datastore-preferences above) on top.
+androidx-datastore-preferences-core = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastore" }
+
+# okio — used by DataStore commonMain (Path APIs) and by our iOS
+# DataStore factory to build paths under NSDocumentDirectory.
+okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 
 # Koin DI — KMP-capable. Used in commonMain via koin-core/koin-compose
 # and in androidMain via koin-android/koin-androidx-compose. iosMain
