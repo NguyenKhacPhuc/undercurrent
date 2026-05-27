@@ -1,4 +1,4 @@
-package dev.weft.undercurrent.features.savedfeatures
+package dev.weft.undercurrent.features.miniapps
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,24 +29,24 @@ import androidx.compose.ui.unit.sp
 import dev.weft.undercurrent.theme.UndercurrentTheme
 
 /**
- * Dialog that captures a prompt as a [SavedFeature].
+ * Dialog that captures a prompt as a [MiniApp].
  *
  * Used in two contexts:
  *  - **Create mode** ([initial] is null): launched from the "Save as
- *    feature" affordance on a successful assistant reply. The prompt
+ *    mini-app" affordance on a successful assistant reply. The prompt
  *    is pre-filled with the user's preceding message; name + emoji
  *    are blank with placeholder hints. The user can edit any field.
  *  - **Edit mode** ([initial] is non-null): launched from the
- *    management screen via long-press / overflow on a saved feature.
- *    Fields prefilled; a Delete button appears alongside Cancel.
+ *    management screen via tap on a mini-app card. Fields prefilled;
+ *    a Delete button appears alongside Cancel.
  *
  * Validation: name + prompt must be non-blank to save. Emoji defaults
  * to a single sparkle if the user leaves it blank — we'd rather drop
  * a recognizable placeholder than refuse to save.
  */
 @Composable
-internal fun SaveAsFeatureDialog(
-    initial: SavedFeature?,
+internal fun SaveAsMiniAppDialog(
+    initial: MiniApp?,
     suggestedPrompt: String,
     onDismiss: () -> Unit,
     onSave: (name: String, emoji: String, triggerPrompt: String) -> Unit,
@@ -68,7 +68,7 @@ internal fun SaveAsFeatureDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isEdit) "Edit feature" else "Save as feature") },
+        title = { Text(if (isEdit) "Edit mini-app" else "Save as mini-app") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Emoji + name on one row — emoji is a tight tile,
@@ -102,11 +102,11 @@ internal fun SaveAsFeatureDialog(
                     label = "Prompt",
                     value = prompt,
                     onValueChange = { prompt = it },
-                    placeholder = "What this feature should ask the assistant.",
+                    placeholder = "What this mini-app should ask the assistant.",
                     minLines = 4,
                 )
                 Text(
-                    text = "Tapping this feature later will send the prompt above " +
+                    text = "Tapping this mini-app later will send the prompt above " +
                         "to the assistant — exactly as you typed it.",
                     style = UndercurrentTheme.typography.sansSmall.copy(
                         color = colors.inkSubtle,
@@ -142,7 +142,7 @@ internal fun SaveAsFeatureDialog(
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text("Delete \"${initial.name}\"?") },
-            text = { Text("The feature will be permanently removed. Existing chats are not affected.") },
+            text = { Text("The mini-app will be permanently removed. Existing chats are not affected.") },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false

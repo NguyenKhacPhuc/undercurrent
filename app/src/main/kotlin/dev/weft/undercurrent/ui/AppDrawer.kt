@@ -63,7 +63,7 @@ internal fun AppDrawer(
     onDeleteConversation: (String) -> Unit,
     onShowAllConversations: () -> Unit,
     onShowPersonas: () -> Unit,
-    onShowSavedFeatures: () -> Unit,
+    onShowMiniApps: () -> Unit,
     onShowMemories: () -> Unit,
     onShowTraces: () -> Unit,
     onShowSettings: () -> Unit,
@@ -150,7 +150,7 @@ internal fun AppDrawer(
             // Pinned bottom section.
             TokenDivider()
             DrawerActionRow(symbol = "◐", label = "Personas", onClick = onShowPersonas)
-            DrawerActionRow(symbol = "✦", label = "My features", onClick = onShowSavedFeatures)
+            DrawerActionRow(symbol = "✦", label = "Mini apps", onClick = onShowMiniApps)
             DrawerActionRow(symbol = "★", label = "Memories", onClick = onShowMemories)
             DrawerActionRow(symbol = "▶", label = "Traces", onClick = onShowTraces)
             DrawerActionRow(symbol = "⚙", label = "Settings", onClick = onShowSettings)

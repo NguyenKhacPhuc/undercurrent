@@ -406,31 +406,31 @@ public fun ChatScreen(
                 activePalette = sheetCfg.activePalette,
                 activeMode = sheetCfg.activeMode,
                 connectedIntegrationsCount = sheetCfg.connectedIntegrationsCount,
-                savedFeatures = sheetCfg.savedFeatures,
+                miniApps = sheetCfg.miniApps,
                 onSelectPalette = sheetCfg.onSelectPalette,
                 onSelectMode = sheetCfg.onSelectMode,
                 onShowPersonas = sheetCfg.onShowPersonas,
                 onShowIntegrations = sheetCfg.onShowIntegrations,
-                onShowSavedFeatures = sheetCfg.onShowSavedFeatures,
-                onInvokeFeature = sheetCfg.onInvokeFeature,
+                onShowMiniApps = sheetCfg.onShowMiniApps,
+                onInvokeMiniApp = sheetCfg.onInvokeMiniApp,
                 onDismiss = { addToChatOpen = false },
             )
         }
 
-        // "Save as feature" dialog — opened from the affordance under
+        // "Save as mini-app" dialog — opened from the affordance under
         // an assistant message. The draft holds the trigger prompt
         // (the preceding user message). Save dispatches through the
         // host-supplied callback so the repo write happens in the
         // ViewModel layer, not here.
         val saveDraft = saveFeaturePromptDraft
         if (saveDraft != null && sheetCfg != null) {
-            dev.weft.undercurrent.features.savedfeatures.SaveAsFeatureDialog(
+            dev.weft.undercurrent.features.miniapps.SaveAsMiniAppDialog(
                 initial = null,
                 suggestedPrompt = saveDraft,
                 onDismiss = { saveFeaturePromptDraft = null },
                 onSave = { name, emoji, prompt ->
                     saveFeaturePromptDraft = null
-                    sheetCfg.onAddSavedFeature(name, emoji, prompt)
+                    sheetCfg.onAddMiniApp(name, emoji, prompt)
                 },
             )
         }
@@ -447,14 +447,14 @@ public class AddToChatConfig internal constructor(
     internal val activePalette: dev.weft.undercurrent.theme.AppPalette,
     internal val activeMode: dev.weft.undercurrent.theme.ThemeMode,
     internal val connectedIntegrationsCount: Int,
-    internal val savedFeatures: List<dev.weft.undercurrent.features.savedfeatures.SavedFeature>,
+    internal val miniApps: List<dev.weft.undercurrent.features.miniapps.MiniApp>,
     internal val onSelectPalette: (dev.weft.undercurrent.theme.AppPalette) -> Unit,
     internal val onSelectMode: (dev.weft.undercurrent.theme.ThemeMode) -> Unit,
     internal val onShowPersonas: () -> Unit,
     internal val onShowIntegrations: () -> Unit,
-    internal val onShowSavedFeatures: () -> Unit,
-    internal val onInvokeFeature: (dev.weft.undercurrent.features.savedfeatures.SavedFeature) -> Unit,
-    internal val onAddSavedFeature: (name: String, emoji: String, triggerPrompt: String) -> Unit,
+    internal val onShowMiniApps: () -> Unit,
+    internal val onInvokeMiniApp: (dev.weft.undercurrent.features.miniapps.MiniApp) -> Unit,
+    internal val onAddMiniApp: (name: String, emoji: String, triggerPrompt: String) -> Unit,
 )
 
 /**
@@ -465,26 +465,26 @@ internal fun addToChatConfig(
     activePalette: dev.weft.undercurrent.theme.AppPalette,
     activeMode: dev.weft.undercurrent.theme.ThemeMode,
     connectedIntegrationsCount: Int,
-    savedFeatures: List<dev.weft.undercurrent.features.savedfeatures.SavedFeature>,
+    miniApps: List<dev.weft.undercurrent.features.miniapps.MiniApp>,
     onSelectPalette: (dev.weft.undercurrent.theme.AppPalette) -> Unit,
     onSelectMode: (dev.weft.undercurrent.theme.ThemeMode) -> Unit,
     onShowPersonas: () -> Unit,
     onShowIntegrations: () -> Unit,
-    onShowSavedFeatures: () -> Unit,
-    onInvokeFeature: (dev.weft.undercurrent.features.savedfeatures.SavedFeature) -> Unit,
-    onAddSavedFeature: (name: String, emoji: String, triggerPrompt: String) -> Unit,
+    onShowMiniApps: () -> Unit,
+    onInvokeMiniApp: (dev.weft.undercurrent.features.miniapps.MiniApp) -> Unit,
+    onAddMiniApp: (name: String, emoji: String, triggerPrompt: String) -> Unit,
 ): AddToChatConfig = AddToChatConfig(
     activePalette = activePalette,
     activeMode = activeMode,
     connectedIntegrationsCount = connectedIntegrationsCount,
-    savedFeatures = savedFeatures,
+    miniApps = miniApps,
     onSelectPalette = onSelectPalette,
     onSelectMode = onSelectMode,
     onShowPersonas = onShowPersonas,
     onShowIntegrations = onShowIntegrations,
-    onShowSavedFeatures = onShowSavedFeatures,
-    onInvokeFeature = onInvokeFeature,
-    onAddSavedFeature = onAddSavedFeature,
+    onShowMiniApps = onShowMiniApps,
+    onInvokeMiniApp = onInvokeMiniApp,
+    onAddMiniApp = onAddMiniApp,
 )
 
 // ─────────────────────────────────────────────────────────────────────────

@@ -32,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 import androidx.compose.ui.unit.sp
-import dev.weft.undercurrent.features.savedfeatures.SavedFeature
+import dev.weft.undercurrent.features.miniapps.MiniApp
 import dev.weft.undercurrent.theme.AppPalette
 import dev.weft.undercurrent.theme.ThemeMode
 import dev.weft.undercurrent.theme.UndercurrentTheme
@@ -64,13 +64,13 @@ internal fun AddToChatSheet(
     activePalette: AppPalette,
     activeMode: ThemeMode,
     connectedIntegrationsCount: Int,
-    savedFeatures: List<SavedFeature>,
+    miniApps: List<MiniApp>,
     onSelectPalette: (AppPalette) -> Unit,
     onSelectMode: (ThemeMode) -> Unit,
     onShowPersonas: () -> Unit,
     onShowIntegrations: () -> Unit,
-    onShowSavedFeatures: () -> Unit,
-    onInvokeFeature: (SavedFeature) -> Unit,
+    onShowMiniApps: () -> Unit,
+    onInvokeMiniApp: (MiniApp) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = UndercurrentTheme.colors
@@ -111,20 +111,20 @@ internal fun AddToChatSheet(
             }
             Spacer(Modifier.height(20.dp))
 
-            // ─── Saved features chip row ────────────────────────────────
+            // ─── Mini-apps chip row ─────────────────────────────────────
             // Most-used-first horizontal scroll. Only rendered when the
-            // user has at least one saved feature — empty state would
+            // user has at least one saved mini-app — empty state would
             // just be visual noise above the more important rows.
-            if (savedFeatures.isNotEmpty()) {
-                SavedFeaturesChipRow(
-                    features = savedFeatures,
-                    onInvoke = { feature ->
+            if (miniApps.isNotEmpty()) {
+                MiniAppsChipRow(
+                    miniApps = miniApps,
+                    onInvoke = { miniApp ->
                         // Close the sheet first; the actual dispatch
-                        // happens via the host's onInvokeFeature
+                        // happens via the host's onInvokeMiniApp
                         // (ChatScreen → AppStore via SendChat).
-                        closeThen { onInvokeFeature(feature) }
+                        closeThen { onInvokeMiniApp(miniApp) }
                     },
-                    onShowAll = { closeThen(onShowSavedFeatures) },
+                    onShowAll = { closeThen(onShowMiniApps) },
                 )
                 Spacer(Modifier.height(20.dp))
             }
@@ -167,16 +167,16 @@ internal fun AddToChatSheet(
 }
 
 /**
- * Horizontal-scroll row of saved-feature chips at the top of the
+ * Horizontal-scroll row of mini-app chips at the top of the
  * sheet. Each chip = one saved prompt the user can fire with one tap.
  * Sorted most-used-first so muscle memory works ("the leftmost chip
  * is the one I always tap"). A trailing "Manage" pill drills into the
  * full management screen.
  */
 @Composable
-private fun SavedFeaturesChipRow(
-    features: List<SavedFeature>,
-    onInvoke: (SavedFeature) -> Unit,
+private fun MiniAppsChipRow(
+    miniApps: List<MiniApp>,
+    onInvoke: (MiniApp) -> Unit,
     onShowAll: () -> Unit,
 ) {
     val colors = UndercurrentTheme.colors
@@ -186,9 +186,9 @@ private fun SavedFeaturesChipRow(
     // view-time concern — the repo persists creation order, and other
     // screens (the management list) want stable alphabetical / by-
     // recent ordering instead.
-    val sorted = remember(features) {
-        features.sortedWith(
-            compareByDescending<SavedFeature> { it.usageCount }
+    val sorted = remember(miniApps) {
+        miniApps.sortedWith(
+            compareByDescending<MiniApp> { it.usageCount }
                 .thenByDescending { it.createdAtEpochMs },
         )
     }
@@ -201,7 +201,7 @@ private fun SavedFeaturesChipRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "MY FEATURES",
+                text = "MINI APPS",
                 style = typography.sansLabel.copy(color = colors.inkSubtle),
                 modifier = Modifier.weight(1f),
             )
@@ -222,16 +222,16 @@ private fun SavedFeaturesChipRow(
             contentPadding = PaddingValues(horizontal = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(sorted, key = { it.id }) { feature ->
-                FeatureChip(feature = feature, onClick = { onInvoke(feature) })
+            items(sorted, key = { it.id }) { miniApp ->
+                MiniAppChip(miniApp = miniApp, onClick = { onInvoke(miniApp) })
             }
         }
     }
 }
 
 @Composable
-private fun FeatureChip(
-    feature: SavedFeature,
+private fun MiniAppChip(
+    miniApp: MiniApp,
     onClick: () -> Unit,
 ) {
     val colors = UndercurrentTheme.colors
@@ -247,7 +247,7 @@ private fun FeatureChip(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = feature.emoji,
+            text = miniApp.emoji,
             style = typography.serifBody.copy(
                 color = colors.ink,
                 fontSize = 18.sp,
@@ -255,7 +255,7 @@ private fun FeatureChip(
         )
         Spacer(Modifier.size(8.dp))
         Text(
-            text = feature.name,
+            text = miniApp.name,
             style = typography.serifBody.copy(
                 color = colors.ink,
                 fontSize = 15.sp,

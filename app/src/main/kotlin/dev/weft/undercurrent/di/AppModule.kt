@@ -30,8 +30,8 @@ import dev.weft.undercurrent.features.navigation.OpenPersonasTool
 import dev.weft.undercurrent.features.navigation.OpenUsageTool
 import dev.weft.undercurrent.features.onboarding.OnboardingRepository
 import dev.weft.undercurrent.features.personas.PersonaRepository
-import dev.weft.undercurrent.features.savedfeatures.SavedFeaturesRepository
-import dev.weft.undercurrent.features.savedfeatures.SavedFeaturesViewModel
+import dev.weft.undercurrent.features.miniapps.MiniAppsRepository
+import dev.weft.undercurrent.features.miniapps.MiniAppsViewModel
 import dev.weft.undercurrent.features.providers.ModelPrefsRepository
 import dev.weft.undercurrent.features.providers.ProviderPrefsRepository
 import dev.weft.undercurrent.features.theme.SetThemeModeTool
@@ -73,7 +73,7 @@ val appModule = module {
     single { ProviderPrefsRepository(androidContext()) }
     single { ModelPrefsRepository(androidContext()) }
     single { IntegrationsRepository(androidContext()) }
-    single { SavedFeaturesRepository(androidContext()) }
+    single { MiniAppsRepository(androidContext()) }
     // SQLDelight-backed records database. Shared across every
     // SqlDelightDataSource instance (one per source name).
     single<AppDatabase> { AppDatabaseFactory.create(androidContext()) }
@@ -81,9 +81,27 @@ val appModule = module {
     // collects from it; navigation tools emit into it. One singleton
     // is enough because all tools share the same destination space.
     single { NavigationChannel() }
+    // Tracks whether the user is currently inside a guided creator
+    // (persona / mini-app) QnA flow. Read by the runtime's
+    // `extraVolatilePrefix` lambda (creator preamble injection) and by
+    // `CreatorScreen` (header label, navigation back-target).
+    single { dev.weft.undercurrent.features.creator.CreatorSession() }
 
     // ─── UI singletons ─────────────────────────────────────────────────
-    single { WeftUi(androidContext()) }
+    // Undercurrent ships its own UI components — substrate's built-in
+    // palette is excluded so `ui_render` advertises only what matches
+    // this app's editorial theme. See `components/UndercurrentComponents.kt`
+    // for the full registered set.
+    single {
+        val imageLoader = dev.weft.compose.components.buildWeftImageLoader(
+            androidContext().applicationContext,
+        )
+        WeftUi(
+            context = androidContext(),
+            extraComponents = dev.weft.undercurrent.components.undercurrentComponents(imageLoader),
+            includeDefaults = false,
+        )
+    }
     single { ComposeUiBridge(componentRegistry = get<WeftUi>().componentRegistry) }
 
     // ─── OAuth ──────────────────────────────────────────────────────────
@@ -120,6 +138,8 @@ val appModule = module {
         val integrationsRepo: IntegrationsRepository = get()
         val tokenStore: OAuthTokenStore = get()
         val navigation: NavigationChannel = get()
+        val miniAppsRepo: MiniAppsRepository = get()
+        val creatorSession: dev.weft.undercurrent.features.creator.CreatorSession = get()
 
         // Materialize MCP server configs for every currently-enabled
         // integration. Each server's tokenProvider closes over the
@@ -224,6 +244,23 @@ val appModule = module {
                     // destination). "Show me my location on a map" /
                     // "where is that on a map" route through this.
                     ShowLocationOnMapTool(ctx),
+                    // Creator finalize tools — called by the agent at
+                    // the end of a guided QnA flow to persist the new
+                    // persona / mini-app and navigate back. Available
+                    // in chat mode too (free-form "make me a persona
+                    // for X" routes through the same tools).
+                    dev.weft.undercurrent.features.creator.CreatePersonaTool(
+                        ctx = ctx,
+                        personaRepo = personaRepo,
+                        nav = navigation,
+                        creatorSession = creatorSession,
+                    ),
+                    dev.weft.undercurrent.features.creator.CreateMiniAppTool(
+                        ctx = ctx,
+                        miniAppsRepo = miniAppsRepo,
+                        nav = navigation,
+                        creatorSession = creatorSession,
+                    ),
                 )
             },
             // Per-turn persona injection. The picker has two independent
@@ -231,9 +268,15 @@ val appModule = module {
             // role (optional). We compose them as separate labeled
             // sections so the model can tell which axis each block is
             // shaping. Empty when both are no-op.
+            //
+            // Creator-mode preamble (when active) gets appended at the
+            // end so it dominates whatever persona was active — we want
+            // QnA behaviour to win regardless of which voice the user
+            // had selected before entering the creator flow.
             extraVolatilePrefix = {
                 val voiceText = personaRepo.activeVoice.value.systemPromptText
                 val roleText = personaRepo.activeRole.value?.systemPromptText
+                val creatorKind = creatorSession.current()
                 buildString {
                     if (voiceText.isNotBlank()) {
                         append("Voice instructions:\n")
@@ -244,6 +287,11 @@ val appModule = module {
                         if (isNotEmpty()) append("\n")
                         append("Role instructions:\n")
                         append(roleText)
+                        append("\n")
+                    }
+                    if (creatorKind != null) {
+                        if (isNotEmpty()) append("\n")
+                        append(creatorPreambleFor(creatorKind))
                         append("\n")
                     }
                 }
@@ -261,7 +309,8 @@ val appModule = module {
             providerPrefsRepo = get(),
             modelPrefsRepo = get(),
             navigationChannel = get(),
-            savedFeaturesRepo = get(),
+            miniAppsRepo = get(),
+            creatorSession = get(),
         )
     }
     // Per-screen VMs — own the dependency for one surface so the screen
@@ -270,7 +319,7 @@ val appModule = module {
     // the screen composes under (in practice: MainActivity), so they
     // share lifetime with the activity.
     viewModel { PersonasViewModel(repo = get()) }
-    viewModel { SavedFeaturesViewModel(repo = get()) }
+    viewModel { MiniAppsViewModel(repo = get()) }
     viewModel { UsageViewModel(runtime = get()) }
     viewModel { MemoriesViewModel(runtime = get()) }
     viewModel { TracesViewModel(runtime = get()) }
@@ -335,3 +384,90 @@ private fun mcpServersFor(
 
 /** Qualifier for the OAuth-only KeyVault — see the `OAuth` block in `appModule`. */
 private const val OAUTH_KEY_VAULT: String = "oauth_key_vault"
+
+/**
+ * Creator-mode preamble injected via `extraVolatilePrefix` while a
+ * [dev.weft.undercurrent.features.creator.CreatorSession] is active.
+ * Tells the agent how to behave: ask focused questions one at a time
+ * via `ui_render`, finalize via the right tool.
+ *
+ * Kept as a pure function (no captured state) so the runtime DI lambda
+ * stays simple — the only dynamic input is the active kind.
+ */
+private fun creatorPreambleFor(
+    kind: dev.weft.undercurrent.features.creator.CreatorKind,
+): String {
+    val sharedRules = """
+        |[Creator mode is active — ${kind.humanLabel}.]
+        |
+        |You are guiding the user through a guided QnA flow on a
+        |dedicated creator screen. There is NO free-form chat input —
+        |the user can ONLY interact with widgets you render via the
+        |`ui_render` tool.
+        |
+        |Behaviour:
+        | 1. Ask exactly ONE focused question per turn. Render it as a
+        |    `ui_render` payload using Stack + Heading + (Field /
+        |    Choice / SegmentedToggle / MoodScale / Composer / Toggle)
+        |    + a Button (label "Next" or "Save", onTap "next").
+        | 2. Keep prompts short and concrete. Show progress with the
+        |    `Steps` component when helpful.
+        | 3. After each user answer (delivered to you as a synthetic
+        |    [UI event] message with field values), ask the NEXT
+        |    question — or finalize when you have enough.
+        | 4. Do NOT call any write tool other than the finalize tool
+        |    below. Do not narrate; render.
+        | 5. Aim for 3-6 questions total. Quality over quantity.
+    """.trimMargin()
+
+    val specifics = when (kind) {
+        dev.weft.undercurrent.features.creator.CreatorKind.PersonaVoice -> """
+            |
+            |Cover, roughly in this order:
+            | - Name (short, e.g. "Editor", "Botanist")
+            | - What kind of writing should this voice produce? (free
+            |   text OR Choice between options like Concise / Lyrical
+            |   / Technical / Playful)
+            | - Tone preferences (Choice / SegmentedToggle)
+            | - Any specific constraints (avoid jargon, prefer present
+            |   tense, never use emojis, etc.)
+            | - One-line tagline for the picker
+            |
+            |When ready, call `create_persona` with:
+            |  name, tagline, systemPrompt (the actual instructions —
+            |  3-6 sentences, action-leading, concrete), kind: "voice".
+        """.trimMargin()
+        dev.weft.undercurrent.features.creator.CreatorKind.PersonaRole -> """
+            |
+            |Cover, roughly in this order:
+            | - Name (short, e.g. "Pediatrician", "Tax attorney",
+            |   "Code reviewer")
+            | - Domain / expertise area (free text or Choice)
+            | - Constraints / disclaimers needed for this role
+            |   (legal/medical/financial roles must NOT give specific
+            |   advice — frame as general considerations)
+            | - Communication style (Choice / SegmentedToggle)
+            | - One-line tagline for the picker
+            |
+            |When ready, call `create_persona` with:
+            |  name, tagline, systemPrompt (3-6 sentences, concrete),
+            |  kind: "role".
+        """.trimMargin()
+        dev.weft.undercurrent.features.creator.CreatorKind.MiniApp -> """
+            |
+            |A mini-app is a saved shortcut — name + emoji + trigger
+            |prompt that re-runs a task on tap. Cover:
+            | - What does the mini-app do? (one or two sentences)
+            | - Name (short, e.g. "Log water", "Daily review",
+            |   "Cooking timer")
+            | - Emoji (single grapheme — let the user pick)
+            | - Trigger prompt (what user-message text should be
+            |   re-dispatched when they tap the mini-app? Wording
+            |   matters — phrase it the way a user would type it)
+            |
+            |When ready, call `create_mini_app` with name, emoji,
+            |triggerPrompt.
+        """.trimMargin()
+    }
+    return sharedRules + specifics
+}

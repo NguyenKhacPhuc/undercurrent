@@ -31,7 +31,7 @@ import dev.weft.undercurrent.features.onboarding.OnboardingRepository
 import dev.weft.undercurrent.features.providers.ModelPrefsRepository
 import dev.weft.undercurrent.features.providers.ProviderPrefsRepository
 import dev.weft.undercurrent.features.providers.keyAlias
-import dev.weft.undercurrent.features.savedfeatures.SavedFeaturesRepository
+import dev.weft.undercurrent.features.miniapps.MiniAppsRepository
 import dev.weft.undercurrent.theme.ThemeRepository
 import dev.weft.undercurrent.features.chat.DisplayMessage
 import dev.weft.undercurrent.features.chat.DisplayRole
@@ -84,12 +84,19 @@ internal class AppStore(
      */
     private val navigationChannel: NavigationChannel,
     /**
-     * Saved-feature persistence. AppStore reads it when capturing
-     * agent-rendered UI for the currently-invoked feature; the
-     * read-side (feature list, name, prompt) lives on
-     * `SavedFeaturesViewModel`.
+     * Mini-app persistence. AppStore reads it when capturing
+     * agent-rendered UI for the currently-invoked mini-app; the
+     * read-side (mini-app list, name, prompt) lives on
+     * `MiniAppsViewModel`.
      */
-    private val savedFeaturesRepo: SavedFeaturesRepository,
+    private val miniAppsRepo: MiniAppsRepository,
+    /**
+     * Singleton tracking whether the user is inside a guided creator
+     * (persona / mini-app) flow. Drives the creator-mode preamble
+     * injected via `WeftRuntime.extraVolatilePrefix` AND the
+     * back-target when the user cancels.
+     */
+    private val creatorSession: dev.weft.undercurrent.features.creator.CreatorSession,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppState.initial())
@@ -138,18 +145,18 @@ internal class AppStore(
 
     /**
      * When non-null, the agent is currently running a turn triggered
-     * by a [dev.weft.undercurrent.features.savedfeatures.SavedFeature]
+     * by a [dev.weft.undercurrent.features.miniapps.MiniApp]
      * invocation, and any `UIUpdate.RenderTree` that arrives during
-     * this window gets cached onto that feature for instant replay
+     * this window gets cached onto that mini-app for instant replay
      * on the next tap. Cleared when the stream completes (success or
      * failure) so a follow-up user message doesn't accidentally
-     * overwrite the feature's UI cache.
+     * overwrite the mini-app's UI cache.
      *
      * Held outside [AppState] because it's transient invocation
      * scaffolding — not something the UI needs to react to.
      */
     @Volatile
-    private var activeFeatureInvocationId: String? = null
+    private var activeMiniAppInvocationId: String? = null
 
     /**
      * Skill registry, derived from the runtime. Exposed read-only so
@@ -196,8 +203,8 @@ internal class AppStore(
             AppIntent.DismissPermissionDialog -> _state.update {
                 it.copy(pendingPermissionDialog = null)
             }
-            is AppIntent.InvokeSavedFeature -> viewModelScope.launch {
-                handleInvokeSavedFeature(intent.featureId, intent.triggerPrompt)
+            is AppIntent.InvokeMiniApp -> viewModelScope.launch {
+                handleInvokeMiniApp(intent.miniAppId, intent.triggerPrompt)
             }
             is AppIntent.SetProvider -> viewModelScope.launch { handleSetProvider(intent.provider) }
             is AppIntent.SaveProviderKey -> viewModelScope.launch {
@@ -215,7 +222,85 @@ internal class AppStore(
             is AppIntent.SelectAgent -> viewModelScope.launch {
                 handleSelectAgent(intent.name)
             }
+            is AppIntent.StartCreator -> viewModelScope.launch {
+                handleStartCreator(intent.kind)
+            }
+            AppIntent.CancelCreator -> viewModelScope.launch {
+                handleCancelCreator()
+            }
         }
+    }
+
+    /**
+     * Begin a guided creator flow. Steps:
+     *
+     *   1. Mark the [creatorSession] active with the requested kind so
+     *      the runtime's `extraVolatilePrefix` lambda starts injecting
+     *      the creator preamble on the next turn.
+     *   2. Start a fresh conversation — the QnA happens in its own
+     *      thread so the user's main chat history stays clean.
+     *   3. Navigate to [Screen.Creator] BEFORE sending the kickoff so
+     *      the user lands on the dedicated creator surface immediately,
+     *      not the chat screen.
+     *   4. Send the kickoff user message. The agent reads the creator
+     *      preamble + the kickoff and responds by calling `ui_render`
+     *      with the first QnA step. That render triggers
+     *      [Screen.RenderedTree] via [handleUiBridgeUpdate].
+     *
+     * Cancel via [AppIntent.CancelCreator]; the agent's finalize tools
+     * ([CreatePersonaTool] / [CreateMiniAppTool]) clear the session +
+     * navigate back themselves on success.
+     */
+    private suspend fun handleStartCreator(
+        kind: dev.weft.undercurrent.features.creator.CreatorKind,
+    ) {
+        val a = _state.value.agent ?: return
+        creatorSession.start(kind)
+        a.newChat()
+        displayMessages.clear()
+        // Capture previousScreen as whichever settings surface triggered
+        // this so Cancel can route back correctly. If the user opens
+        // creator from somewhere unusual (chat?) we still fall back to
+        // a sensible default in handleCancelCreator.
+        _state.update { current ->
+            current.copy(
+                screen = Screen.Creator,
+                previousScreen = current.screen,
+                chat = ChatStatus(),
+            )
+        }
+        // Short, clean kickoff. The operational instructions ("ask one
+        // question at a time via ui_render", etc.) live in the
+        // extraVolatilePrefix preamble so they don't pollute the chat
+        // log the user can see.
+        val kickoff = when (kind) {
+            dev.weft.undercurrent.features.creator.CreatorKind.PersonaVoice ->
+                "I want to create a new voice persona. Ask me what I need."
+            dev.weft.undercurrent.features.creator.CreatorKind.PersonaRole ->
+                "I want to create a new role persona. Ask me what I need."
+            dev.weft.undercurrent.features.creator.CreatorKind.MiniApp ->
+                "I want to create a new mini-app. Ask me what I need."
+        }
+        handleSendChat(kickoff, modelTier = null)
+    }
+
+    /**
+     * Abort a creator flow. Clears the session so the preamble stops
+     * injecting, then routes back to the originating settings screen
+     * (Personas for either persona kind, MiniApps for mini-app). Falls
+     * back to [Screen.Settings] if the kind is somehow missing.
+     */
+    private suspend fun handleCancelCreator() {
+        val kind = creatorSession.current()
+        creatorSession.clear()
+        val back = when (kind) {
+            dev.weft.undercurrent.features.creator.CreatorKind.PersonaVoice,
+            dev.weft.undercurrent.features.creator.CreatorKind.PersonaRole,
+            -> Screen.Personas
+            dev.weft.undercurrent.features.creator.CreatorKind.MiniApp -> Screen.MiniApps
+            null -> Screen.Settings
+        }
+        _state.update { it.copy(screen = back, previousScreen = Screen.Creator) }
     }
 
     /**
@@ -733,30 +818,30 @@ internal class AppStore(
         if (update is UIUpdate.RenderTree && _state.value.screen !is Screen.RenderedTree) {
             _state.update { it.copy(screen = Screen.RenderedTree) }
         }
-        // Capture the rendered tree onto the currently-invoked saved
-        // feature so the next tap can seed it instantly. Only fires
-        // during a feature-invoked turn; normal chat ui_renders pass
+        // Capture the rendered tree onto the currently-invoked
+        // mini-app so the next tap can seed it instantly. Only fires
+        // during a mini-app-invoked turn; normal chat ui_renders pass
         // through untouched.
         if (update is UIUpdate.RenderTree) {
-            val featureId = activeFeatureInvocationId
-            if (featureId != null) {
+            val miniAppId = activeMiniAppInvocationId
+            if (miniAppId != null) {
                 val treeJson = TRACE_JSON.encodeToString(
                     dev.weft.contracts.ComponentNode.serializer(),
                     update.tree,
                 )
                 viewModelScope.launch {
-                    runCatching { savedFeaturesRepo.setCachedRender(featureId, treeJson) }
+                    runCatching { miniAppsRepo.setCachedRender(miniAppId, treeJson) }
                 }
             }
         }
     }
 
     /**
-     * Run a saved-feature invocation through the agent turn. The
-     * trigger prompt is dispatched as if the user had typed it — the
-     * agent picks whatever tools it needs (data_query, ui_render,
-     * etc.) and the resulting render tree gets cached on the feature
-     * via [handleUiBridgeUpdate].
+     * Run a mini-app invocation through the agent turn. The trigger
+     * prompt is dispatched as if the user had typed it — the agent
+     * picks whatever tools it needs (data_query, ui_render, etc.)
+     * and the resulting render tree gets cached on the mini-app via
+     * [handleUiBridgeUpdate].
      *
      * The cached-tree seeding (the "instant on tap" half) happens in
      * MainActivity before this intent dispatches, because that's
@@ -764,21 +849,21 @@ internal class AppStore(
      * the bridge already shows the cached tree; this method just
      * triggers the refresh.
      */
-    private suspend fun handleInvokeSavedFeature(featureId: String, triggerPrompt: String) {
-        activeFeatureInvocationId = featureId
+    private suspend fun handleInvokeMiniApp(miniAppId: String, triggerPrompt: String) {
+        activeMiniAppInvocationId = miniAppId
         try {
             // Usage bump happens here (not in the UI callback) so it
             // only records when the invocation actually runs — if
             // the agent is null (no key), we skip the bump.
-            savedFeaturesRepo.recordUsage(featureId)
+            miniAppsRepo.recordUsage(miniAppId)
             handleSendChat(triggerPrompt, modelTier = null)
         } finally {
             // Clear so a follow-up user message in the same chat
-            // doesn't overwrite the feature's cached UI. The clear
+            // doesn't overwrite the mini-app's cached UI. The clear
             // is in `finally` because handleSendChat may throw (or
             // be cancelled by viewModelScope teardown) and we still
             // want the state reset.
-            activeFeatureInvocationId = null
+            activeMiniAppInvocationId = null
         }
     }
 

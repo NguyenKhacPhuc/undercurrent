@@ -176,9 +176,25 @@ internal sealed interface Screen {
      */
     data object Integrations : Screen
     /**
-     * Drawer → My features. Management view for user-saved prompt
-     * shortcuts (rename / edit / delete). Invocation lives in the
-     * chat input's Add-to-Chat sheet, not here.
+     * Drawer → Mini apps. Management view for user-saved mini-apps
+     * (a UI tree + the prompt that produced it). Each card renders
+     * its cached `ui_render` tree non-interactively; tap opens the
+     * full mini-app via the seed-bridge-then-refresh path. Creation
+     * lives in the chat input's Add-to-Chat sheet's "Save as
+     * mini-app" affordance, not here.
      */
-    data object SavedFeatures : Screen
+    data object MiniApps : Screen
+
+    /**
+     * Guided creator wizard — driven entirely by the agent via
+     * `ui_render`. The user enters from a "+ New" tap on Personas or
+     * Mini Apps; they see only the agent's rendered question widgets
+     * (no chat input bar). The agent finalizes via `create_persona`
+     * or `create_mini_app`, which navigates back automatically.
+     *
+     * One variant for both flavors of creation (persona-voice,
+     * persona-role, mini-app) — the [dev.weft.undercurrent.features.creator.CreatorSession]
+     * singleton tracks which one is active.
+     */
+    data object Creator : Screen
 }

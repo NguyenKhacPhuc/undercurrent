@@ -121,9 +121,9 @@ private fun App() {
     // branch) so the dialog stays mounted while the user is on
     // RenderedTree — opening it from a screen-scoped state would
     // dismount on the navigate-back.
-    val appSavedFeaturesRepo: dev.weft.undercurrent.features.savedfeatures.SavedFeaturesRepository =
+    val appMiniAppsRepo: dev.weft.undercurrent.features.miniapps.MiniAppsRepository =
         koinInject()
-    val appSavedFeaturesScope = rememberCoroutineScope()
+    val appMiniAppsScope = rememberCoroutineScope()
     var saveFromRenderDraft by remember { mutableStateOf<String?>(null) }
     val systemDark = isSystemInDarkTheme()
     val darkMode = when (state.themePrefs.mode) {
@@ -376,10 +376,66 @@ private fun App() {
                     )
                     Screen.Personas -> PersonasScreen(
                         onBack = { store.dispatch(AppIntent.Navigate(Screen.Chat)) },
+                        onStartCreator = { kind ->
+                            store.dispatch(AppIntent.StartCreator(kind))
+                        },
                     )
-                    Screen.SavedFeatures ->
-                        dev.weft.undercurrent.features.savedfeatures.SavedFeaturesScreen(
+                    Screen.Creator -> dev.weft.undercurrent.features.creator.CreatorScreen(
+                        creatorSession = org.koin.compose.koinInject(),
+                        uiBridge = uiBridge,
+                        componentRegistry = weftUi.componentRegistry,
+                        isThinking = state.chat.inFlight,
+                        lastError = state.chat.lastError,
+                        onAction = { action, label, fields ->
+                            store.sendUiEvent(action, label, fields)
+                        },
+                        onCancel = { store.dispatch(AppIntent.CancelCreator) },
+                    )
+                    Screen.MiniApps ->
+                        dev.weft.undercurrent.features.miniapps.MiniAppsScreen(
+                            componentRegistry = weftUi.componentRegistry,
                             onBack = { store.dispatch(AppIntent.Navigate(Screen.Chat)) },
+                            onStartCreator = {
+                                store.dispatch(
+                                    AppIntent.StartCreator(
+                                        dev.weft.undercurrent.features.creator.CreatorKind.MiniApp,
+                                    ),
+                                )
+                            },
+                            onOpenMiniApp = { miniApp ->
+                                // Same instant-replay flow as the chip
+                                // tap in the Add-to-Chat sheet: seed the
+                                // UI bridge with the cached tree (if
+                                // any), navigate to RenderedTree, then
+                                // dispatch InvokeMiniApp so the agent
+                                // re-runs and refreshes the data.
+                                val cached = miniApp.lastRenderTreeJson
+                                if (cached != null) {
+                                    // appMiniAppsScope is in scope here (declared
+                                    // at App-level); the `coroutineScope` used in
+                                    // the chat path is defined further down and
+                                    // is out of scope at this render-branch.
+                                    appMiniAppsScope.launch {
+                                        runCatching {
+                                            val tree = kotlinx.serialization.json.Json
+                                                .decodeFromString(
+                                                    dev.weft.contracts.ComponentNode.serializer(),
+                                                    cached,
+                                                )
+                                            uiBridge.emit(
+                                                dev.weft.contracts.UIUpdate.RenderTree(tree),
+                                            )
+                                        }
+                                    }
+                                    store.dispatch(AppIntent.Navigate(Screen.RenderedTree))
+                                }
+                                store.dispatch(
+                                    AppIntent.InvokeMiniApp(
+                                        miniAppId = miniApp.id,
+                                        triggerPrompt = miniApp.triggerPrompt,
+                                    ),
+                                )
+                            },
                         )
                     Screen.Conversations -> {
                         val a = state.agent
@@ -422,21 +478,21 @@ private fun App() {
                     )
                 }
 
-                // Save-as-feature dialog for the RenderedTree screen.
+                // Save-as-mini-app dialog for the RenderedTree screen.
                 // Opens when the user taps "Save" on a mini-app surface.
                 // Captures both the trigger prompt (the user's latest
                 // message, from chat history) AND the current render
-                // tree (so a future tap on the chip shows the cached
+                // tree (so a future tap on the card shows the cached
                 // UI instantly while the agent re-runs).
                 saveFromRenderDraft?.let { draft ->
-                    dev.weft.undercurrent.features.savedfeatures.SaveAsFeatureDialog(
+                    dev.weft.undercurrent.features.miniapps.SaveAsMiniAppDialog(
                         initial = null,
                         suggestedPrompt = draft,
                         onDismiss = { saveFromRenderDraft = null },
                         onSave = { name, emoji, triggerPrompt ->
                             saveFromRenderDraft = null
-                            appSavedFeaturesScope.launch {
-                                val created = appSavedFeaturesRepo.add(name, emoji, triggerPrompt)
+                            appMiniAppsScope.launch {
+                                val created = appMiniAppsRepo.add(name, emoji, triggerPrompt)
                                 // Capture the current rendered tree so
                                 // the next invocation can show it
                                 // instantly. The bridge always has a
@@ -450,10 +506,10 @@ private fun App() {
                                         dev.weft.contracts.ComponentNode.serializer(),
                                         tree,
                                     )
-                                    appSavedFeaturesRepo.setCachedRender(created.id, json)
+                                    appMiniAppsRepo.setCachedRender(created.id, json)
                                 }
                                 snackbarHostState.showSnackbar(
-                                    "Saved $emoji $name. Find it in My features.",
+                                    "Saved $emoji $name. Find it in Mini apps.",
                                 )
                             }
                         },
@@ -549,8 +605,8 @@ private fun ChatRouteWithDrawer(
                     closeAnd { store.dispatch(AppIntent.Navigate(Screen.Conversations)) }
                 },
                 onShowPersonas = { closeAnd { store.dispatch(AppIntent.Navigate(Screen.Personas)) } },
-                onShowSavedFeatures = {
-                    closeAnd { store.dispatch(AppIntent.Navigate(Screen.SavedFeatures)) }
+                onShowMiniApps = {
+                    closeAnd { store.dispatch(AppIntent.Navigate(Screen.MiniApps)) }
                 },
                 onShowMemories = { closeAnd { store.dispatch(AppIntent.Navigate(Screen.Memories)) } },
                 onShowTraces = { closeAnd { store.dispatch(AppIntent.Navigate(Screen.Traces)) } },
@@ -570,16 +626,17 @@ private fun ChatRouteWithDrawer(
             val enabledIntegrationIds by integrationsRepo.enabledIdsFlow
                 .collectAsState(initial = emptySet())
 
-            // Saved features for the "Add to Chat" chip row +
-            // post-reply "Save as feature" affordance. Process-scoped
-            // repo collected as state here so the sheet always reflects
-            // the latest list (newly-saved features show up immediately
-            // on the next open). Invocation goes through the existing
-            // SendChat intent — feels indistinguishable from typing.
-            val savedFeaturesRepo: dev.weft.undercurrent.features.savedfeatures.SavedFeaturesRepository =
+            // Mini apps for the "Add to Chat" chip row + post-reply
+            // "Save as mini-app" affordance. Process-scoped repo
+            // collected as state here so the sheet always reflects
+            // the latest list (newly-saved mini-apps show up
+            // immediately on the next open). Invocation goes through
+            // the existing SendChat intent — feels indistinguishable
+            // from typing.
+            val miniAppsRepo: dev.weft.undercurrent.features.miniapps.MiniAppsRepository =
                 koinInject()
-            val savedFeatures by savedFeaturesRepo.features.collectAsState()
-            val savedFeaturesScope = rememberCoroutineScope()
+            val miniApps by miniAppsRepo.miniApps.collectAsState()
+            val miniAppsScope = rememberCoroutineScope()
             ChatScreen(
                 displayMessages = store.displayMessages,
                 inFlight = state.chat.inFlight,
@@ -620,7 +677,7 @@ private fun ChatRouteWithDrawer(
                     activePalette = state.themePrefs.palette,
                     activeMode = state.themePrefs.mode,
                     connectedIntegrationsCount = enabledIntegrationIds.size,
-                    savedFeatures = savedFeatures,
+                    miniApps = miniApps,
                     onSelectPalette = { p -> store.dispatch(AppIntent.SetPalette(p)) },
                     onSelectMode = { m -> store.dispatch(AppIntent.SetThemeMode(m)) },
                     onShowPersonas = {
@@ -629,24 +686,24 @@ private fun ChatRouteWithDrawer(
                     onShowIntegrations = {
                         store.dispatch(AppIntent.Navigate(Screen.Integrations))
                     },
-                    onShowSavedFeatures = {
-                        store.dispatch(AppIntent.Navigate(Screen.SavedFeatures))
+                    onShowMiniApps = {
+                        store.dispatch(AppIntent.Navigate(Screen.MiniApps))
                     },
-                    // Invocation: if the feature has a cached UI tree
+                    // Invocation: if the mini-app has a cached UI tree
                     // from a previous run, seed the Compose UI bridge
                     // synchronously + navigate to the rendered-tree
-                    // screen so the user sees the mini-app instantly.
-                    // THEN dispatch InvokeSavedFeature so the agent
-                    // re-runs the trigger prompt to refresh whatever
-                    // data the UI reads — capturing the new tree onto
-                    // the feature happens in AppStore.
+                    // screen so the user sees it instantly. THEN
+                    // dispatch InvokeMiniApp so the agent re-runs the
+                    // trigger prompt to refresh whatever data the UI
+                    // reads — capturing the new tree onto the mini-app
+                    // happens in AppStore.
                     //
-                    // Features without a cached tree fall through to
+                    // Mini-apps without a cached tree fall through to
                     // the normal chat flow: prompt visible in history,
                     // ui_render (if the agent emits one) auto-navigates
                     // via the existing handleUiBridgeUpdate path.
-                    onInvokeFeature = { feature ->
-                        val cached = feature.lastRenderTreeJson
+                    onInvokeMiniApp = { miniApp ->
+                        val cached = miniApp.lastRenderTreeJson
                         if (cached != null) {
                             // `lastUpdate` has `private set` on the bridge,
                             // so we seed via the public suspend `emit(...)`
@@ -668,15 +725,15 @@ private fun ChatRouteWithDrawer(
                             store.dispatch(AppIntent.Navigate(Screen.RenderedTree))
                         }
                         store.dispatch(
-                            AppIntent.InvokeSavedFeature(
-                                featureId = feature.id,
-                                triggerPrompt = feature.triggerPrompt,
+                            AppIntent.InvokeMiniApp(
+                                miniAppId = miniApp.id,
+                                triggerPrompt = miniApp.triggerPrompt,
                             ),
                         )
                     },
-                    onAddSavedFeature = { name, emoji, prompt ->
-                        savedFeaturesScope.launch {
-                            savedFeaturesRepo.add(name, emoji, prompt)
+                    onAddMiniApp = { name, emoji, prompt ->
+                        miniAppsScope.launch {
+                            miniAppsRepo.add(name, emoji, prompt)
                         }
                     },
                 ),

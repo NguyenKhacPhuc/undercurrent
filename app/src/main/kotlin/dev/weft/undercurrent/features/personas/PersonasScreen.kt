@@ -62,6 +62,13 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 internal fun PersonasScreen(
     onBack: () -> Unit,
+    /**
+     * Dispatched by the "+ New" headers. Routes through AppStore's
+     * `StartCreator` reducer which kicks off a guided QnA flow with
+     * the agent on the Creator screen. The old single-dialog editor
+     * lives on only for the long-press "edit existing" path.
+     */
+    onStartCreator: (dev.weft.undercurrent.features.creator.CreatorKind) -> Unit = {},
     vm: PersonasViewModel = koinViewModel(),
 ) {
     val activeVoice by vm.activeVoice.collectAsState()
@@ -124,7 +131,11 @@ internal fun PersonasScreen(
             item("voices-label") {
                 SectionHeader(
                     label = "Voices",
-                    onAdd = { editorMode = EditorMode.New(PersonaKind.Voice) },
+                    onAdd = {
+                        onStartCreator(
+                            dev.weft.undercurrent.features.creator.CreatorKind.PersonaVoice,
+                        )
+                    },
                 )
             }
             items(BuiltInPersonas.Voices, key = { it.id }) { persona ->
@@ -148,7 +159,11 @@ internal fun PersonasScreen(
                 Spacer(Modifier.height(24.dp))
                 SectionHeader(
                     label = "Roles",
-                    onAdd = { editorMode = EditorMode.New(PersonaKind.Role) },
+                    onAdd = {
+                        onStartCreator(
+                            dev.weft.undercurrent.features.creator.CreatorKind.PersonaRole,
+                        )
+                    },
                 )
             }
             items(BuiltInPersonas.Roles, key = { it.id }) { persona ->

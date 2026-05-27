@@ -117,8 +117,8 @@ internal sealed interface AppIntent {
      * because that's where the [dev.weft.compose.ComposeUiBridge]
      * lives. AppStore only handles the agent-turn side.
      */
-    data class InvokeSavedFeature(
-        val featureId: String,
+    data class InvokeMiniApp(
+        val miniAppId: String,
         val triggerPrompt: String,
     ) : AppIntent
 
@@ -150,6 +150,24 @@ internal sealed interface AppIntent {
 
     /** Pick the default model tier ([null] = router decides). */
     data class SetDefaultTier(val tier: ModelTier?) : AppIntent
+
+    /**
+     * Begin a guided creator flow. Starts a fresh conversation, marks
+     * the [dev.weft.undercurrent.features.creator.CreatorSession] active
+     * with the given kind, sends a kickoff user message, and navigates
+     * to [Screen.Creator]. The agent's preamble flips into creator
+     * mode (QnA via ui_render, one question at a time, finalize via
+     * `create_persona` / `create_mini_app`).
+     */
+    data class StartCreator(val kind: dev.weft.undercurrent.features.creator.CreatorKind) : AppIntent
+
+    /**
+     * Abort the active creator flow. Clears the
+     * [dev.weft.undercurrent.features.creator.CreatorSession] and
+     * navigates back to whichever settings screen kicked it off
+     * (Personas / MiniApps), falling back to Settings.
+     */
+    data object CancelCreator : AppIntent
 
     /**
      * Set the model that fills a specific (provider, tier) slot in the
