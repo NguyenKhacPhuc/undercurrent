@@ -12,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,7 +48,8 @@ import dev.weft.undercurrent.app.App
 import dev.weft.undercurrent.app.AppIntent
 import dev.weft.undercurrent.app.AppStore
 import dev.weft.undercurrent.app.PlatformAdapter
-import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.designsystem.colors
+import dev.weft.undercurrent.core.model.ThemeMode
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.data.datastore.IntegrationsRepository
 import dev.weft.undercurrent.data.datastore.MiniAppsRepository
@@ -108,7 +110,18 @@ private fun AndroidApp() {
     val context = LocalContext.current
     val state by store.state.collectAsState()
 
-    val accentArgb = UndercurrentTheme.colors.accent.toArgb()
+    // Derive the accent ARGB from state instead of UndercurrentTheme.colors —
+    // this composable sits OUTSIDE the UndercurrentTheme provider (the theme
+    // wraps App()'s body, not its caller), so the CompositionLocal isn't
+    // available here. Using state.themePrefs.palette mirrors what App() will
+    // apply internally.
+    val systemDark = isSystemInDarkTheme()
+    val darkMode = when (state.themePrefs.mode) {
+        ThemeMode.Auto -> systemDark
+        ThemeMode.Light -> false
+        ThemeMode.Dark -> true
+    }
+    val accentArgb = state.themePrefs.palette.colors(darkMode).accent.toArgb()
     val onOpenUrl: (String) -> Unit = { url -> openInBrowser(context, url, accentArgb) }
     val onCopyText: (String) -> Unit = { text ->
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
