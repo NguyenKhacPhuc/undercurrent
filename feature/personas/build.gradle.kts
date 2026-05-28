@@ -12,7 +12,8 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // feature-specific common deps (e.g. :data:repository)
+            // PersonaRepository (active voice / role + custom personas).
+            implementation(projects.data.datastore)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

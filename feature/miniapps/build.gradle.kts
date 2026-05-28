@@ -12,7 +12,8 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // feature-specific common deps (e.g. :data:repository)
+            // MiniAppsRepository (cached tree JSON + usage counters).
+            implementation(projects.data.datastore)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

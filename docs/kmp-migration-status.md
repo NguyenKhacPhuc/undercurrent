@@ -22,7 +22,7 @@ KMP-friendly contract.
 | ✅ `:data:datastore` | createPreferencesDataStore (KMP factory + Android/iOS actuals), ThemeRepository, OnboardingRepository, PersonaRepository, IntegrationsRepository, MiniAppsRepository, ProviderPrefsRepository, ModelPrefsRepository — **7 repos total** |
 | ✅ `:data:sqldelight` | UndercurrentDatabase (Records.sq schema), expect class DatabaseDriverFactory + Android (AndroidSqliteDriver) / iOS (NativeSqliteDriver) actuals |
 
-## Features — 5 of 17 done
+## Features — 9 of 17 done
 
 | Feature | Status | Blocker / notes |
 |---|---|---|
@@ -31,10 +31,10 @@ KMP-friendly contract.
 | ✅ `:feature:memories` | **DONE** | VM + AgentMemoriesScreen in commonMain via MemoryStoreGateway. Manual kotlinx.datetime "MMM d · HH:mm" timestamp. |
 | ✅ `:feature:traces` | **DONE** | VM + TraceViewerScreen (full detail view + clipboard formatters) in commonMain via TraceStoreGateway. `String.format` swapped for a manual one-decimal helper. |
 | ✅ `:feature:usage` | **DONE** | VM + UsageScreen in commonMain via UsageGateway. `java.time.LocalDate.now()` → kotlinx.datetime; per-decimal `String.format` swapped for a manual helper. |
-| ⏳ `:feature:onboarding` | Repo migrated; Screen pending | OnboardingScreen depends on BuiltInPersonas (✅ in :core:model) + ProviderKind (✅ in :core:model) + ModelCatalog (✅ in :shared). |
-| ⏳ `:feature:theme` | DataStore repo migrated; Screen pending | AppearanceScreen needs migration — likely simple. |
-| ⏳ `:feature:personas` | Repo + types migrated; Screen + VM pending | PersonasScreen is 544 LOC. ViewModel directly mutates PersonaRepository — straightforward. |
-| ⏳ `:feature:miniapps` | Repo + MiniApp type migrated; Screen + VM pending | Screen consumes UIUpdate (Weft type) for the cached-render plumbing. UiBridgeGateway (✅ in :shared) covers it. |
+| ✅ `:feature:theme` | **DONE** | Stateless AppearanceScreen in commonMain. Palette swatches + light/dark/system segmented control. Pulls `AppPalette.colors(dark)` from :core:design-system. |
+| ✅ `:feature:onboarding` | **DONE** | 4-page stateless onboarding (Hi → Memory → Voice → Provider) in commonMain. `catalogFor(provider)` (Android-only) lifted to a `modelCountFor: (ProviderKind) -> Int` lambda parameter — host wires it to `ModelCatalog`. |
+| ✅ `:feature:personas` | **DONE** | VM + 544-LOC PersonasScreen + PersonaEditorDialog in commonMain. `CreatorKind` dependency replaced with `(PersonaKind) -> Unit` lambda since `:feature:creator` hasn't migrated yet. |
+| ✅ `:feature:miniapps` | **DONE** | VM + SaveAsMiniAppDialog + MiniAppsScreen in commonMain. `TreeRenderer` + `WeftComponentRegistry` (both Android-only) hoisted to a `treePreview: @Composable (treeJson, onTap) -> Unit` lambda — host wires it on Android, iOS shell can render a placeholder. |
 | ⏳ `:feature:integrations` | Repo migrated; Screen + VM pending | OAuthGateway (✅ in :shared) covers it. |
 | ⏳ `:feature:providers` | Both repos migrated; Screen + VM pending | Largest non-chat screen (717 LOC). ModelCatalog (✅) covers reads; still needs a provider-rebuild trigger gateway for `WeftRuntime.buildExecutorFor`. |
 | ⏳ `:feature:keypaste` | — | KeyVaultGateway (✅) covers it. |
@@ -103,16 +103,15 @@ JSON round-trips cleanly between the mirror `ComponentNode` and
 
 ## Recommended next session
 
-1. **Recipe B features** (theme, onboarding, personas, miniapps). ~½ day.
-2. **Recipe C features** (integrations, keypaste, voice, creator, providers, maps). ~1 day total.
-3. **`:feature:chat` last** — needs its own focused session. ~1 day.
-4. **`:androidApp` + `:composeApp` wiring** — Koin DI module that picks the platform-correct implementation of every gateway, the top-level App composable, screen routing, MainActivity. ~1 day.
-5. **iOS shell** — Xcode project, SwiftUI scene hosting ComposeApp.framework. ~½ day.
-6. **Delete `app/`** — once everything builds through the new modules.
+1. **Recipe C features** (integrations, keypaste, voice, creator, providers, maps). ~1 day total.
+2. **`:feature:chat` last** — needs its own focused session. ~1 day.
+3. **`:androidApp` + `:composeApp` wiring** — Koin DI module that picks the platform-correct implementation of every gateway, the top-level App composable, screen routing, MainActivity. ~1 day.
+4. **iOS shell** — Xcode project, SwiftUI scene hosting ComposeApp.framework. ~½ day.
+5. **Delete `app/`** — once everything builds through the new modules.
 
-Estimated total remaining: ~4 focused days.
+Estimated total remaining: ~3.5 focused days.
 
-## Patterns learned from Recipe A
+## Patterns learned (Recipes A + B)
 
 - **`:shared` brings `:core:model` transitively.** Set up in the gateway commit; feature modules add `implementation(projects.shared)` and pick up `ProviderKind` / `ModelTier` automatically.
 - **`org.koin.compose.viewmodel.koinViewModel`** is the commonMain entry point. Don't import `org.koin.androidx.compose.koinViewModel` — that's the Android-only shim from the old app.
@@ -120,6 +119,8 @@ Estimated total remaining: ~4 focused days.
 - **`java.util.Date` / `SimpleDateFormat` / `java.text.*` / `java.time.*`** → kotlinx.datetime + `kotlin.time.Clock` per CLAUDE.md note. Add `implementation(libs.kotlinx.datetime)` per feature, opt-in via `@OptIn(ExperimentalTime::class)` when using `kotlin.time.Instant`.
 - **`String.format("%.Nf", v)` doesn't exist in commonMain stdlib.** Write a small `formatDecimal(v, n)` helper (see `feature/usage`). One-decimal-only variants also acceptable inline.
 - **`Map.toSortedMap()` doesn't exist in commonMain stdlib.** Use `entries.sortedBy { it.key }` (ISO dates sort lexicographically = chronologically).
+- **Lift Android-only Composable dependencies to lambda parameters** (Recipe B insight). When a screen needs an Android-only Composable like `TreeRenderer` or a static Android-only call like `catalogFor()`, take the rendering / lookup as a constructor lambda. The host wires it from the Android nav glue; the screen stays commonMain. See `feature/miniapps` (`treePreview`) + `feature/onboarding` (`modelCountFor`).
+- **When a screen depends on a sibling feature module that hasn't migrated yet** (e.g. `:feature:personas` used `:feature:creator`'s `CreatorKind`), lift to a generic callback — `(PersonaKind) -> Unit` instead of `(CreatorKind) -> Unit`. The host translates. Avoids cross-feature ordering constraints.
 
 ## What's solid right now
 
