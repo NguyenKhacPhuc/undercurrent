@@ -22,7 +22,7 @@ KMP-friendly contract.
 | ✅ `:data:datastore` | createPreferencesDataStore (KMP factory + Android/iOS actuals), ThemeRepository, OnboardingRepository, PersonaRepository, IntegrationsRepository, MiniAppsRepository, ProviderPrefsRepository, ModelPrefsRepository — **7 repos total** |
 | ✅ `:data:sqldelight` | UndercurrentDatabase (Records.sq schema), expect class DatabaseDriverFactory + Android (AndroidSqliteDriver) / iOS (NativeSqliteDriver) actuals |
 
-## Features — 16 of 17 done
+## Features — 17 of 17 done
 
 | Feature | Status | Blocker / notes |
 |---|---|---|
@@ -42,7 +42,7 @@ KMP-friendly contract.
 | ✅ `:feature:creator` | **DONE** | CreatorSession + CreatorKind + CreatorScreen in commonMain. Tree-rendering body hoisted to a `body: @Composable () -> Unit` lambda so host can wire Weft's TreeRenderer + ComposeUiBridge. `CreatorTools` (create_persona, create_mini_app) stays in `app/` for now — depends on un-migrated `Screen` / `NavigationChannel`; moves to `:data:weft` when navigation lands. |
 | ✅ `:feature:providers` | **DONE** | Largest screen yet (~720 LOC). Switched from Koog `LLModel` to `ModelInfo` mirror; from `catalogFor`/`defaultPoolFor` to `ModelCatalog` gateway; from inline `validateKey` to `KeyValidationGateway`; from CCT `openInBrowser` to `onOpenConsole` lambda. `TipBox` promoted to `:core:ui`. Material icons (Visibility, ArrowDropDown, KeyboardArrowRight) → Unicode glyphs. |
 | ✅ `:feature:chat` | **DONE** | The big one — 2472 LOC across 6 files. ChatScreen + DegradedModeBanner + NotificationsPermissionBanner + AddToChatSheet + MarkdownText + AgentSelector + DisplayMessage/ToolInfo + DegradedMode/SkillSummary/AgentOption mirrors all in commonMain. SpeechGateway replaces VoiceRecognizer + Android permission flow. `LocalClipboardManager` → `onCopyText` lambda. CCT `openInBrowser` → `onOpenUrl` lambda (passed through to MarkdownText links). CircuitBreaker → `DegradedMode` mirror state. `SkillRegistry` → `List<SkillSummary>?`. `AgentSelector` re-implemented in commonMain (was `:android-compose-defaults`-only). Material icons-extended (Menu, MoreVert, ArrowUpward, AutoAwesome, Mic, Add) → Unicode glyphs (☰, ⋮, ↑, ✦, ●, +). |
-| ⏳ `:feature:navigation` | — | Cross-cutting. Migrate alongside `:core:navigation`. |
+| ✅ `:feature:navigation` | **DONE** | `Screen` sealed interface + `NavigationChannel` lifted into `:core:navigation/commonMain` (made `public`). The five `Open*Tool` Weft tools moved to `:data:weft/.../tools/NavigationTools.kt`. `CreatePersonaTool` + `CreateMiniAppTool` also moved to `:data:weft/.../tools/CreatorTools.kt` now that their `Screen` / `NavigationChannel` / `PersonaRepository` / `MiniAppsRepository` deps are reachable from a commonMain-aware module. |
 
 ## Patterns established
 
@@ -103,11 +103,43 @@ JSON round-trips cleanly between the mirror `ComponentNode` and
 
 ## Recommended next session
 
-1. **`:androidApp` + `:composeApp` wiring** — Koin DI module that picks the platform-correct gateway impl, the top-level App composable, screen routing, MainActivity. Also lands: `:feature:navigation` migration (the last feature module), then `CreatorTools` (`create_persona`, `create_mini_app`) gets moved to `:data:weft` since its `Screen` enum + `NavigationChannel` deps will be available. ~1 day.
-2. **iOS shell** — Xcode project, SwiftUI scene hosting ComposeApp.framework. ~½ day.
+**Every feature is migrated.** What's left is the host-app shell move
+— big in line count but mostly mechanical now that the gateways +
+feature modules are stable.
+
+1. **`:androidApp` + `:composeApp` wiring** — the orchestrator layer.
+   ~1 day.
+   - **AppState / AppIntent / AppEffect / AppPreamble** (450 LOC of
+     state machine vocabulary) → these reference Weft types directly
+     (`WeftAgent`, `UIUpdate`, `AgentTrace`, `WeftSystemPromptDefaults`).
+     They can either (a) stay co-located with AppStore in `:androidApp`
+     or (b) shift to commonMain gateway mirrors. Pragmatic call: keep
+     them with AppStore in `:androidApp` since AppStore is the only
+     consumer and the rewrite to gateway mirrors isn't load-bearing.
+   - **AppStore** (957 LOC) — the reducer + agent loop + every
+     gateway consumer. Moves to `:androidApp/src/main/kotlin/.../`
+     verbatim (rewrite imports: old `dev.weft.undercurrent.features.*`
+     → new `dev.weft.undercurrent.feature.*` + `:core:navigation`
+     for `Screen` / `NavigationChannel`).
+   - **AppModule** (473 LOC, Koin DI) → `:androidApp/.../di/`.
+     This is the binding layer for every gateway. Bind:
+     `KeyVaultGateway` → `WeftKeyVaultGateway`, `OAuthGateway` →
+     `WeftOAuthGateway`, … (9 gateways + the 10th
+     `KeyValidationGateway` → `WeftKeyValidationGateway` +
+     `AgentEngine` → `WeftAgentEngine` + `AndroidSpeechGateway`).
+   - **MainActivity** (846 LOC) — Android entrypoint with
+     OAuth deep-link plumbing + permission launchers. Moves verbatim.
+   - **UndercurrentApp** (36 LOC) — Application class. Moves verbatim.
+   - **The `App()` composable + screen routing** — extracts to
+     `:composeApp/commonMain` parameterized by every feature module's
+     screen factory. The host wires which screen ID → which feature
+     module's screen Composable. iOS shell gets the same `App()`
+     dispatched against a different (stub-backed) DI graph.
+2. **iOS shell** — Xcode project, SwiftUI scene hosting
+   `ComposeApp.framework`. ~½ day.
 3. **Delete `app/`** — once everything builds through the new modules.
 
-Estimated total remaining: ~1.5-2 focused days.
+Estimated total remaining: ~1.5 focused days.
 
 ## Patterns learned (Recipes A + B + C)
 

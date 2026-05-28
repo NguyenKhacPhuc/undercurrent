@@ -39,6 +39,14 @@ dependencies {
     // KMP-shared business contracts (engine interface, model types).
     implementation(projects.shared)
     implementation(projects.core.model)
+    // Screen + NavigationChannel — consumed by the navigation tools
+    // (open_personas, open_memories, …) and by CreatorTools' nav-back.
+    implementation(projects.core.navigation)
+    // PersonaRepository + MiniAppsRepository — consumed by CreatorTools.
+    implementation(projects.data.datastore)
+    // CreatorSession — consumed by CreatorTools to clear the active
+    // creation kind after the finalize tool fires.
+    implementation(projects.feature.creator)
 
     // The Weft SDK itself — wired via the `includeBuild("../weft")`
     // composite + dependencySubstitution in settings.gradle.kts.
