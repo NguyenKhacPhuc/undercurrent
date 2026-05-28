@@ -140,7 +140,7 @@ val appModule = module {
         )
         WeftUi(
             context = androidContext(),
-            extraComponents = dev.weft.undercurrent.components.undercurrentComponents(imageLoader),
+            extraComponents = dev.weft.undercurrent.ui.components.undercurrentComponents(imageLoader),
             includeDefaults = false,
         )
     }

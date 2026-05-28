@@ -39,6 +39,9 @@ dependencies {
     implementation(projects.core.navigation)
     implementation(projects.core.ui)
 
+    // UI layer — Android-only Compose surfaces (WeftComponent palette, etc).
+    implementation(projects.ui.components)
+
     // Data layer — repos + databases + Weft bridge (Android-only)
     implementation(projects.data.datastore)
     implementation(projects.data.sqldelight)
