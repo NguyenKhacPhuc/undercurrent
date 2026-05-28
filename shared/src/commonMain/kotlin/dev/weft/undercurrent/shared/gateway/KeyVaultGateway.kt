@@ -16,14 +16,14 @@ import dev.weft.undercurrent.core.model.ProviderKind
  *    instead — this gateway method is implemented for symmetry but is
  *    not the primary read path there.
  */
-public interface KeyVaultGateway {
+interface KeyVaultGateway {
 
     /**
      * Persist [apiKey] for [provider]. Overwrites any previous value at
      * the same provider's alias. Throws on storage failure (locked
      * Keystore, Keychain access denied, etc.).
      */
-    public suspend fun putApiKey(provider: ProviderKind, apiKey: String)
+    suspend fun putApiKey(provider: ProviderKind, apiKey: String)
 
     /**
      * Read the stored key for [provider]. Returns `null` when no key is
@@ -33,17 +33,17 @@ public interface KeyVaultGateway {
      * — they should display "configured" / "not configured" via
      * [hasApiKey], not the plaintext key.
      */
-    public suspend fun getApiKey(provider: ProviderKind): String?
+    suspend fun getApiKey(provider: ProviderKind): String?
 
     /**
      * Whether a key is currently stored for [provider]. The keypaste
      * screen uses this to render "Configured ✓" vs "Add key" without
      * exposing the key itself.
      */
-    public suspend fun hasApiKey(provider: ProviderKind): Boolean
+    suspend fun hasApiKey(provider: ProviderKind): Boolean
 
     /**
      * Remove the stored key for [provider]. No-op if nothing's stored.
      */
-    public suspend fun clearApiKey(provider: ProviderKind)
+    suspend fun clearApiKey(provider: ProviderKind)
 }

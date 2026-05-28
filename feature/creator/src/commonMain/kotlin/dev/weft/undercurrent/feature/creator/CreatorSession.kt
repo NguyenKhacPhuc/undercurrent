@@ -22,19 +22,19 @@ import kotlinx.coroutines.flow.asStateFlow
  * KMP — commonMain. Moved from
  * `app/.../features/creator/CreatorSession.kt`.
  */
-public class CreatorSession {
+class CreatorSession {
 
     private val _state: MutableStateFlow<CreatorKind?> = MutableStateFlow(null)
-    public val state: StateFlow<CreatorKind?> = _state.asStateFlow()
+    val state: StateFlow<CreatorKind?> = _state.asStateFlow()
 
-    public fun current(): CreatorKind? = _state.value
-    public fun isActive(): Boolean = _state.value != null
+    fun current(): CreatorKind? = _state.value
+    fun isActive(): Boolean = _state.value != null
 
-    public fun start(kind: CreatorKind) {
+    fun start(kind: CreatorKind) {
         _state.value = kind
     }
 
-    public fun clear() {
+    fun clear() {
         _state.value = null
     }
 }
@@ -43,20 +43,20 @@ public class CreatorSession {
  * What's being created. Drives the kickoff prompt + the agent's
  * preamble + which finalize tool the agent should call.
  */
-public enum class CreatorKind {
+enum class CreatorKind {
     PersonaVoice,
     PersonaRole,
     MiniApp,
     ;
 
-    public val humanLabel: String
+    val humanLabel: String
         get() = when (this) {
             PersonaVoice -> "voice persona"
             PersonaRole -> "role persona"
             MiniApp -> "mini-app"
         }
 
-    public val screenTitle: String
+    val screenTitle: String
         get() = when (this) {
             PersonaVoice -> "Create voice"
             PersonaRole -> "Create role"

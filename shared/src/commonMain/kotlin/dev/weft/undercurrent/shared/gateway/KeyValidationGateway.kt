@@ -17,11 +17,11 @@ import dev.weft.undercurrent.core.model.ProviderKind
  * check: it exercises the same auth path as a real send, so a key
  * that validates here is guaranteed to send.
  */
-public interface KeyValidationGateway {
-    public suspend fun validateKey(provider: ProviderKind, apiKey: String): ValidationResult
+interface KeyValidationGateway {
+    suspend fun validateKey(provider: ProviderKind, apiKey: String): ValidationResult
 }
 
-public sealed interface ValidationResult {
-    public data object Ok : ValidationResult
-    public data class Invalid(val message: String) : ValidationResult
+sealed interface ValidationResult {
+    data object Ok : ValidationResult
+    data class Invalid(val message: String) : ValidationResult
 }

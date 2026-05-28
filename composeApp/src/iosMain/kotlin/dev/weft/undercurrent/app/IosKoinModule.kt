@@ -57,7 +57,7 @@ import org.koin.dsl.module
  * the real impls (and replace [IosAppStore] with one that drives the
  * agent loop).
  */
-public val iosAppModule = module {
+val iosAppModule = module {
 
     // ─── DataStores ─────────────────────────────────────────────────
     single<DataStore<Preferences>>(named(ThemeRepository.FILE_NAME)) {

@@ -13,8 +13,8 @@ import dev.weft.undercurrent.db.UndercurrentDatabase
  * Database file lands under `NSDocumentDirectory` (driver default
  * for the `name` constructor) so it's iCloud-backupable.
  */
-public actual class DatabaseDriverFactory {
-    public actual fun create(): SqlDriver = NativeSqliteDriver(
+actual class DatabaseDriverFactory {
+    actual fun create(): SqlDriver = NativeSqliteDriver(
         schema = UndercurrentDatabase.Schema,
         name = DATABASE_NAME,
     )

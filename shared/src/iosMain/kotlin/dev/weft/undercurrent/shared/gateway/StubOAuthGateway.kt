@@ -6,7 +6,7 @@ package dev.weft.undercurrent.shared.gateway
  * integrations, so [authorize] returns [OAuthResult.UserCancelled] and
  * token-store writes are no-ops.
  */
-public class StubOAuthGateway : OAuthGateway {
+class StubOAuthGateway : OAuthGateway {
     override suspend fun authorize(config: OAuthConfig): OAuthResult = OAuthResult.UserCancelled
 
     override suspend fun putTokens(integrationId: String, tokens: OAuthTokens) = Unit

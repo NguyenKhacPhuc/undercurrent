@@ -13,7 +13,7 @@ import dev.weft.undercurrent.shared.gateway.KeyVaultGateway
  * Constructed by DI with the [KeyVault] instance exposed by the runtime —
  * see `:androidApp` Koin module.
  */
-public class WeftKeyVaultGateway(
+class WeftKeyVaultGateway(
     private val keyVault: KeyVault,
 ) : KeyVaultGateway {
 

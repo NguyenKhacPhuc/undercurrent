@@ -76,7 +76,7 @@ import kotlinx.coroutines.launch
  *   - Imports from `:core:ui` / `:core:design-system`.
  */
 @Composable
-public fun ProvidersScreen(
+fun ProvidersScreen(
     activeProvider: ProviderKind,
     defaultTier: ModelTier?,
     /**

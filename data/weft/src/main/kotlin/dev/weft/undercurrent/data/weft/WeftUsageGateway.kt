@@ -15,7 +15,7 @@ import dev.weft.harness.cost.UsageTotals as WeftUsageTotals
 /**
  * Android impl of [UsageGateway] backed by Weft's [UsageStore].
  */
-public class WeftUsageGateway(
+class WeftUsageGateway(
     private val store: UsageStore,
 ) : UsageGateway {
 

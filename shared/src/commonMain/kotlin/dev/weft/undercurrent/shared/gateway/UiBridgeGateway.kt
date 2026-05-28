@@ -18,7 +18,7 @@ import kotlinx.serialization.json.JsonObject
  * `dev.weft.contracts.ComponentNode`: cached-render JSON written by
  * one round-trips through the other.
  */
-public interface UiBridgeGateway {
+interface UiBridgeGateway {
 
     /**
      * Hot flow of render events. Subscribers receive every
@@ -26,7 +26,7 @@ public interface UiBridgeGateway {
      * subscribers see the most recent event (replay = 1) so a screen
      * that mounts mid-turn still shows what's been rendered.
      */
-    public val renderEvents: Flow<UiRenderEvent>
+    val renderEvents: Flow<UiRenderEvent>
 }
 
 /**
@@ -34,7 +34,7 @@ public interface UiBridgeGateway {
  * Weft `AgentContext.contextId` and is used to scope actions back to
  * the same agent-aware screen — null for non-contextual renders.
  */
-public data class UiRenderEvent(
+data class UiRenderEvent(
     val tree: ComponentNode,
     val agentContextId: String? = null,
 )
@@ -45,15 +45,15 @@ public data class UiRenderEvent(
  * cleanly into this type.
  */
 @Serializable
-public data class ComponentNode(
+data class ComponentNode(
     val type: String,
     val props: JsonObject = JsonObject(emptyMap()),
     val children: List<ComponentNode> = emptyList(),
 ) {
-    public companion object {
-        public const val MAX_DEPTH: Int = 6
+    companion object {
+        const val MAX_DEPTH: Int = 6
     }
 }
 
-public fun ComponentNode.depth(): Int =
+fun ComponentNode.depth(): Int =
     if (children.isEmpty()) 1 else 1 + children.maxOf { it.depth() }

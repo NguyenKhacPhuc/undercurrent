@@ -20,11 +20,11 @@ import kotlinx.coroutines.flow.map
  * KMP — commonMain. Moved from
  * `app/.../features/integrations/IntegrationsRepository.kt`.
  */
-public class IntegrationsRepository(
+class IntegrationsRepository(
     private val dataStore: DataStore<Preferences>,
 ) {
 
-    public val enabledIdsFlow: Flow<Set<String>> = dataStore.data
+    val enabledIdsFlow: Flow<Set<String>> = dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { prefs -> prefs[KeyEnabledIds] ?: emptySet() }
 
@@ -34,17 +34,17 @@ public class IntegrationsRepository(
      * in startup profiles, swap callers to consume `enabledIdsFlow`
      * from an IO coroutine.
      */
-    public suspend fun enabledIdsNow(): Set<String> = enabledIdsFlow.first()
+    suspend fun enabledIdsNow(): Set<String> = enabledIdsFlow.first()
 
-    public suspend fun setEnabled(id: String, enabled: Boolean) {
+    suspend fun setEnabled(id: String, enabled: Boolean) {
         dataStore.edit { prefs ->
             val current = prefs[KeyEnabledIds] ?: emptySet()
             prefs[KeyEnabledIds] = if (enabled) current + id else current - id
         }
     }
 
-    public companion object {
-        public const val FILE_NAME: String = "integrations_prefs"
+    companion object {
+        const val FILE_NAME: String = "integrations_prefs"
         private val KeyEnabledIds = stringSetPreferencesKey("enabled_ids")
     }
 }

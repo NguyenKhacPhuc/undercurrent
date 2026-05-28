@@ -67,7 +67,7 @@ import org.koin.compose.viewmodel.koinViewModel
  *   - `org.koin.compose.viewmodel.koinViewModel`.
  */
 @Composable
-public fun TraceViewerScreen(
+fun TraceViewerScreen(
     onBack: () -> Unit,
     onExportTrace: ((AgentTrace) -> Unit)? = null,
     store: TracesStore = koinViewModel(),

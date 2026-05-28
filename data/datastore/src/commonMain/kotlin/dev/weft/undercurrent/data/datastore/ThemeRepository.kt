@@ -26,11 +26,11 @@ import kotlinx.coroutines.flow.map
  * The Android-only Context delegate (`Context.themeDataStore`) is
  * gone — DI builds the DataStore explicitly and hands it here.
  */
-public class ThemeRepository(
+class ThemeRepository(
     private val dataStore: DataStore<Preferences>,
 ) {
 
-    public val prefsFlow: Flow<ThemePrefs> = dataStore.data
+    val prefsFlow: Flow<ThemePrefs> = dataStore.data
         .catch { /* corrupted file etc. → fall back to defaults */ emit(emptyPreferences()) }
         .map { prefs ->
             ThemePrefs(
@@ -43,11 +43,11 @@ public class ThemeRepository(
             )
         }
 
-    public suspend fun setPalette(palette: AppPalette) {
+    suspend fun setPalette(palette: AppPalette) {
         dataStore.edit { it[KeyPalette] = palette.name }
     }
 
-    public suspend fun setMode(mode: ThemeMode) {
+    suspend fun setMode(mode: ThemeMode) {
         dataStore.edit { it[KeyMode] = mode.name }
     }
 
@@ -55,8 +55,8 @@ public class ThemeRepository(
      * DataStore filename for theme prefs. Exposed so each platform's
      * DI module can build the path consistently.
      */
-    public companion object {
-        public const val FILE_NAME: String = "theme_prefs"
+    companion object {
+        const val FILE_NAME: String = "theme_prefs"
         private val KeyPalette = stringPreferencesKey("palette")
         private val KeyMode = stringPreferencesKey("mode")
     }

@@ -26,14 +26,14 @@ import androidx.compose.runtime.Immutable
  * just receives a fully-populated [PlatformAdapter] at the entry point.
  */
 @Immutable
-public class PlatformAdapter(
-    public val chatRoute: @Composable () -> Unit,
-    public val renderedTreeRoute: @Composable () -> Unit,
-    public val miniAppsRoute: @Composable () -> Unit,
-    public val creatorRoute: @Composable () -> Unit,
-    public val onOpenUrl: (String) -> Unit,
-    public val onCopyText: (String) -> Unit,
-    public val onRestartProcess: () -> Unit,
-    public val onOpenAppDetailsSettings: () -> Unit,
-    public val onOpenSaveDialog: (suggestedPrompt: String) -> Unit,
+class PlatformAdapter(
+    val chatRoute: @Composable () -> Unit,
+    val renderedTreeRoute: @Composable () -> Unit,
+    val miniAppsRoute: @Composable () -> Unit,
+    val creatorRoute: @Composable () -> Unit,
+    val onOpenUrl: (String) -> Unit,
+    val onCopyText: (String) -> Unit,
+    val onRestartProcess: () -> Unit,
+    val onOpenAppDetailsSettings: () -> Unit,
+    val onOpenSaveDialog: (suggestedPrompt: String) -> Unit,
 )

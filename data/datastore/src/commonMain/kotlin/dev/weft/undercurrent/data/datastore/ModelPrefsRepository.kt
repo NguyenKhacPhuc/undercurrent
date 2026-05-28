@@ -36,7 +36,7 @@ import kotlinx.coroutines.flow.stateIn
  * KMP — commonMain. Moved from
  * `app/.../features/providers/ModelPrefsRepository.kt`.
  */
-public class ModelPrefsRepository(
+class ModelPrefsRepository(
     private val dataStore: DataStore<Preferences>,
 ) {
 
@@ -56,14 +56,14 @@ public class ModelPrefsRepository(
             }
         }
 
-    public val overrides: StateFlow<Map<Slot, String>> = rawFlow
+    val overrides: StateFlow<Map<Slot, String>> = rawFlow
         .stateIn(scope, SharingStarted.Eagerly, emptyMap())
 
     /** Model id override for a specific slot, or null when unset. */
-    public fun overrideFor(provider: ProviderKind, tier: ModelTier): String? =
+    fun overrideFor(provider: ProviderKind, tier: ModelTier): String? =
         overrides.value[Slot(provider, tier)]
 
-    public suspend fun setOverride(provider: ProviderKind, tier: ModelTier, modelId: String?) {
+    suspend fun setOverride(provider: ProviderKind, tier: ModelTier, modelId: String?) {
         val slot = Slot(provider, tier)
         dataStore.edit { prefs ->
             if (modelId.isNullOrBlank()) prefs.remove(slot.key())
@@ -72,14 +72,14 @@ public class ModelPrefsRepository(
     }
 
     /** One-shot snapshot for boot-paths. */
-    public suspend fun snapshot(): Map<Slot, String> = rawFlow.first()
+    suspend fun snapshot(): Map<Slot, String> = rawFlow.first()
 
-    public companion object {
-        public const val FILE_NAME: String = "model_prefs"
+    companion object {
+        const val FILE_NAME: String = "model_prefs"
     }
 }
 
 /** (provider, tier) pair as a single keyable value. */
-public data class Slot(public val provider: ProviderKind, public val tier: ModelTier) {
+data class Slot(val provider: ProviderKind, val tier: ModelTier) {
     internal fun key() = stringPreferencesKey("${provider.name}__${tier.name}")
 }

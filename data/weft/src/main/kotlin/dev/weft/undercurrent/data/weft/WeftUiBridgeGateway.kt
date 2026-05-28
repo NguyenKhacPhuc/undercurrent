@@ -30,7 +30,7 @@ import dev.weft.contracts.ComponentNode as WeftComponentNode
  * share a wire format. Trees are small (capped at [ComponentNode.MAX_DEPTH])
  * so the round-trip cost is negligible per turn.
  */
-public class WeftUiBridgeGateway(
+class WeftUiBridgeGateway(
     private val bridge: ComposeUiBridge,
 ) : UiBridgeGateway {
 

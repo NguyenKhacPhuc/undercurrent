@@ -68,7 +68,7 @@ import kotlinx.coroutines.launch
  *     extended (which doesn't ship in CMP by default).
  */
 @Composable
-public fun KeyPasteScreen(
+fun KeyPasteScreen(
     provider: ProviderKind,
     validator: KeyValidationGateway,
     onKeyAccepted: (String) -> Unit,

@@ -33,7 +33,7 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
  *     host before this is rendered.
  */
 @Composable
-public fun NotificationsPermissionBanner(
+fun NotificationsPermissionBanner(
     onGrant: () -> Unit,
 ) {
     val colors = UndercurrentTheme.colors

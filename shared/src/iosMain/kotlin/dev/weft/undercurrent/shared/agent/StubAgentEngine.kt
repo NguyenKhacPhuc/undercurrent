@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.flowOf
  * Kept in iosMain (not iosArm64Main + iosSimulatorArm64Main) so both
  * iOS targets share it via the default hierarchy template.
  */
-public class StubAgentEngine : AgentEngine {
+class StubAgentEngine : AgentEngine {
 
     private val _state: MutableStateFlow<AgentState> =
         MutableStateFlow(AgentState.Empty.copy(ready = false))

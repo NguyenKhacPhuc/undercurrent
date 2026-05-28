@@ -46,7 +46,7 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
  *   - All parsing is pure stdlib (Regex, StringBuilder, String ops).
  */
 @Composable
-public fun MarkdownText(
+fun MarkdownText(
     text: String,
     onLinkClick: (String) -> Unit,
     modifier: Modifier = Modifier,

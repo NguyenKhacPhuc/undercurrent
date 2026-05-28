@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
  * module. The two stay in sync via [AgentOption]'s wire format.
  */
 @Composable
-public fun AgentSelector(
+fun AgentSelector(
     options: List<AgentOption>,
     selectedName: String,
     onSelect: (String) -> Unit,

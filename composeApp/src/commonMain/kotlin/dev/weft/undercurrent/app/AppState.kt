@@ -18,8 +18,8 @@ import dev.weft.undercurrent.core.navigation.Screen
  * from `:core:model`); no Weft type leaks into commonMain so iOS can
  * compile the same surface.
  */
-public data class AppState(
-    public val screen: Screen,
+data class AppState(
+    val screen: Screen,
     /**
      * Previous screen captured on every [AppIntent.Navigate]. Lets
      * screens reachable from more than one entry point (Integrations,
@@ -27,64 +27,64 @@ public data class AppState(
      * right place. Single-step only — replace with a `List<Screen>` if
      * the back-target depth grows past one level.
      */
-    public val previousScreen: Screen = Screen.Chat,
+    val previousScreen: Screen = Screen.Chat,
     /**
      * Whether AppStore has a built agent ready. The full `WeftAgent`
      * stays inside the Android-only AppStore impl; the UI only needs
      * to know "can we send / are we still booting".
      */
-    public val agentReady: Boolean = false,
+    val agentReady: Boolean = false,
     /**
      * Active conversation id, mirrored from the agent. Drives the
      * drawer's "currently active" highlight and the
      * ConversationsListScreen's selection. Null while the agent
      * isn't built yet.
      */
-    public val currentConversationId: String? = null,
-    public val chat: ChatStatus = ChatStatus(),
+    val currentConversationId: String? = null,
+    val chat: ChatStatus = ChatStatus(),
     /**
      * Theme prefs. Mirrors what's persisted in DataStore — AppStore
      * collects from the repo flow and updates this slot.
      */
-    public val themePrefs: ThemePrefs = ThemePrefs.Default,
+    val themePrefs: ThemePrefs = ThemePrefs.Default,
     /**
      * Whether the user has finished first-launch onboarding.
      */
-    public val onboardingCompleted: Boolean = false,
+    val onboardingCompleted: Boolean = false,
     /**
      * Active LLM provider + default tier. Mirrors the provider-prefs
      * repo.
      */
-    public val activeProvider: ProviderKind = ProviderKind.Anthropic,
-    public val defaultTier: ModelTier? = null,
+    val activeProvider: ProviderKind = ProviderKind.Anthropic,
+    val defaultTier: ModelTier? = null,
     /**
      * Name of the active agent declaration. The full per-agent tool
      * allowlist + system fragment + strategy live inside AppStore's
      * runtime; the UI only renders the name in the selector.
      */
-    public val activeAgentName: String = DEFAULT_AGENT_NAME,
+    val activeAgentName: String = DEFAULT_AGENT_NAME,
     /**
      * User-addressable agents the host registered. Empty / one-element
      * lists hide the chat selector.
      */
-    public val availableAgents: List<AgentSummary> = emptyList(),
+    val availableAgents: List<AgentSummary> = emptyList(),
     /**
      * Per-provider last-4 of the stored key — `Map<ProviderKind, last4>`.
      * Empty entries (no key stored) are absent from the map. Drives
      * the providers screen subtitle without exposing the secret.
      */
-    public val providerKeyStatus: Map<ProviderKind, String> = emptyMap(),
+    val providerKeyStatus: Map<ProviderKind, String> = emptyMap(),
     /**
      * Surface a "permission needed" dialog when a tool fails because
      * Android denied a runtime permission. Cleared via
      * [AppIntent.DismissPermissionDialog].
      */
-    public val pendingPermissionDialog: PermissionDialogState? = null,
+    val pendingPermissionDialog: PermissionDialogState? = null,
 ) {
-    public companion object {
-        public const val DEFAULT_AGENT_NAME: String = "default"
+    companion object {
+        const val DEFAULT_AGENT_NAME: String = "default"
 
-        public fun initial(): AppState = AppState(
+        fun initial(): AppState = AppState(
             screen = Screen.Loading,
             agentReady = false,
             currentConversationId = null,
@@ -103,10 +103,10 @@ public data class AppState(
  * message into this state instead of leaving a cryptic tool-fail
  * bubble in chat.
  */
-public data class PermissionDialogState(
-    public val toolName: String,
-    public val friendlyTitle: String,
-    public val friendlyBody: String,
+data class PermissionDialogState(
+    val toolName: String,
+    val friendlyTitle: String,
+    val friendlyBody: String,
 )
 
 /**
@@ -114,15 +114,15 @@ public data class PermissionDialogState(
  * subset the chat selector needs. Hosts adapt
  * `runtime.agentDeclarations.values` into this list at boot.
  */
-public data class AgentSummary(
-    public val name: String,
-    public val displayName: String,
-    public val description: String,
+data class AgentSummary(
+    val name: String,
+    val displayName: String,
+    val description: String,
 )
 
-public data class ChatStatus(
-    public val inFlight: Boolean = false,
-    public val lastError: String? = null,
+data class ChatStatus(
+    val inFlight: Boolean = false,
+    val lastError: String? = null,
 )
 
 // Re-export the default-agent constant via AppState so consumers don't

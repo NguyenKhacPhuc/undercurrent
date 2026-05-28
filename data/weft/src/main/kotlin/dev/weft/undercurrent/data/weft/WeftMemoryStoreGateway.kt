@@ -20,7 +20,7 @@ import dev.weft.harness.memory.MemoryScope as WeftMemoryScope
  * to write through the underlying Weft store via the `memory_store`
  * tool, so deletes propagate immediately.
  */
-public class WeftMemoryStoreGateway(
+class WeftMemoryStoreGateway(
     private val store: MemoryStore,
 ) : MemoryStoreGateway {
 

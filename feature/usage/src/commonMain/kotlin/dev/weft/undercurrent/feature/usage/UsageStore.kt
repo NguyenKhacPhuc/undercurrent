@@ -11,12 +11,12 @@ import kotlinx.coroutines.launch
  * consistency across features (and future quota-editing work fits
  * cleanly: add `SetQuota(usd)` to [UsageIntent], handle it here).
  */
-public data class UsageState(public val totals: UsageTotals = UsageTotals())
+data class UsageState(val totals: UsageTotals = UsageTotals())
 
-public sealed interface UsageIntent
-public sealed interface UsageEffect
+sealed interface UsageIntent
+sealed interface UsageEffect
 
-public class UsageStore(
+class UsageStore(
     gateway: UsageGateway,
 ) : Store<UsageState, UsageIntent, UsageEffect>(
     initialState = UsageState(totals = gateway.totals.value),

@@ -9,7 +9,7 @@ import dev.weft.undercurrent.core.model.ProviderKind
  * screens never actually invoke these models — chat is a "coming to
  * iOS" placeholder until a real iOS agent runtime lands.
  */
-public class StubModelCatalog : ModelCatalog {
+class StubModelCatalog : ModelCatalog {
     override fun modelsForProvider(provider: ProviderKind): List<ModelInfo> = when (provider) {
         ProviderKind.Anthropic -> listOf(
             ModelInfo("claude-haiku-4-5", "Claude Haiku 4.5", hasVision = true, hasTools = true),

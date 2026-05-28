@@ -6,7 +6,7 @@ package dev.weft.undercurrent.feature.chat
  * is `Open`; null when closed / half-open. Drives the
  * [DegradedModeBanner] above the chat surface.
  */
-public data class DegradedMode(
+data class DegradedMode(
     val openedAtEpochMs: Long,
     val cooldownMs: Long,
 )
@@ -16,7 +16,7 @@ public data class DegradedMode(
  * chat surface needs to render its quick-actions menu. Hosts produce
  * the list from their `SkillRegistry`.
  */
-public data class SkillSummary(
+data class SkillSummary(
     val name: String,
     val description: String,
 )
@@ -26,11 +26,11 @@ public data class SkillSummary(
  * `:android-compose-defaults`. Pure data — hosts adapt
  * `runtime.agentDeclarations.values` into the list.
  */
-public data class AgentOption(
+data class AgentOption(
     val name: String,
     val displayName: String,
     val description: String = "",
 )
 
 /** Default agent name. Mirrors `AgentDeclaration.DEFAULT_AGENT_NAME`. */
-public const val DEFAULT_AGENT_NAME: String = "default"
+const val DEFAULT_AGENT_NAME: String = "default"

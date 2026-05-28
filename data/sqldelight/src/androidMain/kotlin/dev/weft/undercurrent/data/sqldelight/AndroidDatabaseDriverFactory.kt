@@ -16,10 +16,10 @@ import dev.weft.undercurrent.db.UndercurrentDatabase
  * If a future schema needs FTS5, swap the openHelper factory to
  * `OsmerionSQLiteOpenHelperFactory` — same trick the Weft SDK uses.
  */
-public actual class DatabaseDriverFactory(
+actual class DatabaseDriverFactory(
     private val context: Context,
 ) {
-    public actual fun create(): SqlDriver = AndroidSqliteDriver(
+    actual fun create(): SqlDriver = AndroidSqliteDriver(
         schema = UndercurrentDatabase.Schema,
         context = context.applicationContext,
         name = DATABASE_NAME,

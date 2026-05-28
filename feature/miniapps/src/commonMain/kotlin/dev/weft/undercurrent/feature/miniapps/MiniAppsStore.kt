@@ -6,26 +6,26 @@ import dev.weft.undercurrent.data.datastore.MiniAppsRepository
 import dev.weft.undercurrent.shared.mvi.Store
 import kotlinx.coroutines.launch
 
-public data class MiniAppsState(public val miniApps: List<MiniApp> = emptyList())
+data class MiniAppsState(val miniApps: List<MiniApp> = emptyList())
 
-public sealed interface MiniAppsIntent {
-    public data class Add(
-        public val name: String,
-        public val emoji: String,
-        public val triggerPrompt: String,
+sealed interface MiniAppsIntent {
+    data class Add(
+        val name: String,
+        val emoji: String,
+        val triggerPrompt: String,
     ) : MiniAppsIntent
-    public data class Update(
-        public val id: String,
-        public val name: String,
-        public val emoji: String,
-        public val triggerPrompt: String,
+    data class Update(
+        val id: String,
+        val name: String,
+        val emoji: String,
+        val triggerPrompt: String,
     ) : MiniAppsIntent
-    public data class Delete(public val id: String) : MiniAppsIntent
+    data class Delete(val id: String) : MiniAppsIntent
 }
 
-public sealed interface MiniAppsEffect
+sealed interface MiniAppsEffect
 
-public class MiniAppsStore(
+class MiniAppsStore(
     private val repo: MiniAppsRepository,
 ) : Store<MiniAppsState, MiniAppsIntent, MiniAppsEffect>(
     initialState = MiniAppsState(miniApps = repo.miniApps.value),

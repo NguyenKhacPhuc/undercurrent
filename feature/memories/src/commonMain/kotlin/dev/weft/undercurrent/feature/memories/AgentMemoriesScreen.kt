@@ -54,7 +54,7 @@ import org.koin.compose.viewmodel.koinViewModel
  *   - `org.koin.compose.viewmodel.koinViewModel`.
  */
 @Composable
-public fun AgentMemoriesScreen(
+fun AgentMemoriesScreen(
     onBack: () -> Unit,
     store: MemoriesStore = koinViewModel(),
 ) {

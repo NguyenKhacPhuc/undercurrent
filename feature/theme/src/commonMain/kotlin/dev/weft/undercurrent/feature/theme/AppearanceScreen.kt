@@ -48,7 +48,7 @@ import dev.weft.undercurrent.core.ui.SectionLabel
  *     state (today: the root AppStore via ThemeRepository).
  */
 @Composable
-public fun AppearanceScreen(
+fun AppearanceScreen(
     selectedPalette: AppPalette,
     selectedMode: ThemeMode,
     onPaletteSelected: (AppPalette) -> Unit,

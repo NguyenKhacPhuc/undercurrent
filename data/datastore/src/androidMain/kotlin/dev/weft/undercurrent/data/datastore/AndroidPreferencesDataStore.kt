@@ -22,7 +22,7 @@ import androidx.datastore.preferences.core.Preferences
  * single { ThemeRepository(get(named("theme"))) }
  * ```
  */
-public fun createPreferencesDataStore(
+fun createPreferencesDataStore(
     context: Context,
     name: String,
 ): DataStore<Preferences> =

@@ -70,15 +70,15 @@ import kotlinx.coroutines.flow.receiveAsFlow
  * }
  * ```
  */
-public abstract class Store<State, Intent, Effect>(
+abstract class Store<State, Intent, Effect>(
     initialState: State,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(initialState)
-    public val state: StateFlow<State> = _state.asStateFlow()
+    val state: StateFlow<State> = _state.asStateFlow()
 
     private val _effects = Channel<Effect>(Channel.BUFFERED)
-    public val effects: Flow<Effect> = _effects.receiveAsFlow()
+    val effects: Flow<Effect> = _effects.receiveAsFlow()
 
     /** Convenience read of the current state inside handlers. */
     protected val current: State get() = _state.value
@@ -88,7 +88,7 @@ public abstract class Store<State, Intent, Effect>(
      * May be called from any thread; state updates are atomic and
      * effects are buffered.
      */
-    public abstract fun dispatch(intent: Intent)
+    abstract fun dispatch(intent: Intent)
 
     /**
      * Atomic state update; same semantics as

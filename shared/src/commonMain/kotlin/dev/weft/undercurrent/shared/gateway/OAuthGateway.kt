@@ -12,24 +12,24 @@ import kotlinx.serialization.Serializable
  * declared here in commonMain so feature modules never import
  * `dev.weft.oauth.*`.
  */
-public interface OAuthGateway {
+interface OAuthGateway {
 
     /**
      * Run the OAuth dance for one integration. Suspends across Custom
      * Tabs / browser. Persists nothing — caller decides what to do with
      * [OAuthResult.Success.tokens].
      */
-    public suspend fun authorize(config: OAuthConfig): OAuthResult
+    suspend fun authorize(config: OAuthConfig): OAuthResult
 
     /**
      * Persist tokens for [integrationId]. Overwrites any previous bundle.
      */
-    public suspend fun putTokens(integrationId: String, tokens: OAuthTokens)
+    suspend fun putTokens(integrationId: String, tokens: OAuthTokens)
 
     /**
      * Forget tokens for [integrationId]. No-op if nothing was stored.
      */
-    public suspend fun removeTokens(integrationId: String)
+    suspend fun removeTokens(integrationId: String)
 }
 
 /**
@@ -37,7 +37,7 @@ public interface OAuthGateway {
  * maps this to the Weft type before calling `OAuthClient.authorize`.
  */
 @Serializable
-public data class OAuthConfig(
+data class OAuthConfig(
     val clientId: String,
     val authorizationEndpoint: String,
     val tokenEndpoint: String,
@@ -48,7 +48,7 @@ public data class OAuthConfig(
 
 /** Token bundle returned on success. Mirrors `dev.weft.oauth.TokenSet`. */
 @Serializable
-public data class OAuthTokens(
+data class OAuthTokens(
     val accessToken: String,
     val refreshToken: String? = null,
     val expiresAtEpochMs: Long = 0L,
@@ -57,10 +57,10 @@ public data class OAuthTokens(
 )
 
 /** Mirror of `dev.weft.oauth.OAuthResult`. */
-public sealed class OAuthResult {
-    public data class Success(val tokens: OAuthTokens) : OAuthResult()
-    public data object UserCancelled : OAuthResult()
-    public data class ProviderError(val code: String, val description: String?) : OAuthResult()
-    public data class TransportError(val message: String) : OAuthResult()
-    public data object StateMismatch : OAuthResult()
+sealed class OAuthResult {
+    data class Success(val tokens: OAuthTokens) : OAuthResult()
+    data object UserCancelled : OAuthResult()
+    data class ProviderError(val code: String, val description: String?) : OAuthResult()
+    data class TransportError(val message: String) : OAuthResult()
+    data object StateMismatch : OAuthResult()
 }

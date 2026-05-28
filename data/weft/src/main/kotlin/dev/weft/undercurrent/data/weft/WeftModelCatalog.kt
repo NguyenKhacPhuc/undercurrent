@@ -16,7 +16,7 @@ import dev.weft.harness.agents.routing.ModelPool as WeftModelPool
  * `catalogFor` / `defaultPoolFor` functions (which materialize Koog
  * [LLModel] instances) and projects them down to the commonMain mirror.
  */
-public class WeftModelCatalog : ModelCatalog {
+class WeftModelCatalog : ModelCatalog {
 
     override fun modelsForProvider(provider: ProviderKind): List<ModelInfo> =
         catalogFor(provider.toWeft()).map { it.toCommon() }

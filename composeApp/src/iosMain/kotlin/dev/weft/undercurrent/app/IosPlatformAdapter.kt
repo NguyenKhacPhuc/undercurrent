@@ -35,7 +35,7 @@ import platform.UIKit.UIPasteboard
  *    land.
  *  - **OS bridges** to real UIApplication / UIPasteboard calls.
  */
-public fun iosPlatformAdapter(): PlatformAdapter = PlatformAdapter(
+fun iosPlatformAdapter(): PlatformAdapter = PlatformAdapter(
     chatRoute = { IosChatRoute() },
     renderedTreeRoute = { IosPlaceholder(label = "Rendered tree") },
     miniAppsRoute = { IosMiniAppsRoute() },

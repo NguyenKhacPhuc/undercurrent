@@ -36,7 +36,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * `NSMicrophoneUsageDescription` so finishing later doesn't need an
  * Xcode round-trip.
  */
-public class IosSpeechGateway : SpeechGateway {
+class IosSpeechGateway : SpeechGateway {
     override val isAvailable: Boolean = false
     override val state: StateFlow<VoiceState> =
         MutableStateFlow<VoiceState>(VoiceState.Idle).asStateFlow()

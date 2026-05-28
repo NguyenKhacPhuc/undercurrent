@@ -38,7 +38,7 @@ import dev.weft.undercurrent.core.model.MiniApp
  * changes; just the import paths follow the migrated modules.
  */
 @Composable
-public fun SaveAsMiniAppDialog(
+fun SaveAsMiniAppDialog(
     initial: MiniApp?,
     suggestedPrompt: String,
     onDismiss: () -> Unit,

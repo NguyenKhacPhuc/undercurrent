@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.Color
  * class compiles on both Android + iOS targets.
  */
 @Immutable
-public data class UndercurrentColors(
+data class UndercurrentColors(
     /** Page background — the canvas under everything. */
     val background: Color,
     /** Slightly raised surface (drawer, sheets, cards). */

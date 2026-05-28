@@ -37,7 +37,7 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
  * material-icons-extended on the CMP path can wrap their own.
  */
 @Composable
-public fun ScreenScaffold(
+fun ScreenScaffold(
     title: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -107,7 +107,7 @@ public fun ScreenScaffold(
  * "+ New"). Tap target is wider than the visible text via padding.
  */
 @Composable
-public fun ScaffoldTextAction(
+fun ScaffoldTextAction(
     label: String,
     onClick: () -> Unit,
     enabled: Boolean = true,
@@ -135,7 +135,7 @@ public fun ScaffoldTextAction(
  * rows and section blocks.
  */
 @Composable
-public fun TokenDivider(modifier: Modifier = Modifier) {
+fun TokenDivider(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -146,7 +146,7 @@ public fun TokenDivider(modifier: Modifier = Modifier) {
 
 /** Section header. ALL CAPS + small label typography. */
 @Composable
-public fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text.uppercase(),
         style = UndercurrentTheme.typography.sansLabel.copy(

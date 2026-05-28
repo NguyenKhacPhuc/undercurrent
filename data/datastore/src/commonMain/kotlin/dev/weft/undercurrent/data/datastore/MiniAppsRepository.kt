@@ -46,7 +46,7 @@ import kotlin.uuid.Uuid
  * single-module app don't lose data.
  */
 @OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
-public class MiniAppsRepository(
+class MiniAppsRepository(
     private val dataStore: DataStore<Preferences>,
 ) {
 
@@ -57,10 +57,10 @@ public class MiniAppsRepository(
         .catch { emit(emptyPreferences()) }
         .map { prefs -> parse(prefs[KeyMiniApps]) }
 
-    public val miniApps: StateFlow<List<MiniApp>> = miniAppsFlow
+    val miniApps: StateFlow<List<MiniApp>> = miniAppsFlow
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    public suspend fun add(
+    suspend fun add(
         name: String,
         emoji: String,
         triggerPrompt: String,
@@ -80,7 +80,7 @@ public class MiniAppsRepository(
         return created
     }
 
-    public suspend fun update(
+    suspend fun update(
         id: String,
         name: String,
         emoji: String,
@@ -95,14 +95,14 @@ public class MiniAppsRepository(
         }
     }
 
-    public suspend fun delete(id: String) {
+    suspend fun delete(id: String) {
         dataStore.edit { prefs ->
             val current = parse(prefs[KeyMiniApps])
             prefs[KeyMiniApps] = json.encodeToString(current.filterNot { it.id == id })
         }
     }
 
-    public suspend fun setCachedRender(id: String, treeJson: String) {
+    suspend fun setCachedRender(id: String, treeJson: String) {
         dataStore.edit { prefs ->
             val current = parse(prefs[KeyMiniApps])
             val updated = current.map { f ->
@@ -115,7 +115,7 @@ public class MiniAppsRepository(
         }
     }
 
-    public suspend fun recordUsage(id: String) {
+    suspend fun recordUsage(id: String) {
         dataStore.edit { prefs ->
             val current = parse(prefs[KeyMiniApps])
             val updated = current.map { f ->
@@ -132,8 +132,8 @@ public class MiniAppsRepository(
         }.getOrDefault(emptyList())
     }
 
-    public companion object {
-        public const val FILE_NAME: String = "saved_features_prefs"
+    companion object {
+        const val FILE_NAME: String = "saved_features_prefs"
         // Key name `features` kept for back-compat with the old
         // SavedFeaturesRepository — see file-level comment.
         private val KeyMiniApps = stringPreferencesKey("features")

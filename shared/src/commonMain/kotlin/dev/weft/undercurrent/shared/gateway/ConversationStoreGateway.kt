@@ -12,25 +12,25 @@ import kotlinx.serialization.Serializable
  * Android) — this gateway is just the "manage threads" surface the
  * conversations list screen and side drawer consume.
  */
-public interface ConversationStoreGateway {
+interface ConversationStoreGateway {
 
     /**
      * Re-subscribable search across thread titles and message bodies.
      * Empty query returns every thread, newest first. Case-insensitive
      * substring match on ASCII.
      */
-    public fun search(query: String): Flow<List<ConversationSummary>>
+    fun search(query: String): Flow<List<ConversationSummary>>
 
     /** Drop a single thread and all its messages. */
-    public suspend fun deleteConversation(id: String)
+    suspend fun deleteConversation(id: String)
 
     /** Wipe all threads. */
-    public suspend fun clearAll()
+    suspend fun clearAll()
 }
 
 /** Mirror of `dev.weft.harness.conversation.ConversationSummary`. */
 @Serializable
-public data class ConversationSummary(
+data class ConversationSummary(
     val id: String,
     val title: String,
     val createdAtMs: Long,

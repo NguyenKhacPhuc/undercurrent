@@ -6,16 +6,16 @@ import dev.weft.undercurrent.shared.gateway.MemoryStoreGateway
 import dev.weft.undercurrent.shared.mvi.Store
 import kotlinx.coroutines.launch
 
-public data class MemoriesState(public val memories: List<MemoryEntry> = emptyList())
+data class MemoriesState(val memories: List<MemoryEntry> = emptyList())
 
-public sealed interface MemoriesIntent {
-    public data class Delete(public val id: String) : MemoriesIntent
-    public data object ClearAll : MemoriesIntent
+sealed interface MemoriesIntent {
+    data class Delete(val id: String) : MemoriesIntent
+    data object ClearAll : MemoriesIntent
 }
 
-public sealed interface MemoriesEffect
+sealed interface MemoriesEffect
 
-public class MemoriesStore(
+class MemoriesStore(
     private val store: MemoryStoreGateway,
 ) : Store<MemoriesState, MemoriesIntent, MemoriesEffect>(
     initialState = MemoriesState(memories = store.memories.value),

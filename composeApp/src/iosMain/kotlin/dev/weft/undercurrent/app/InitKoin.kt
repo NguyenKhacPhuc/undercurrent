@@ -15,7 +15,7 @@ import org.koin.core.context.startKoin
  * `UndercurrentApp.onCreate`; iOS has no `Application` lifecycle so
  * this lives as a top-level function the Xcode side invokes.
  */
-public fun initKoin() {
+fun initKoin() {
     startKoin {
         modules(iosAppModule)
     }

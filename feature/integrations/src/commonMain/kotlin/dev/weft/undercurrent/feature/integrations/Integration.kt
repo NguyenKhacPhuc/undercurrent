@@ -26,7 +26,7 @@ import dev.weft.undercurrent.shared.gateway.OAuthConfig
  * @property oauth OAuth flow parameters. PKCE makes client id non-
  *   secret; embed the production value or expose an override.
  */
-public data class Integration(
+data class Integration(
     val id: String,
     val displayName: String,
     val tagline: String,
@@ -39,9 +39,9 @@ public data class Integration(
  * an `intent-filter` on the host activity. Per-connector path suffix
  * (`/linear`, `/notion`, …) lets the activity disambiguate redirects.
  */
-public const val OAUTH_REDIRECT_SCHEME: String = "undercurrent"
-public const val OAUTH_REDIRECT_HOST: String = "oauth"
-public const val OAUTH_REDIRECT_BASE: String =
+const val OAUTH_REDIRECT_SCHEME: String = "undercurrent"
+const val OAUTH_REDIRECT_HOST: String = "oauth"
+const val OAUTH_REDIRECT_BASE: String =
     "$OAUTH_REDIRECT_SCHEME://$OAUTH_REDIRECT_HOST"
 
 /**
@@ -51,9 +51,9 @@ public const val OAUTH_REDIRECT_BASE: String =
  * [OAUTH_REDIRECT_BASE]/{id} as the redirect URI, and substitute the
  * client id below.
  */
-public object Integrations {
+object Integrations {
 
-    public val Linear: Integration = Integration(
+    val Linear: Integration = Integration(
         id = "linear",
         displayName = "Linear",
         tagline = "Issues, projects, and comments via natural language.",
@@ -67,9 +67,9 @@ public object Integrations {
         ),
     )
 
-    public val All: List<Integration> = listOf(Linear)
+    val All: List<Integration> = listOf(Linear)
 
-    public fun byId(id: String): Integration? = All.firstOrNull { it.id == id }
+    fun byId(id: String): Integration? = All.firstOrNull { it.id == id }
 }
 
 private const val LINEAR_OAUTH_CLIENT_ID: String = "TODO_LINEAR_OAUTH_CLIENT_ID"

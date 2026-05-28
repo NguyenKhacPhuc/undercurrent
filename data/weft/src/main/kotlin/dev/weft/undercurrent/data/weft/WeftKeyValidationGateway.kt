@@ -37,7 +37,7 @@ import dev.weft.contracts.ProviderKind as WeftProviderKind
  * META-INF/services entries).
  */
 @OptIn(kotlin.time.ExperimentalTime::class)
-public class WeftKeyValidationGateway : KeyValidationGateway {
+class WeftKeyValidationGateway : KeyValidationGateway {
 
     override suspend fun validateKey(
         provider: ProviderKind,

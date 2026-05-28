@@ -68,7 +68,7 @@ import org.koin.compose.viewmodel.koinViewModel
  *   the agent.
  */
 @Composable
-public fun MiniAppsScreen(
+fun MiniAppsScreen(
     treePreview: @Composable (treeJson: String, onTap: () -> Unit) -> Unit,
     onBack: () -> Unit,
     onOpenMiniApp: (MiniApp) -> Unit,

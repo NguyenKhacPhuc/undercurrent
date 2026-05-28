@@ -37,7 +37,7 @@ import kotlin.time.ExperimentalTime
  */
 @OptIn(ExperimentalTime::class)
 @Composable
-public fun DegradedModeBanner(
+fun DegradedModeBanner(
     degradedMode: DegradedMode?,
     modifier: Modifier = Modifier,
 ) {

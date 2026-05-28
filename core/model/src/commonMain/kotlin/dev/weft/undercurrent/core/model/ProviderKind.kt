@@ -10,7 +10,7 @@ package dev.weft.undercurrent.core.model
  * credential code; iOS code uses this directly (without the
  * downstream agent calls).
  */
-public enum class ProviderKind(public val displayName: String) {
+enum class ProviderKind(val displayName: String) {
     /** Anthropic native or Anthropic-API-compatible proxy. */
     Anthropic("Anthropic"),
 

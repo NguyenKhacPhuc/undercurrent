@@ -27,7 +27,7 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
  * `UndercurrentTheme` from `:core:design-system`.
  */
 @Composable
-public fun TipBox(
+fun TipBox(
     text: String,
     modifier: Modifier = Modifier,
     title: String? = null,

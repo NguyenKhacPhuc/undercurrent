@@ -14,7 +14,7 @@ import kotlinx.serialization.Serializable
  * built-in). The volatile prefix simply contains nothing extra.
  */
 @Serializable
-public data class Persona(
+data class Persona(
     val id: String,
     val name: String,
     val tagline: String,
@@ -41,7 +41,7 @@ public data class Persona(
  *    classify their own.
  */
 @Serializable
-public enum class PersonaKind {
+enum class PersonaKind {
     Voice,
     Role,
     Custom;
@@ -70,7 +70,7 @@ public enum class PersonaKind {
  * (built-in removed in a future version), [PersonaRepository] silently
  * falls back to [Default] — no crash, no migration prompt.
  */
-public object BuiltInPersonas {
+object BuiltInPersonas {
 
     // ─── Voices ────────────────────────────────────────────────────────
 

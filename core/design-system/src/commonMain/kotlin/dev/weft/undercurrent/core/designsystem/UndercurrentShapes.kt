@@ -14,15 +14,15 @@ import androidx.compose.ui.unit.dp
  * KMP — commonMain. Moved from `app/.../theme/UndercurrentShapes.kt`.
  */
 @Immutable
-public data class UndercurrentShapes(
+data class UndercurrentShapes(
     val xsmall: RoundedCornerShape,
     val small: RoundedCornerShape,
     val medium: RoundedCornerShape,
     val large: RoundedCornerShape,
     val xlarge: RoundedCornerShape,
 ) {
-    public companion object {
-        public val DefaultRounded: UndercurrentShapes = UndercurrentShapes(
+    companion object {
+        val DefaultRounded: UndercurrentShapes = UndercurrentShapes(
             xsmall = RoundedCornerShape(4.dp),
             small = RoundedCornerShape(8.dp),
             medium = RoundedCornerShape(12.dp),

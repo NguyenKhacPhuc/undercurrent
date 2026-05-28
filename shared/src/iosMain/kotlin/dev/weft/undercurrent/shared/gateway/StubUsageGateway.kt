@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * iOS stub. With no agent running, lifetime totals are flat zero.
  */
-public class StubUsageGateway : UsageGateway {
+class StubUsageGateway : UsageGateway {
     override val totals: StateFlow<UsageTotals> =
         MutableStateFlow(UsageTotals()).asStateFlow()
 }

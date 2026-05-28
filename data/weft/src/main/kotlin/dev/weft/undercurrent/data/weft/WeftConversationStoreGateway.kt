@@ -12,7 +12,7 @@ import dev.weft.harness.conversation.ConversationSummary as WeftConversationSumm
  * [ConversationStore]. Maps Weft summaries to the commonMain mirror so
  * feature modules stay KMP-clean.
  */
-public class WeftConversationStoreGateway(
+class WeftConversationStoreGateway(
     private val store: ConversationStore,
 ) : ConversationStoreGateway {
 

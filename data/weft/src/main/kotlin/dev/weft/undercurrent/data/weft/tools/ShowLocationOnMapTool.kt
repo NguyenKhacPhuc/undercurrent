@@ -27,7 +27,7 @@ import kotlin.reflect.typeOf
  * commonMain — so it lives directly in `:data:weft` (where every
  * Weft tool belongs per the migration playbook).
  */
-public class ShowLocationOnMapTool(ctx: WeftContext) : WeftTool<ShowLocationOnMapTool.Args, String>(
+class ShowLocationOnMapTool(ctx: WeftContext) : WeftTool<ShowLocationOnMapTool.Args, String>(
     ctx = ctx,
     argsType = KotlinTypeToken(typeOf<Args>()),
     resultType = KotlinTypeToken(typeOf<String>()),
@@ -63,7 +63,7 @@ public class ShowLocationOnMapTool(ctx: WeftContext) : WeftTool<ShowLocationOnMa
 ) {
 
     @Serializable
-    public data class Args(
+    data class Args(
         val latitude: Double,
         val longitude: Double,
         val label: String? = null,

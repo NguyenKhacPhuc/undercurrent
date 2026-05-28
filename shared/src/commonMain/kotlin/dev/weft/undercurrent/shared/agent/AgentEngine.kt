@@ -18,10 +18,10 @@ import kotlinx.coroutines.flow.StateFlow
  * `WeftAgent`); Koin DI injects the platform-appropriate
  * implementation at runtime.
  */
-public interface AgentEngine {
+interface AgentEngine {
 
     /** Observable runtime state for chat / conversations UI. */
-    public val state: StateFlow<AgentState>
+    val state: StateFlow<AgentState>
 
     /**
      * Streaming send — emits [ChatChunk] events as the LLM responds.
@@ -31,33 +31,33 @@ public interface AgentEngine {
      * [modelTier] is an optional per-call model-tier override. Pass
      * null for the default tier (driven by the agent's `WeftStrategy`).
      */
-    public fun sendStreaming(text: String, modelTier: String? = null): Flow<ChatChunk>
+    fun sendStreaming(text: String, modelTier: String? = null): Flow<ChatChunk>
 
     /**
      * Non-streaming send — suspends until the full assistant reply
      * is available and returns it. Use when streaming UX isn't worth
      * the complexity (one-shot prompts, agent-to-agent handoffs).
      */
-    public suspend fun send(text: String, modelTier: String? = null): String
+    suspend fun send(text: String, modelTier: String? = null): String
 
     /**
      * Start a fresh conversation. Clears in-memory history; the
      * conversation store persists the previous thread independently.
      */
-    public suspend fun newChat()
+    suspend fun newChat()
 
     /**
      * Resume a previously-stored conversation by id. Loads history
      * from the conversation store into the active agent.
      */
-    public suspend fun resume(conversationId: String)
+    suspend fun resume(conversationId: String)
 
     /**
      * Switch to a different named agent declaration. Multi-agent
      * hosts only — single-agent hosts can ignore. Throws if [name]
      * isn't in [AgentState.availableAgents].
      */
-    public suspend fun selectAgent(name: String)
+    suspend fun selectAgent(name: String)
 
     /**
      * "Ask again" semantics — re-runs the last user message with a
@@ -65,12 +65,12 @@ public interface AgentEngine {
      * history. No-op if there's no last user message or a send is
      * already in flight.
      */
-    public suspend fun regenerateLast()
+    suspend fun regenerateLast()
 
     /**
      * Delete a conversation by id. If [id] matches the active
      * conversation the engine starts a fresh chat (same outcome as
      * [newChat]). Inactive threads are removed silently.
      */
-    public suspend fun deleteConversation(id: String)
+    suspend fun deleteConversation(id: String)
 }

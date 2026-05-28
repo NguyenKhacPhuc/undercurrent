@@ -20,7 +20,7 @@ import kotlinx.serialization.Serializable
  *   UI doesn't blink while the agent regenerates it.
  */
 @Serializable
-public data class MiniApp(
+data class MiniApp(
     val id: String,
     val name: String,
     val emoji: String,

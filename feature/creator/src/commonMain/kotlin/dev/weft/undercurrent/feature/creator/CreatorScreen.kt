@@ -59,7 +59,7 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
  *   = render [body].
  */
 @Composable
-public fun CreatorScreen(
+fun CreatorScreen(
     creatorSession: CreatorSession,
     isThinking: Boolean,
     inFlight: Boolean,

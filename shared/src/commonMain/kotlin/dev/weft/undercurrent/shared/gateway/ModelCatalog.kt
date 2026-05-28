@@ -15,13 +15,13 @@ import dev.weft.undercurrent.core.model.ProviderKind
  * surfaces ("no vision", "no tools — limited agent use"). The full Koog
  * `LLModel` (and the executor build) stays on Android.
  */
-public interface ModelCatalog {
+interface ModelCatalog {
 
     /** Full set of models the provider supports. */
-    public fun modelsForProvider(provider: ProviderKind): List<ModelInfo>
+    fun modelsForProvider(provider: ProviderKind): List<ModelInfo>
 
     /** Default model-tier assignments for the provider. */
-    public fun defaultPoolForProvider(provider: ProviderKind): ModelPool
+    fun defaultPoolForProvider(provider: ProviderKind): ModelPool
 }
 
 /**
@@ -29,7 +29,7 @@ public interface ModelCatalog {
  * agent build path — when the user picks a model the id is what gets
  * written to prefs and resolved back by Weft.
  */
-public data class ModelInfo(
+data class ModelInfo(
     val id: String,
     val shortName: String,
     val hasVision: Boolean,
@@ -40,7 +40,7 @@ public data class ModelInfo(
      * null when the model is a clean fit. Encodes the two warnings the
      * UI surfaces today.
      */
-    public fun limitationNote(tier: ModelTier): String? = when {
+    fun limitationNote(tier: ModelTier): String? = when {
         tier == ModelTier.Vision && !hasVision -> "no vision"
         !hasTools -> "no tools — limited agent use"
         else -> null
@@ -48,13 +48,13 @@ public data class ModelInfo(
 }
 
 /** Mirror of `dev.weft.harness.agents.routing.ModelPool` — typed by tier. */
-public data class ModelPool(
+data class ModelPool(
     val cheap: ModelInfo,
     val standard: ModelInfo,
     val vision: ModelInfo = standard,
     val heavy: ModelInfo = standard,
 ) {
-    public fun tierModel(tier: ModelTier): ModelInfo = when (tier) {
+    fun tierModel(tier: ModelTier): ModelInfo = when (tier) {
         ModelTier.Cheap -> cheap
         ModelTier.Standard -> standard
         ModelTier.Vision -> vision

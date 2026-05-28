@@ -60,7 +60,7 @@ import org.koin.compose.viewmodel.koinViewModel
  *   - `org.koin.compose.viewmodel.koinViewModel`.
  */
 @Composable
-public fun PersonasScreen(
+fun PersonasScreen(
     onBack: () -> Unit,
     onStartCreator: (PersonaKind) -> Unit = {},
     store: PersonasStore = koinViewModel(),

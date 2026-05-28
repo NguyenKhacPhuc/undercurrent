@@ -47,7 +47,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * commonMain.
  */
 @Composable
-public fun IntegrationsScreen(
+fun IntegrationsScreen(
     onBack: () -> Unit,
     onRestart: () -> Unit,
     store: IntegrationsStore = koinViewModel(),

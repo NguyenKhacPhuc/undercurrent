@@ -16,37 +16,37 @@ import kotlinx.coroutines.flow.StateFlow
  * [isAvailable] is false on devices without a recognition service (and
  * always false on the iOS stub).
  */
-public interface SpeechGateway {
+interface SpeechGateway {
 
     /** Whether the platform has a recognition service. False on iOS for v1. */
-    public val isAvailable: Boolean
+    val isAvailable: Boolean
 
     /** Reactive recognizer state — drives the mic UI. */
-    public val state: StateFlow<VoiceState>
+    val state: StateFlow<VoiceState>
 
     /**
      * Live audio-level RMS in dB while listening; 0 when idle. Compose
      * waveform components read off this. Updated at ~30Hz on Android.
      */
-    public val rmsdB: StateFlow<Float>
+    val rmsdB: StateFlow<Float>
 
     /** Begin listening. Requires the platform mic permission. */
-    public fun start(language: String? = null)
+    fun start(language: String? = null)
 
     /** Stop recording and finalize. Next state: [VoiceState.Final] or [VoiceState.Error]. */
-    public fun stop()
+    fun stop()
 
     /** Abort recording — partials discarded. */
-    public fun cancel()
+    fun cancel()
 
     /** Acknowledge a terminal result and reset to [VoiceState.Idle]. */
-    public fun acknowledge()
+    fun acknowledge()
 }
 
-public sealed interface VoiceState {
-    public data object Idle : VoiceState
-    public data object Listening : VoiceState
-    public data class Partial(val text: String) : VoiceState
-    public data class Final(val text: String) : VoiceState
-    public data class Error(val message: String) : VoiceState
+sealed interface VoiceState {
+    data object Idle : VoiceState
+    data object Listening : VoiceState
+    data class Partial(val text: String) : VoiceState
+    data class Final(val text: String) : VoiceState
+    data class Error(val message: String) : VoiceState
 }

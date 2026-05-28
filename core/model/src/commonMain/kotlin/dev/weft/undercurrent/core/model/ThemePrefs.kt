@@ -7,11 +7,11 @@ package dev.weft.undercurrent.core.model
  *
  * KMP — commonMain. Moved from `app/.../theme/ThemeMode.kt`.
  */
-public data class ThemePrefs(
-    public val palette: AppPalette = AppPalette.Default,
-    public val mode: ThemeMode = ThemeMode.Default,
+data class ThemePrefs(
+    val palette: AppPalette = AppPalette.Default,
+    val mode: ThemeMode = ThemeMode.Default,
 ) {
-    public companion object {
-        public val Default: ThemePrefs = ThemePrefs()
+    companion object {
+        val Default: ThemePrefs = ThemePrefs()
     }
 }

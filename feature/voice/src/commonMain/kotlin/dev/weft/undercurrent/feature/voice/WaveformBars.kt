@@ -40,7 +40,7 @@ import kotlinx.coroutines.flow.StateFlow
  * Android; the iOS stub always emits 0f.
  */
 @Composable
-public fun WaveformBars(
+fun WaveformBars(
     rms: StateFlow<Float>,
     modifier: Modifier = Modifier,
     barCount: Int = 14,

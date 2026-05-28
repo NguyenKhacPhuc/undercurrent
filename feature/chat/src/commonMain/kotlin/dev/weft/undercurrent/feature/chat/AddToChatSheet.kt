@@ -52,7 +52,7 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-public fun AddToChatSheet(
+fun AddToChatSheet(
     activePersonaLabel: String,
     activePalette: AppPalette,
     activeMode: ThemeMode,

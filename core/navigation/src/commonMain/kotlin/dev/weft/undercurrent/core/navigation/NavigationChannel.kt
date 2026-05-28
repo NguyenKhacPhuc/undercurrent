@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.asSharedFlow
  * change; visibility lifted from `internal` to `public` so
  * `:data:weft` tools and the host's androidApp module can share it.
  */
-public class NavigationChannel {
+class NavigationChannel {
 
     private val _requests: MutableSharedFlow<Screen> = MutableSharedFlow(
         replay = 0,
@@ -32,14 +32,14 @@ public class NavigationChannel {
     )
 
     /** Subscribe-only view. The host's app store collects from this. */
-    public val requests: SharedFlow<Screen> = _requests.asSharedFlow()
+    val requests: SharedFlow<Screen> = _requests.asSharedFlow()
 
     /**
      * Request navigation to [screen]. Fire-and-forget — the caller
      * (typically a `WeftTool.executeWeft`) doesn't suspend; the
      * reducer applies the change on its own coroutine.
      */
-    public fun requestNavigate(screen: Screen) {
+    fun requestNavigate(screen: Screen) {
         _requests.tryEmit(screen)
     }
 

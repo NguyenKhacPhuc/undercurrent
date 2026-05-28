@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
  *
  * KMP — commonMain.
  */
-public class PersonasStore(
+class PersonasStore(
     private val repo: PersonaRepository,
 ) : Store<PersonasState, PersonasIntent, PersonasEffect>(
     initialState = PersonasState(

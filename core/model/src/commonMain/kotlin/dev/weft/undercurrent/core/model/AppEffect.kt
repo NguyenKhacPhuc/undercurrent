@@ -10,7 +10,7 @@ package dev.weft.undercurrent.core.model
  *
  * KMP — commonMain. Moved from `app/.../core/AppEffect.kt`.
  */
-public sealed interface AppEffect {
+sealed interface AppEffect {
     /** Surface a transient error message (e.g. via Snackbar / Toast). */
-    public data class Error(public val message: String) : AppEffect
+    data class Error(val message: String) : AppEffect
 }

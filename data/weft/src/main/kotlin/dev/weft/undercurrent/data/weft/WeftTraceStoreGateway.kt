@@ -27,7 +27,7 @@ import dev.weft.harness.observability.TraceStatus as WeftTraceStatus
  * Maps every Weft observability type to its commonMain mirror; feature
  * code never touches `dev.weft.harness.observability.*`.
  */
-public class WeftTraceStoreGateway(
+class WeftTraceStoreGateway(
     private val store: TraceStore,
 ) : TraceStoreGateway {
 

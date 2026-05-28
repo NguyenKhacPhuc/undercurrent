@@ -24,7 +24,7 @@ import platform.Foundation.NSUserDomainMask
  * ```
  */
 @OptIn(ExperimentalForeignApi::class)
-public fun createPreferencesDataStore(name: String): DataStore<Preferences> =
+fun createPreferencesDataStore(name: String): DataStore<Preferences> =
     createPreferencesDataStore(
         producePath = {
             val documentDirectory: NSURL? = NSFileManager.defaultManager.URLForDirectory(

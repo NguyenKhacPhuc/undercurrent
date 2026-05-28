@@ -37,7 +37,7 @@ import kotlinx.coroutines.flow.stateIn
  * ProviderKind to Weft's KeyVault aliases lives in :data:weft (it's
  * Weft-specific).
  */
-public class ProviderPrefsRepository(
+class ProviderPrefsRepository(
     private val dataStore: DataStore<Preferences>,
 ) {
 
@@ -59,17 +59,17 @@ public class ProviderPrefsRepository(
             else runCatching { ModelTier.valueOf(name) }.getOrNull()
         }
 
-    public val activeProvider: StateFlow<ProviderKind> = providerFlow
+    val activeProvider: StateFlow<ProviderKind> = providerFlow
         .stateIn(scope, SharingStarted.Eagerly, ProviderKind.Anthropic)
 
-    public val defaultTier: StateFlow<ModelTier?> = defaultTierFlow
+    val defaultTier: StateFlow<ModelTier?> = defaultTierFlow
         .stateIn(scope, SharingStarted.Eagerly, null)
 
-    public suspend fun setProvider(provider: ProviderKind) {
+    suspend fun setProvider(provider: ProviderKind) {
         dataStore.edit { it[KeyProvider] = provider.name }
     }
 
-    public suspend fun setDefaultTier(tier: ModelTier?) {
+    suspend fun setDefaultTier(tier: ModelTier?) {
         dataStore.edit { prefs ->
             if (tier == null) prefs[KeyDefaultTier] = TIER_AUTO_SENTINEL
             else prefs[KeyDefaultTier] = tier.name
@@ -77,10 +77,10 @@ public class ProviderPrefsRepository(
     }
 
     /** Suspending one-shot snapshot. Used by the runtime factory at boot. */
-    public suspend fun activeProviderNow(): ProviderKind = providerFlow.first()
+    suspend fun activeProviderNow(): ProviderKind = providerFlow.first()
 
-    public companion object {
-        public const val FILE_NAME: String = "provider_prefs"
+    companion object {
+        const val FILE_NAME: String = "provider_prefs"
         private val KeyProvider = stringPreferencesKey("provider")
         private val KeyDefaultTier = stringPreferencesKey("default_tier")
         // Sentinel so "user explicitly picked Auto" survives reads

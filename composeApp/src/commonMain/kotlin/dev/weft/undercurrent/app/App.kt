@@ -34,7 +34,7 @@ import dev.weft.undercurrent.core.model.ThemeMode
  *   placeholder composables for the substrate-only screens.
  */
 @Composable
-public fun App(
+fun App(
     store: AppStore,
     platform: PlatformAdapter,
 ) {

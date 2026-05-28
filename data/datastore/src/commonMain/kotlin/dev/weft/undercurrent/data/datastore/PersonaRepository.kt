@@ -49,7 +49,7 @@ import kotlin.uuid.Uuid
  *     injected `DataStore<Preferences>`.
  */
 @OptIn(ExperimentalUuidApi::class)
-public class PersonaRepository(
+class PersonaRepository(
     private val dataStore: DataStore<Preferences>,
 ) {
 
@@ -90,34 +90,34 @@ public class PersonaRepository(
             runCatching { json.decodeFromString<List<Persona>>(raw) }.getOrDefault(emptyList())
         }
 
-    public val customPersonas: StateFlow<List<Persona>> = customPersonasFlow
+    val customPersonas: StateFlow<List<Persona>> = customPersonasFlow
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    public val activeVoice: StateFlow<Persona> = combine(activeVoiceIdFlow, customPersonasFlow) { id, customs ->
+    val activeVoice: StateFlow<Persona> = combine(activeVoiceIdFlow, customPersonasFlow) { id, customs ->
         BuiltInPersonas.byId(id)?.takeIf { it.kind != PersonaKind.Role }
             ?: customs.firstOrNull { it.id == id && it.kind != PersonaKind.Role }
             ?: BuiltInPersonas.Default
     }.stateIn(scope, SharingStarted.Eagerly, BuiltInPersonas.Default)
 
-    public val activeRole: StateFlow<Persona?> = combine(activeRoleIdFlow, customPersonasFlow) { id, customs ->
+    val activeRole: StateFlow<Persona?> = combine(activeRoleIdFlow, customPersonasFlow) { id, customs ->
         id?.let {
             BuiltInPersonas.byId(it)?.takeIf { p -> p.kind == PersonaKind.Role }
                 ?: customs.firstOrNull { c -> c.id == it && c.kind == PersonaKind.Role }
         }
     }.stateIn(scope, SharingStarted.Eagerly, null)
 
-    public suspend fun setActiveVoice(id: String) {
+    suspend fun setActiveVoice(id: String) {
         dataStore.edit { it[KeyActiveVoiceId] = id }
     }
 
-    public suspend fun setActiveRole(id: String?) {
+    suspend fun setActiveRole(id: String?) {
         dataStore.edit { prefs ->
             if (id == null) prefs.remove(KeyActiveRoleId)
             else prefs[KeyActiveRoleId] = id
         }
     }
 
-    public suspend fun addCustom(
+    suspend fun addCustom(
         name: String,
         tagline: String,
         systemPromptText: String,
@@ -138,7 +138,7 @@ public class PersonaRepository(
         return newPersona
     }
 
-    public suspend fun updateCustom(
+    suspend fun updateCustom(
         id: String,
         name: String,
         tagline: String,
@@ -159,7 +159,7 @@ public class PersonaRepository(
         }
     }
 
-    public suspend fun deleteCustom(id: String) {
+    suspend fun deleteCustom(id: String) {
         dataStore.edit { prefs ->
             val current = parseCustom(prefs[KeyCustomPersonas])
             val filtered = current.filterNot { it.id == id }
@@ -181,8 +181,8 @@ public class PersonaRepository(
         return runCatching { json.decodeFromString<List<Persona>>(raw) }.getOrDefault(emptyList())
     }
 
-    public companion object {
-        public const val FILE_NAME: String = "persona_prefs"
+    companion object {
+        const val FILE_NAME: String = "persona_prefs"
         private val KeyActiveVoiceId = stringPreferencesKey("active_voice_id")
         private val KeyActiveRoleId = stringPreferencesKey("active_role_id")
         private val KeyCustomPersonas = stringPreferencesKey("custom_personas")

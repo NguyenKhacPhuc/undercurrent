@@ -12,8 +12,8 @@ import dev.weft.undercurrent.db.UndercurrentDatabase
  *
  * KMP — expect/actual. See androidMain + iosMain for implementations.
  */
-public expect class DatabaseDriverFactory {
-    public fun create(): SqlDriver
+expect class DatabaseDriverFactory {
+    fun create(): SqlDriver
 }
 
 /**
@@ -26,7 +26,7 @@ public expect class DatabaseDriverFactory {
  * single { createUndercurrentDatabase(get<DatabaseDriverFactory>().create()) }
  * ```
  */
-public fun createUndercurrentDatabase(driver: SqlDriver): UndercurrentDatabase =
+fun createUndercurrentDatabase(driver: SqlDriver): UndercurrentDatabase =
     UndercurrentDatabase(driver = driver)
 
 /**
@@ -34,4 +34,4 @@ public fun createUndercurrentDatabase(driver: SqlDriver): UndercurrentDatabase =
  * doesn't care about the suffix — we use `.db` for tooling
  * recognition.
  */
-public const val DATABASE_NAME: String = "undercurrent.db"
+const val DATABASE_NAME: String = "undercurrent.db"

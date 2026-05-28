@@ -17,7 +17,7 @@ import platform.UIKit.UIViewController
  * the rest of the iOS Koin module (gateways, repos). [iosPlatformAdapter]
  * is constructed locally — it's stateless.
  */
-public fun MainViewController(): UIViewController = ComposeUIViewController {
+fun MainViewController(): UIViewController = ComposeUIViewController {
     KoinContext {
         val store = org.koin.mp.KoinPlatform.getKoin().get<AppStore>()
         App(store = store, platform = iosPlatformAdapter())

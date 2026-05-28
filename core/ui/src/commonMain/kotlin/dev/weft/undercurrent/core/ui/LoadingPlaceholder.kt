@@ -24,7 +24,7 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
  * app-agnostic — `:composeApp` passes "Undercurrent" + "Starting…".
  */
 @Composable
-public fun LoadingPlaceholder(
+fun LoadingPlaceholder(
     appName: String = "Undercurrent",
     subtitle: String = "Starting…",
 ) {

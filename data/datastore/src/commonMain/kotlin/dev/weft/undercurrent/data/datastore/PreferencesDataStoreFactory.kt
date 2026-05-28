@@ -27,7 +27,7 @@ import okio.Path.Companion.toPath
  * factories convert their native path (Java File / NSString) to an
  * `okio.Path` before handing it back.
  */
-public fun createPreferencesDataStore(
+fun createPreferencesDataStore(
     producePath: () -> String,
 ): DataStore<Preferences> =
     PreferenceDataStoreFactory.create(
@@ -43,4 +43,4 @@ public fun createPreferencesDataStore(
  * via Protobuf so the on-disk format is the same regardless of platform —
  * keep the same extension everywhere so tools recognize it.
  */
-public const val DATA_STORE_FILE_EXT: String = ".preferences_pb"
+const val DATA_STORE_FILE_EXT: String = ".preferences_pb"

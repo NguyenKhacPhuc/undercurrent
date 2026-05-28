@@ -7,21 +7,21 @@ import dev.weft.undercurrent.shared.gateway.OAuthResult
 import dev.weft.undercurrent.shared.mvi.Store
 import kotlinx.coroutines.launch
 
-public data class IntegrationsState(
-    public val enabledIds: Set<String> = emptySet(),
-    public val pendingRestart: Boolean = false,
-    public val lastAction: ActionStatus = ActionStatus.Idle,
+data class IntegrationsState(
+    val enabledIds: Set<String> = emptySet(),
+    val pendingRestart: Boolean = false,
+    val lastAction: ActionStatus = ActionStatus.Idle,
 )
 
-public sealed interface IntegrationsIntent {
-    public data class Connect(public val integration: Integration) : IntegrationsIntent
-    public data class Disconnect(public val integration: Integration) : IntegrationsIntent
-    public data object ClearLastAction : IntegrationsIntent
+sealed interface IntegrationsIntent {
+    data class Connect(val integration: Integration) : IntegrationsIntent
+    data class Disconnect(val integration: Integration) : IntegrationsIntent
+    data object ClearLastAction : IntegrationsIntent
 }
 
-public sealed interface IntegrationsEffect
+sealed interface IntegrationsEffect
 
-public class IntegrationsStore(
+class IntegrationsStore(
     private val repo: IntegrationsRepository,
     private val oauth: OAuthGateway,
     /**
@@ -46,7 +46,7 @@ public class IntegrationsStore(
         }
     }
 
-    public fun statusFor(integration: Integration, enabled: Set<String>): IntegrationStatus =
+    fun statusFor(integration: Integration, enabled: Set<String>): IntegrationStatus =
         if (integration.id in enabled) IntegrationStatus.Connected
         else IntegrationStatus.Disconnected
 
@@ -54,8 +54,7 @@ public class IntegrationsStore(
         when (intent) {
             is IntegrationsIntent.Connect -> viewModelScope.launch {
                 update { it.copy(lastAction = ActionStatus.InProgress(intent.integration.id, "Connecting…")) }
-                val result = oauth.authorize(intent.integration.oauth)
-                val next = when (result) {
+                val next = when (val result = oauth.authorize(intent.integration.oauth)) {
                     is OAuthResult.Success -> {
                         oauth.putTokens(intent.integration.id, result.tokens)
                         repo.setEnabled(intent.integration.id, enabled = true)
@@ -88,11 +87,11 @@ public class IntegrationsStore(
     }
 }
 
-public enum class IntegrationStatus { Disconnected, Connected }
+enum class IntegrationStatus { Disconnected, Connected }
 
-public sealed interface ActionStatus {
-    public data object Idle : ActionStatus
-    public data class InProgress(val integrationId: String, val message: String) : ActionStatus
-    public data class Success(val integrationId: String, val message: String) : ActionStatus
-    public data class Failure(val integrationId: String, val message: String) : ActionStatus
+sealed interface ActionStatus {
+    data object Idle : ActionStatus
+    data class InProgress(val integrationId: String, val message: String) : ActionStatus
+    data class Success(val integrationId: String, val message: String) : ActionStatus
+    data class Failure(val integrationId: String, val message: String) : ActionStatus
 }

@@ -9,14 +9,14 @@ import kotlinx.coroutines.flow.StateFlow
  * Quota policy editing (Weft's `QuotaPolicy`) isn't exposed yet — that
  * lands when the usage screen gains write controls.
  */
-public interface UsageGateway {
+interface UsageGateway {
 
     /** Live snapshot of accumulated usage. */
-    public val totals: StateFlow<UsageTotals>
+    val totals: StateFlow<UsageTotals>
 }
 
 /** Mirror of `dev.weft.harness.cost.UsageTotals`. */
-public data class UsageTotals(
+data class UsageTotals(
     val lifetimeUsd: Double = 0.0,
     val lifetimeInputTokens: Int = 0,
     val lifetimeOutputTokens: Int = 0,

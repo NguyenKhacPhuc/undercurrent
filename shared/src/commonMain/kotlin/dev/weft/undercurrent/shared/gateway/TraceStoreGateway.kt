@@ -10,21 +10,21 @@ import kotlinx.serialization.Serializable
  * Writes (recordLlmStart/Complete/...) happen inside the agent loop and
  * stay inside `:data:weft` — feature code only reads and rates traces.
  */
-public interface TraceStoreGateway {
+interface TraceStoreGateway {
 
     /** Snapshot of all currently-known traces, newest first. */
-    public val traces: StateFlow<List<AgentTrace>>
+    val traces: StateFlow<List<AgentTrace>>
 
     /** Set or clear feedback on a trace. */
-    public suspend fun setFeedback(traceId: String, feedback: TraceFeedback)
+    suspend fun setFeedback(traceId: String, feedback: TraceFeedback)
 
     /** Wipe all traces. */
-    public suspend fun clear()
+    suspend fun clear()
 }
 
 /** Mirror of `dev.weft.harness.observability.AgentTrace`. */
 @Serializable
-public data class AgentTrace(
+data class AgentTrace(
     val id: String,
     val conversationId: String,
     val startEpochMs: Long,
@@ -45,7 +45,7 @@ public data class AgentTrace(
 }
 
 @Serializable
-public data class LlmCallTrace(
+data class LlmCallTrace(
     val id: String,
     val startEpochMs: Long,
     val endEpochMs: Long? = null,
@@ -60,7 +60,7 @@ public data class LlmCallTrace(
 }
 
 @Serializable
-public data class ToolCallTrace(
+data class ToolCallTrace(
     val id: String,
     val startEpochMs: Long,
     val endEpochMs: Long? = null,
@@ -74,10 +74,10 @@ public data class ToolCallTrace(
 }
 
 @Serializable
-public enum class TraceStatus { RUNNING, COMPLETED, FAILED }
+enum class TraceStatus { RUNNING, COMPLETED, FAILED }
 
 @Serializable
-public enum class ToolStatus { RUNNING, COMPLETED, FAILED }
+enum class ToolStatus { RUNNING, COMPLETED, FAILED }
 
 @Serializable
-public enum class TraceFeedback { NONE, THUMBS_UP, THUMBS_DOWN }
+enum class TraceFeedback { NONE, THUMBS_UP, THUMBS_DOWN }

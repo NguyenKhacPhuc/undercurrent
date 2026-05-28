@@ -7,7 +7,7 @@ import dev.weft.undercurrent.core.model.ProviderKind
  * impl would either ship Koog to iOS or call providers via Ktor
  * directly. For v1 the keypaste flow is Android-only.
  */
-public class StubKeyValidationGateway : KeyValidationGateway {
+class StubKeyValidationGateway : KeyValidationGateway {
     override suspend fun validateKey(provider: ProviderKind, apiKey: String): ValidationResult =
         ValidationResult.Invalid("Key validation not supported on iOS yet.")
 }

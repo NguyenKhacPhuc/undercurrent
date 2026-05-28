@@ -52,7 +52,7 @@ import org.koin.compose.viewmodel.koinViewModel
  *     `koin-androidx-compose` variant).
  */
 @Composable
-public fun ConversationsListScreen(
+fun ConversationsListScreen(
     activeConversationId: String?,
     onSelect: (String) -> Unit,
     onNewChat: () -> Unit,

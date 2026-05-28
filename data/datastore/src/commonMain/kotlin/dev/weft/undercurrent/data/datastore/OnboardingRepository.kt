@@ -21,20 +21,20 @@ import kotlinx.coroutines.flow.map
  * KMP — commonMain. Moved from
  * `app/.../features/onboarding/OnboardingRepository.kt`.
  */
-public class OnboardingRepository(
+class OnboardingRepository(
     private val dataStore: DataStore<Preferences>,
 ) {
 
-    public val completedFlow: Flow<Boolean> = dataStore.data
+    val completedFlow: Flow<Boolean> = dataStore.data
         .catch { /* corrupt prefs → "not completed" so onboarding shows */ emit(emptyPreferences()) }
         .map { prefs -> prefs[KeyCompleted] ?: false }
 
-    public suspend fun markCompleted() {
+    suspend fun markCompleted() {
         dataStore.edit { it[KeyCompleted] = true }
     }
 
-    public companion object {
-        public const val FILE_NAME: String = "onboarding_prefs"
+    companion object {
+        const val FILE_NAME: String = "onboarding_prefs"
         private val KeyCompleted = booleanPreferencesKey("completed")
     }
 }

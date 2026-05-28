@@ -12,19 +12,19 @@ import kotlinx.serialization.Serializable
  * absent. The mirror types [MemoryEntry] / [MemoryScope] keep feature
  * modules clear of `dev.weft.harness.memory.*` imports.
  */
-public interface MemoryStoreGateway {
+interface MemoryStoreGateway {
 
     /** Snapshot of all stored memories, newest first. */
-    public val memories: StateFlow<List<MemoryEntry>>
+    val memories: StateFlow<List<MemoryEntry>>
 
-    public suspend fun delete(id: String)
+    suspend fun delete(id: String)
 
-    public suspend fun clear()
+    suspend fun clear()
 }
 
 /** Mirror of `dev.weft.harness.memory.MemoryEntry`. */
 @Serializable
-public data class MemoryEntry(
+data class MemoryEntry(
     val id: String,
     val content: String,
     val tags: List<String>,
@@ -34,4 +34,4 @@ public data class MemoryEntry(
 
 /** Mirror of `dev.weft.harness.memory.MemoryScope`. */
 @Serializable
-public enum class MemoryScope { SESSION, PERMANENT, ANY }
+enum class MemoryScope { SESSION, PERMANENT, ANY }

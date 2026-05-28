@@ -47,7 +47,7 @@ import kotlin.uuid.Uuid
  * voice (waiting on cinterop fix).
  */
 @OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
-public class IosAppStore(
+class IosAppStore(
     private val keyVault: KeyVaultGateway,
     private val onboardingRepo: OnboardingRepository,
     private val themeRepo: ThemeRepository,

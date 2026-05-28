@@ -6,6 +6,6 @@ import kotlinx.coroutines.flow.emptyFlow
 /**
  * iOS stub. No agent → no UI render events.
  */
-public class StubUiBridgeGateway : UiBridgeGateway {
+class StubUiBridgeGateway : UiBridgeGateway {
     override val renderEvents: Flow<UiRenderEvent> = emptyFlow()
 }

@@ -100,7 +100,7 @@ import dev.weft.undercurrent.shared.gateway.VoiceState
  *     lambda.
  */
 @Composable
-public fun ChatScreen(
+fun ChatScreen(
     displayMessages: SnapshotStateList<DisplayMessage>,
     inFlight: Boolean,
     lastError: String?,
@@ -314,18 +314,18 @@ public fun ChatScreen(
  * Chat" bottom sheet. Grouping them keeps [ChatScreen]'s signature from
  * ballooning further. Null = no `+` button.
  */
-public class AddToChatConfig(
-    public val activePalette: AppPalette,
-    public val activeMode: ThemeMode,
-    public val connectedIntegrationsCount: Int,
-    public val miniApps: List<MiniApp>,
-    public val onSelectPalette: (AppPalette) -> Unit,
-    public val onSelectMode: (ThemeMode) -> Unit,
-    public val onShowPersonas: () -> Unit,
-    public val onShowIntegrations: () -> Unit,
-    public val onShowMiniApps: () -> Unit,
-    public val onInvokeMiniApp: (MiniApp) -> Unit,
-    public val onAddMiniApp: (name: String, emoji: String, triggerPrompt: String) -> Unit,
+class AddToChatConfig(
+    val activePalette: AppPalette,
+    val activeMode: ThemeMode,
+    val connectedIntegrationsCount: Int,
+    val miniApps: List<MiniApp>,
+    val onSelectPalette: (AppPalette) -> Unit,
+    val onSelectMode: (ThemeMode) -> Unit,
+    val onShowPersonas: () -> Unit,
+    val onShowIntegrations: () -> Unit,
+    val onShowMiniApps: () -> Unit,
+    val onInvokeMiniApp: (MiniApp) -> Unit,
+    val onAddMiniApp: (name: String, emoji: String, triggerPrompt: String) -> Unit,
 )
 
 // ─────────────────────────────────────────────────────────────────────
@@ -1017,37 +1017,37 @@ private fun BlinkingCursor() {
 // Display model — public so the host's store can construct messages.
 // ─────────────────────────────────────────────────────────────────────
 
-public data class DisplayMessage(
+data class DisplayMessage(
     val id: Long = nextId(),
     val role: DisplayRole,
     val text: String,
     val tool: ToolInfo? = null,
     val agentName: String? = null,
 ) {
-    public companion object {
+    companion object {
         private var counter = 0L
         private fun nextId(): Long = ++counter
-        public fun user(text: String): DisplayMessage =
+        fun user(text: String): DisplayMessage =
             DisplayMessage(role = DisplayRole.USER, text = text)
 
-        public fun assistant(text: String, agentName: String? = null): DisplayMessage =
+        fun assistant(text: String, agentName: String? = null): DisplayMessage =
             DisplayMessage(role = DisplayRole.ASSISTANT, text = text, agentName = agentName)
 
-        public fun toolStart(name: String): DisplayMessage =
+        fun toolStart(name: String): DisplayMessage =
             DisplayMessage(
                 role = DisplayRole.TOOL,
                 text = "→ $name",
                 tool = ToolInfo(name = name, status = ToolStatus.RUNNING),
             )
 
-        public fun toolDone(name: String): DisplayMessage =
+        fun toolDone(name: String): DisplayMessage =
             DisplayMessage(
                 role = DisplayRole.TOOL,
                 text = "✓ $name",
                 tool = ToolInfo(name = name, status = ToolStatus.DONE),
             )
 
-        public fun toolFail(name: String, message: String): DisplayMessage =
+        fun toolFail(name: String, message: String): DisplayMessage =
             DisplayMessage(
                 role = DisplayRole.TOOL,
                 text = "✗ $name — $message",
@@ -1058,7 +1058,7 @@ public data class DisplayMessage(
                 ),
             )
 
-        public fun event(
+        fun event(
             action: String,
             label: String?,
             fields: Map<String, String>,
@@ -1077,18 +1077,18 @@ public data class DisplayMessage(
     }
 }
 
-public enum class DisplayRole(public val label: String) {
+enum class DisplayRole(val label: String) {
     USER("You"),
     ASSISTANT("Undercurrent"),
     TOOL("Tool"),
     EVENT("UI event"),
 }
 
-public data class ToolInfo(
+data class ToolInfo(
     val name: String,
     val status: ToolStatus,
     val argsPreview: String? = null,
     val resultPreview: String? = null,
 )
 
-public enum class ToolStatus { RUNNING, DONE, FAILED }
+enum class ToolStatus { RUNNING, DONE, FAILED }

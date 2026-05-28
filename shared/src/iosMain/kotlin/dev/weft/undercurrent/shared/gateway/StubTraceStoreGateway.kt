@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * iOS stub. The trace viewer is Android-only for v1 — iOS doesn't run
  * the Weft agent loop yet, so there are never any traces to show.
  */
-public class StubTraceStoreGateway : TraceStoreGateway {
+class StubTraceStoreGateway : TraceStoreGateway {
     override val traces: StateFlow<List<AgentTrace>> =
         MutableStateFlow<List<AgentTrace>>(emptyList()).asStateFlow()
 

@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * RECORD_AUDIO permission is the caller's responsibility — [start]
  * silently fails without it.
  */
-public class AndroidSpeechGateway(context: Context) : SpeechGateway {
+class AndroidSpeechGateway(context: Context) : SpeechGateway {
 
     private val appContext: Context = context.applicationContext
     private val recognizer: SpeechRecognizer? =
@@ -112,7 +112,7 @@ public class AndroidSpeechGateway(context: Context) : SpeechGateway {
         _state.value = VoiceState.Idle
     }
 
-    public fun destroy() {
+    fun destroy() {
         recognizer?.destroy()
     }
 

@@ -12,7 +12,7 @@ import dev.weft.undercurrent.core.model.AppPalette
  *
  * KMP — commonMain. Moved from `app/.../theme/Palettes.kt`.
  */
-public fun AppPalette.colors(dark: Boolean): UndercurrentColors = when (this) {
+fun AppPalette.colors(dark: Boolean): UndercurrentColors = when (this) {
     AppPalette.WarmDarkAmber -> if (dark) WarmDarkAmberDark else WarmDarkAmberLight
     AppPalette.SageOchre -> if (dark) SageOchreDark else SageOchreLight
     AppPalette.Newsprint -> if (dark) NewsprintDark else NewsprintLight

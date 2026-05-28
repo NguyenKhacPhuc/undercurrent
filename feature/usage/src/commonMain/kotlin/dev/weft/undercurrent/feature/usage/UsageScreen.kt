@@ -55,7 +55,7 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @OptIn(ExperimentalTime::class)
 @Composable
-public fun UsageScreen(
+fun UsageScreen(
     onBack: () -> Unit,
     store: UsageStore = koinViewModel(),
 ) {

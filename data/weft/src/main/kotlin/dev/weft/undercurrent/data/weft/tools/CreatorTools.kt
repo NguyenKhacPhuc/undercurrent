@@ -31,7 +31,7 @@ import kotlin.reflect.typeOf
  * Weft tools must live in androidMain. Now consumes the migrated
  * commonMain repositories + the migrated navigation channel.
  */
-public class CreatePersonaTool(
+class CreatePersonaTool(
     ctx: WeftContext,
     private val personaRepo: PersonaRepository,
     private val nav: NavigationChannel,
@@ -69,7 +69,7 @@ public class CreatePersonaTool(
 ) {
 
     @Serializable
-    public data class Args(
+    data class Args(
         val name: String,
         val tagline: String,
         val systemPrompt: String,
@@ -104,7 +104,7 @@ public class CreatePersonaTool(
  * mini-app via [MiniAppsRepository.add], clears the [CreatorSession],
  * and navigates to the Mini Apps screen.
  */
-public class CreateMiniAppTool(
+class CreateMiniAppTool(
     ctx: WeftContext,
     private val miniAppsRepo: MiniAppsRepository,
     private val nav: NavigationChannel,
@@ -135,7 +135,7 @@ public class CreateMiniAppTool(
 ) {
 
     @Serializable
-    public data class Args(
+    data class Args(
         val name: String,
         val emoji: String,
         val triggerPrompt: String,

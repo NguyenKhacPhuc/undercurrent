@@ -12,7 +12,7 @@ package dev.weft.undercurrent.core.model
  * KMP — commonMain. Moved from
  * `app/.../features/providers/ProviderConsoles.kt`.
  */
-public fun ProviderKind.apiConsoleUrl(): String = when (this) {
+fun ProviderKind.apiConsoleUrl(): String = when (this) {
     ProviderKind.Anthropic -> "https://console.anthropic.com/settings/keys"
     ProviderKind.OpenAI -> "https://platform.openai.com/api-keys"
     ProviderKind.OpenRouter -> "https://openrouter.ai/keys"
@@ -23,7 +23,7 @@ public fun ProviderKind.apiConsoleUrl(): String = when (this) {
  * Cost-expectation pitch shown under "Get an API key". Phrased so the
  * user walks away with a realistic ceiling, not a worst-case fear.
  */
-public fun ProviderKind.signupHint(): String = when (this) {
+fun ProviderKind.signupHint(): String = when (this) {
     ProviderKind.Anthropic ->
         "Free signup. Add \$5 to start. Typical chat use: \$1–5/month."
     ProviderKind.OpenAI ->
@@ -35,7 +35,7 @@ public fun ProviderKind.signupHint(): String = when (this) {
 }
 
 /** Hostname the provider talks to. Used in keypaste's privacy footer. */
-public fun ProviderKind.hostName(): String = when (this) {
+fun ProviderKind.hostName(): String = when (this) {
     ProviderKind.Anthropic -> "api.anthropic.com"
     ProviderKind.OpenAI -> "api.openai.com"
     ProviderKind.OpenRouter -> "openrouter.ai"
@@ -43,7 +43,7 @@ public fun ProviderKind.hostName(): String = when (this) {
 }
 
 /** Placeholder shown in the paste-your-key text field. */
-public fun ProviderKind.keyPlaceholder(): String = when (this) {
+fun ProviderKind.keyPlaceholder(): String = when (this) {
     ProviderKind.Anthropic -> "sk-ant-…"
     ProviderKind.OpenAI -> "sk-…"
     ProviderKind.OpenRouter -> "sk-or-…"

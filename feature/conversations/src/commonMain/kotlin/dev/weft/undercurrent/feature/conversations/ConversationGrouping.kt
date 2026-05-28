@@ -26,7 +26,7 @@ import kotlin.time.Instant
  *   - `System.currentTimeMillis()` → `kotlin.time.Clock.System.now()`
  */
 @OptIn(ExperimentalTime::class)
-public fun groupConversationsByRecency(
+fun groupConversationsByRecency(
     conversations: List<ConversationSummary>,
 ): List<Pair<String, List<ConversationSummary>>> {
     val tz = TimeZone.currentSystemDefault()
@@ -67,7 +67,7 @@ public fun groupConversationsByRecency(
  * "5m ago" / "3h ago" / "2d ago" / "Mar 14, 2026".
  */
 @OptIn(ExperimentalTime::class)
-public fun formatLastActivity(epochMs: Long): String {
+fun formatLastActivity(epochMs: Long): String {
     val now = Clock.System.now().toEpochMilliseconds()
     val ageMs = (now - epochMs).coerceAtLeast(0)
     return when {

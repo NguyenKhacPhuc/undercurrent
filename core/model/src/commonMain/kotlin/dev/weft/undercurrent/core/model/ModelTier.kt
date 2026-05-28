@@ -11,7 +11,7 @@ package dev.weft.undercurrent.core.model
  *   - [Vision] — model with image input support
  *   - [Heavy] — frontier reasoning (Opus-class)
  */
-public enum class ModelTier(public val displayName: String) {
+enum class ModelTier(val displayName: String) {
     Cheap("Cheap"),
     Standard("Standard"),
     Vision("Vision"),

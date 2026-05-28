@@ -33,7 +33,7 @@ import dev.weft.undercurrent.core.model.AppPalette
  * APIs, and CompositionLocals identically to Android.
  */
 @Composable
-public fun UndercurrentTheme(
+fun UndercurrentTheme(
     palette: AppPalette = AppPalette.Default,
     darkMode: Boolean = isSystemInDarkTheme(),
     typography: UndercurrentTypography = UndercurrentTypography.Default,
@@ -82,34 +82,34 @@ public fun UndercurrentTheme(
  * )
  * ```
  */
-public object UndercurrentTheme {
-    public val colors: UndercurrentColors
+object UndercurrentTheme {
+    val colors: UndercurrentColors
         @Composable
         @ReadOnlyComposable
         get() = LocalUndercurrentColors.current
 
-    public val typography: UndercurrentTypography
+    val typography: UndercurrentTypography
         @Composable
         @ReadOnlyComposable
         get() = LocalUndercurrentTypography.current
 
-    public val shapes: UndercurrentShapes
+    val shapes: UndercurrentShapes
         @Composable
         @ReadOnlyComposable
         get() = LocalUndercurrentShapes.current
 }
 
-public val LocalUndercurrentColors: androidx.compose.runtime.ProvidableCompositionLocal<UndercurrentColors> =
+val LocalUndercurrentColors: androidx.compose.runtime.ProvidableCompositionLocal<UndercurrentColors> =
     staticCompositionLocalOf {
         error("UndercurrentColors not provided — wrap your composition in UndercurrentTheme")
     }
 
-public val LocalUndercurrentTypography: androidx.compose.runtime.ProvidableCompositionLocal<UndercurrentTypography> =
+val LocalUndercurrentTypography: androidx.compose.runtime.ProvidableCompositionLocal<UndercurrentTypography> =
     staticCompositionLocalOf {
         error("UndercurrentTypography not provided — wrap your composition in UndercurrentTheme")
     }
 
-public val LocalUndercurrentShapes: androidx.compose.runtime.ProvidableCompositionLocal<UndercurrentShapes> =
+val LocalUndercurrentShapes: androidx.compose.runtime.ProvidableCompositionLocal<UndercurrentShapes> =
     staticCompositionLocalOf {
         error("UndercurrentShapes not provided — wrap your composition in UndercurrentTheme")
     }

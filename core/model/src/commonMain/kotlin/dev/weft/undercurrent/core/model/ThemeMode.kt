@@ -13,12 +13,12 @@ package dev.weft.undercurrent.core.model
  *
  * KMP — commonMain. Moved from `app/.../theme/ThemeMode.kt`.
  */
-public enum class ThemeMode(public val displayName: String) {
+enum class ThemeMode(val displayName: String) {
     Auto("Auto"),
     Light("Light"),
     Dark("Dark");
 
-    public companion object {
-        public val Default: ThemeMode = Auto
+    companion object {
+        val Default: ThemeMode = Auto
     }
 }

@@ -57,7 +57,7 @@ import platform.darwin.OSStatus
  * the user can revoke the key via Settings → Passwords.
  */
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-public class KeychainKeyVaultGateway : KeyVaultGateway {
+class KeychainKeyVaultGateway : KeyVaultGateway {
 
     override suspend fun putApiKey(provider: ProviderKind, apiKey: String) {
         // Delete-then-add for idempotency. Avoids errSecDuplicateItem

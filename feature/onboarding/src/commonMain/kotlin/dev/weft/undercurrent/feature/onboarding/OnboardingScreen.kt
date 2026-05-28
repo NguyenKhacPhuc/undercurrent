@@ -58,7 +58,7 @@ import dev.weft.undercurrent.core.model.ProviderKind
  *   - Theme imports from `:core:design-system`.
  */
 @Composable
-public fun OnboardingScreen(
+fun OnboardingScreen(
     modelCountFor: (ProviderKind) -> Int,
     onComplete: (provider: ProviderKind, voicePersonaId: String) -> Unit,
 ) {

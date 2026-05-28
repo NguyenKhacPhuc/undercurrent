@@ -19,9 +19,9 @@ package dev.weft.undercurrent.core.model
  * come along — it depends on Compose's `Color` type, so it lives in
  * `:core:design-system` as `AppPalette.colors(dark)` extension.
  */
-public enum class AppPalette(
-    public val displayName: String,
-    public val tagline: String,
+enum class AppPalette(
+    val displayName: String,
+    val tagline: String,
 ) {
     WarmDarkAmber(
         displayName = "Warm dark",
@@ -40,7 +40,7 @@ public enum class AppPalette(
         tagline = "No accent. Pure writing surface.",
     );
 
-    public companion object {
-        public val Default: AppPalette = Vellum
+    companion object {
+        val Default: AppPalette = Vellum
     }
 }

@@ -30,7 +30,7 @@ private val argsType = KotlinTypeToken(typeOf<NoArgs>())
 private val resultType = KotlinTypeToken(typeOf<String>())
 
 @Serializable
-public data class NoArgs(val context: String = "")
+data class NoArgs(val context: String = "")
 
 private val contextParam = ToolParameterDescriptor(
     "context",
@@ -38,7 +38,7 @@ private val contextParam = ToolParameterDescriptor(
     ToolParameterType.String,
 )
 
-public class OpenPersonasTool(
+class OpenPersonasTool(
     ctx: WeftContext,
     private val nav: NavigationChannel,
 ) : WeftTool<NoArgs, String>(
@@ -64,7 +64,7 @@ public class OpenPersonasTool(
     }
 }
 
-public class OpenIntegrationsTool(
+class OpenIntegrationsTool(
     ctx: WeftContext,
     private val nav: NavigationChannel,
 ) : WeftTool<NoArgs, String>(
@@ -89,7 +89,7 @@ public class OpenIntegrationsTool(
     }
 }
 
-public class OpenMemoriesTool(
+class OpenMemoriesTool(
     ctx: WeftContext,
     private val nav: NavigationChannel,
 ) : WeftTool<NoArgs, String>(
@@ -113,7 +113,7 @@ public class OpenMemoriesTool(
     }
 }
 
-public class OpenConversationsTool(
+class OpenConversationsTool(
     ctx: WeftContext,
     private val nav: NavigationChannel,
 ) : WeftTool<NoArgs, String>(
@@ -137,7 +137,7 @@ public class OpenConversationsTool(
     }
 }
 
-public class OpenUsageTool(
+class OpenUsageTool(
     ctx: WeftContext,
     private val nav: NavigationChannel,
 ) : WeftTool<NoArgs, String>(

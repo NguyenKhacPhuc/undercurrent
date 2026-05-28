@@ -38,7 +38,7 @@ import dev.weft.undercurrent.core.ui.ScreenScaffold
  * [ProviderKind] from :core:model (was Weft's contracts package).
  */
 @Composable
-public fun SettingsScreen(
+fun SettingsScreen(
     activeProvider: ProviderKind,
     onShowProvider: () -> Unit,
     onShowUsage: () -> Unit,

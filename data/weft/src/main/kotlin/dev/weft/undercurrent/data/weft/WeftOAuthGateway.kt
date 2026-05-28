@@ -14,7 +14,7 @@ import dev.weft.oauth.OAuthResult as WeftOAuthResult
  * Android impl of [OAuthGateway]. Translates between the commonMain
  * mirror types and Weft's `dev.weft.oauth.*` types.
  */
-public class WeftOAuthGateway(
+class WeftOAuthGateway(
     private val oauthClient: OAuthClient,
     private val tokenStore: OAuthTokenStore,
 ) : OAuthGateway {

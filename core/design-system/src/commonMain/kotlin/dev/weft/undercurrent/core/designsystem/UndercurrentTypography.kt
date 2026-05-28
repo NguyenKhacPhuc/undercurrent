@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.sp
  * KMP — commonMain. Moved from `app/.../theme/UndercurrentTypography.kt`.
  */
 @Immutable
-public data class UndercurrentTypography(
+data class UndercurrentTypography(
     val serifBody: TextStyle,
     val serifBodyLarge: TextStyle,
     val sansHeader: TextStyle,
@@ -28,8 +28,8 @@ public data class UndercurrentTypography(
     val sansSmall: TextStyle,
     val mono: TextStyle,
 ) {
-    public companion object {
-        public val Default: UndercurrentTypography = UndercurrentTypography(
+    companion object {
+        val Default: UndercurrentTypography = UndercurrentTypography(
             serifBody = TextStyle(
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Normal,

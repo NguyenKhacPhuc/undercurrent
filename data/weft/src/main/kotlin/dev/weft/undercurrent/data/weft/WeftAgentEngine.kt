@@ -38,7 +38,7 @@ import kotlinx.coroutines.flow.map
  * Android, [dev.weft.undercurrent.shared.agent.StubAgentEngine] on
  * iOS.
  */
-public class WeftAgentEngine(
+class WeftAgentEngine(
     private val agent: WeftAgent,
 ) : AgentEngine {
 

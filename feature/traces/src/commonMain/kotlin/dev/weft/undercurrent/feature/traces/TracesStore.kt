@@ -7,16 +7,16 @@ import dev.weft.undercurrent.shared.gateway.TraceStoreGateway
 import dev.weft.undercurrent.shared.mvi.Store
 import kotlinx.coroutines.launch
 
-public data class TracesState(public val traces: List<AgentTrace> = emptyList())
+data class TracesState(val traces: List<AgentTrace> = emptyList())
 
-public sealed interface TracesIntent {
-    public data class SetFeedback(public val traceId: String, public val feedback: TraceFeedback) : TracesIntent
-    public data object ClearAll : TracesIntent
+sealed interface TracesIntent {
+    data class SetFeedback(val traceId: String, val feedback: TraceFeedback) : TracesIntent
+    data object ClearAll : TracesIntent
 }
 
-public sealed interface TracesEffect
+sealed interface TracesEffect
 
-public class TracesStore(
+class TracesStore(
     private val store: TraceStoreGateway,
 ) : Store<TracesState, TracesIntent, TracesEffect>(
     initialState = TracesState(traces = store.traces.value),

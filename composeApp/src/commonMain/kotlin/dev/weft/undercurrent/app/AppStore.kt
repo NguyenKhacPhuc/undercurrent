@@ -24,26 +24,26 @@ import kotlinx.coroutines.flow.StateFlow
  * without rebuilding the immutable state. Same trade-off as the
  * pre-KMP shape.
  */
-public interface AppStore {
+interface AppStore {
 
-    public val state: StateFlow<AppState>
+    val state: StateFlow<AppState>
 
     /** One-shot side effects (errors). Collected via LaunchedEffect. */
-    public val effects: Flow<AppEffect>
+    val effects: Flow<AppEffect>
 
     /**
      * The streaming chat history. Kept outside [state] because mutations
      * are append-heavy and the surface re-reads continuously.
      */
-    public val displayMessages: SnapshotStateList<DisplayMessage>
+    val displayMessages: SnapshotStateList<DisplayMessage>
 
     /**
      * Registered skills, projected to the mirror DTO. Drives the chat
      * input's `[+]` quick-actions menu.
      */
-    public val skills: List<SkillSummary>
+    val skills: List<SkillSummary>
 
-    public fun dispatch(intent: AppIntent)
+    fun dispatch(intent: AppIntent)
 
     /**
      * Fire a user-initiated event from the rendered-tree screen
@@ -51,12 +51,12 @@ public interface AppStore {
      * through the agent loop on the Android impl; the iOS stub
      * returns immediately.
      */
-    public suspend fun sendUiEvent(
+    suspend fun sendUiEvent(
         action: String,
         sourceLabel: String?,
         fieldValues: Map<String, String>,
     )
 
     /** Persist a freshly-pasted API key against the active provider. */
-    public suspend fun saveKey(key: String)
+    suspend fun saveKey(key: String)
 }
