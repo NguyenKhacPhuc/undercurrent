@@ -21,6 +21,9 @@ public class WeftKeyVaultGateway(
         keyVault.put(provider.alias(), apiKey)
     }
 
+    override suspend fun getApiKey(provider: ProviderKind): String? =
+        keyVault.get(provider.alias())
+
     override suspend fun hasApiKey(provider: ProviderKind): Boolean =
         keyVault.exists(provider.alias())
 

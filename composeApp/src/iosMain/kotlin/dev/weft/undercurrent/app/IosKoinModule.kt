@@ -29,7 +29,7 @@ import dev.weft.undercurrent.shared.gateway.OAuthGateway
 import dev.weft.undercurrent.shared.gateway.SpeechGateway
 import dev.weft.undercurrent.shared.gateway.StubConversationStoreGateway
 import dev.weft.undercurrent.shared.gateway.StubKeyValidationGateway
-import dev.weft.undercurrent.shared.gateway.StubKeyVaultGateway
+import dev.weft.undercurrent.shared.gateway.KeychainKeyVaultGateway
 import dev.weft.undercurrent.shared.gateway.StubMemoryStoreGateway
 import dev.weft.undercurrent.shared.gateway.StubModelCatalog
 import dev.weft.undercurrent.shared.gateway.StubOAuthGateway
@@ -102,7 +102,7 @@ public val iosAppModule = module {
     single { CreatorSession() }
 
     // ─── Gateways (all stubs) ───────────────────────────────────────
-    single<KeyVaultGateway> { StubKeyVaultGateway() }
+    single<KeyVaultGateway> { KeychainKeyVaultGateway() }
     single<KeyValidationGateway> { StubKeyValidationGateway() }
     single<OAuthGateway> { StubOAuthGateway() }
     single<ConversationStoreGateway> { StubConversationStoreGateway() }
@@ -113,8 +113,15 @@ public val iosAppModule = module {
     single<SpeechGateway> { StubSpeechGateway() }
     single<UiBridgeGateway> { StubUiBridgeGateway() }
 
-    // ─── AppStore — iOS stub impl ───────────────────────────────────
-    single<AppStore> { IosAppStore() }
+    // ─── AppStore — iOS impl ────────────────────────────────────────
+    single<AppStore> {
+        IosAppStore(
+            keyVault = get(),
+            onboardingRepo = get(),
+            themeRepo = get(),
+            providerPrefsRepo = get(),
+        )
+    }
 
     // ─── ViewModels ─────────────────────────────────────────────────
     // Same per-screen VMs as Android — they consume the gateway

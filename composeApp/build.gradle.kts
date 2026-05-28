@@ -62,6 +62,17 @@ kotlin {
             // agent capabilities for v1.
             implementation(projects.data.weft)
         }
+        iosMain.dependencies {
+            // Minimal iOS agent stack — Ktor HTTP client + JSON
+            // serialization for the Anthropic Messages API. The full
+            // Weft / Koog agent loop isn't available on iOS (Koog has
+            // no iOS variants); a parallel Ktor client lives here
+            // until upstream Koog ships iOS or we switch strategy.
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.darwin)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+        }
     }
 }
 
