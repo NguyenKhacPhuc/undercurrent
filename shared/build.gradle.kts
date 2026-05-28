@@ -9,7 +9,10 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // module-specific common deps go here
+            // Gateway interfaces in commonMain reference ProviderKind +
+            // ModelTier — keep :core:model as an API dependency so
+            // feature modules pick them up transitively from :shared.
+            api(projects.core.model)
         }
         androidMain.dependencies {
             // module-specific Android deps go here

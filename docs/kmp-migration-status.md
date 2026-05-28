@@ -7,15 +7,18 @@ per-feature recipe.
 ## Foundation — DONE
 
 All seven foundation modules are migrated and verified to compile
-on **both Android and iOS** targets.
+on **both Android and iOS** targets. The gateway layer (commonMain
+interfaces + Android impls + iOS stubs) landed in the follow-up
+session, so every cross-cutting Weft dependency now has a
+KMP-friendly contract.
 
 | Module | What's in it |
 |---|---|
 | ✅ `:core:model` | AppEffect, ThemeMode, ThemePrefs, AppPalette, **ProviderKind**, **ModelTier**, **Persona / PersonaKind / BuiltInPersonas**, **MiniApp** |
 | ✅ `:core:design-system` | UndercurrentColors, UndercurrentShapes, UndercurrentTypography, UndercurrentTheme, Palettes (8 color tables + `AppPalette.colors(dark)` extension) |
 | ✅ `:core:ui` | LoadingPlaceholder, ScreenScaffold, ScaffoldTextAction, TokenDivider, SectionLabel |
-| ✅ `:shared` | **AgentEngine interface**, ChatChunk, AgentState, StubAgentEngine (iosMain) |
-| ✅ `:data:weft` (Android-only) | WeftAgentEngine — bridges WeftAgent → AgentEngine |
+| ✅ `:shared` | **AgentEngine** + ChatChunk/AgentState/StubAgentEngine. **Gateway layer**: KeyVaultGateway, OAuthGateway, ConversationStoreGateway, MemoryStoreGateway, TraceStoreGateway, UsageGateway, ModelCatalog, SpeechGateway, UiBridgeGateway (with mirror types — ConversationSummary, MemoryEntry/Scope, AgentTrace/LlmCallTrace/ToolCallTrace + status enums, UsageTotals, ModelInfo/ModelPool, VoiceState, ComponentNode/UiRenderEvent, OAuthConfig/OAuthTokens/OAuthResult). iOS stubs for all nine. |
+| ✅ `:data:weft` (Android-only) | WeftAgentEngine + **nine gateway impls** — WeftKeyVaultGateway, WeftOAuthGateway, WeftConversationStoreGateway, WeftMemoryStoreGateway, WeftTraceStoreGateway, WeftUsageGateway, WeftModelCatalog, AndroidSpeechGateway, WeftUiBridgeGateway. |
 | ✅ `:data:datastore` | createPreferencesDataStore (KMP factory + Android/iOS actuals), ThemeRepository, OnboardingRepository, PersonaRepository, IntegrationsRepository, MiniAppsRepository, ProviderPrefsRepository, ModelPrefsRepository — **7 repos total** |
 | ✅ `:data:sqldelight` | UndercurrentDatabase (Records.sq schema), expect class DatabaseDriverFactory + Android (AndroidSqliteDriver) / iOS (NativeSqliteDriver) actuals |
 
@@ -75,38 +78,40 @@ Consumes AgentEngine (already defined) but also needs UIUpdate
 plumbing (the `ui_render` payload pipeline) and the streaming
 chunk → UI translation. Plan a focused session.
 
-## Required cross-feature work
+## Cross-feature gateway layer — DONE
 
-Before the remaining 16 features can all land, these abstractions
-need to exist in `:shared` + `:data:weft`:
+All nine cross-cutting interfaces are defined in `:shared/commonMain`
+with mirror types, backed by Android impls in `:data:weft`, and
+stubbed in `:shared/iosMain`. Both targets compile.
 
-| Interface | Used by |
-|---|---|
-| `KeyVaultGateway` | keypaste, providers |
-| `OAuthGateway` | integrations |
-| `ConversationStoreGateway` | conversations, chat |
-| `MemoryStoreGateway` | memories, chat |
-| `TraceStoreGateway` | traces |
-| `UsageGateway` | usage, providers |
-| `ModelCatalog` | providers, onboarding |
-| `SpeechGateway` | voice |
-| `UiBridgeGateway` | miniapps, chat (`ui_render` plumbing) |
+| Interface | Used by | Android impl |
+|---|---|---|
+| `KeyVaultGateway` | keypaste, providers | `WeftKeyVaultGateway` (delegates to Weft `KeyVault` + provider-alias map) |
+| `OAuthGateway` | integrations | `WeftOAuthGateway` (wraps `OAuthClient` + `OAuthTokenStore`, translates `OAuthResult` sealed variants) |
+| `ConversationStoreGateway` | conversations, chat | `WeftConversationStoreGateway` (search/delete/clear-all over `ConversationStore`) |
+| `MemoryStoreGateway` | memories, chat | `WeftMemoryStoreGateway` (read-only flow + delete/clear over `MemoryStore`) |
+| `TraceStoreGateway` | traces | `WeftTraceStoreGateway` (full mirror of AgentTrace/LlmCallTrace/ToolCallTrace + setFeedback) |
+| `UsageGateway` | usage, providers | `WeftUsageGateway` (totals flow over `UsageStore`) |
+| `ModelCatalog` | providers, onboarding | `WeftModelCatalog` (projects Koog `LLModel` → lossy `ModelInfo`; preserves `hasVision` / `hasTools` capability bits) |
+| `SpeechGateway` | voice | `AndroidSpeechGateway` (wraps `SpeechRecognizer` directly — no Weft dependency) |
+| `UiBridgeGateway` | miniapps, chat | `WeftUiBridgeGateway` (`snapshotFlow` over `ComposeUiBridge.lastUpdate`, filters to RenderTree events) |
 
-Plus a mirror of `UIUpdate` in `:core:model` if features (notably
-miniapps + chat) need to type their state with it.
+Mirror types live alongside their gateway in `shared/commonMain/.../gateway/`.
+Wire format compatible with the Weft originals — cached `ui_render`
+JSON round-trips cleanly between the mirror `ComponentNode` and
+`dev.weft.contracts.ComponentNode`.
 
 ## Recommended next session
 
-1. **Add the nine gateway interfaces** in `:shared` + Android impls in `:data:weft`. ~1 day of focused work.
-2. **Then bulk-migrate Recipe A features** (conversations, memories, traces, usage) — they're mechanically similar once their gateway exists. ~½ day for all four.
-3. **Recipe B features next** (theme, onboarding, personas, miniapps without UIUpdate) — ~½ day.
-4. **Recipe C features** (integrations, keypaste, voice, creator, providers, maps) — ~1 day total.
-5. **`:feature:chat` last** — needs its own focused session. ~1 day.
-6. **`:androidApp` + `:composeApp` wiring** — Koin DI module that picks the platform-correct implementation of every gateway, the top-level App composable, screen routing, MainActivity. ~1 day.
-7. **iOS shell** — Xcode project, SwiftUI scene hosting ComposeApp.framework. ~½ day.
-8. **Delete `app/`** — once everything builds through the new modules.
+1. **Bulk-migrate Recipe A features** (conversations, memories, traces, usage) — straightforward now that gateways exist. ~½ day for all four.
+2. **Recipe B features** (theme, onboarding, personas, miniapps without UIUpdate). ~½ day.
+3. **Recipe C features** (integrations, keypaste, voice, creator, providers, maps). ~1 day total.
+4. **`:feature:chat` last** — needs its own focused session. ~1 day.
+5. **`:androidApp` + `:composeApp` wiring** — Koin DI module that picks the platform-correct implementation of every gateway, the top-level App composable, screen routing, MainActivity. ~1 day.
+6. **iOS shell** — Xcode project, SwiftUI scene hosting ComposeApp.framework. ~½ day.
+7. **Delete `app/`** — once everything builds through the new modules.
 
-Estimated total remaining: ~5-6 focused days.
+Estimated total remaining: ~4-5 focused days.
 
 ## What's solid right now
 
