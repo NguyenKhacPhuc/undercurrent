@@ -14,6 +14,7 @@ import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.ProviderKind
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.data.datastore.OnboardingRepository
+import dev.weft.undercurrent.data.datastore.PersonaRepository
 import dev.weft.undercurrent.data.datastore.ProviderPrefsRepository
 import dev.weft.undercurrent.data.datastore.ThemeRepository
 import dev.weft.undercurrent.db.UndercurrentDatabase
@@ -57,6 +58,7 @@ public class IosAppStore(
     private val onboardingRepo: OnboardingRepository,
     private val themeRepo: ThemeRepository,
     private val providerPrefsRepo: ProviderPrefsRepository,
+    private val personaRepo: PersonaRepository,
     private val db: UndercurrentDatabase,
 ) : AppStore {
 
@@ -295,7 +297,7 @@ public class IosAppStore(
         val replyBuilder = StringBuilder()
         var sawError = false
 
-        client.send(history, IOS_SYSTEM_PROMPT).collect { chunk ->
+        client.send(history, composeSystemPrompt()).collect { chunk ->
             when (chunk) {
                 is LlmChunk.TextDelta -> {
                     replyBuilder.append(chunk.text)
@@ -477,4 +479,30 @@ public class IosAppStore(
     }
 
     private fun newId(prefix: String): String = "$prefix.${Uuid.random().toString().take(12)}"
+
+    /**
+     * Compose the per-turn system prompt = base + voice instructions +
+     * role instructions. Matches Weft's `extraVolatilePrefix` shape on
+     * Android so behaviour is consistent across platforms: the user's
+     * picked voice (Editor / Field Notes / …) and role (Doctor /
+     * Lawyer / …) shape the model's reply.
+     *
+     * Empty voice (built-in `Default`) contributes nothing — the base
+     * prompt stands alone. Same for unset role.
+     */
+    private fun composeSystemPrompt(): String {
+        val voiceText = personaRepo.activeVoice.value.systemPromptText
+        val roleText = personaRepo.activeRole.value?.systemPromptText
+        return buildString {
+            append(IOS_SYSTEM_PROMPT.trim())
+            if (voiceText.isNotBlank()) {
+                append("\n\nVoice instructions:\n")
+                append(voiceText)
+            }
+            if (!roleText.isNullOrBlank()) {
+                append("\n\nRole instructions:\n")
+                append(roleText)
+            }
+        }
+    }
 }

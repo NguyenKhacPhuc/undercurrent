@@ -119,6 +119,7 @@ public val iosAppModule = module {
             onboardingRepo = get(),
             themeRepo = get(),
             providerPrefsRepo = get(),
+            personaRepo = get(),
             db = get(),
         )
     }

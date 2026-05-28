@@ -8,6 +8,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import dev.weft.undercurrent.data.datastore.PersonaRepository
 import dev.weft.undercurrent.feature.chat.ChatScreen
 import dev.weft.undercurrent.shared.gateway.SpeechGateway
 import kotlinx.cinterop.BetaInteropApi
@@ -48,7 +49,18 @@ public fun iosPlatformAdapter(): PlatformAdapter = PlatformAdapter(
 private fun IosChatRoute() {
     val store: AppStore = koinInject()
     val speech: SpeechGateway = koinInject()
+    val personaRepo: PersonaRepository = koinInject()
     val state by store.state.collectAsState()
+    val activeVoice by personaRepo.activeVoice.collectAsState()
+    val activeRole by personaRepo.activeRole.collectAsState()
+
+    // Persona label: voice + role joined. Default voice + no role → "Default".
+    val personaLabel = run {
+        val voiceLabel = activeVoice.name.takeIf { it != "Default" }
+        val roleLabel = activeRole?.name
+        listOfNotNull(voiceLabel, roleLabel).joinToString(" + ").ifEmpty { "Default" }
+    }
+    val providerLabel = state.activeProvider.displayName
 
     ChatScreen(
         displayMessages = store.displayMessages,
@@ -57,8 +69,8 @@ private fun IosChatRoute() {
         onSend = { text, _ -> store.dispatch(AppIntent.SendChat(text)) },
         defaultTier = null,
         threadTitle = "Undercurrent",
-        threadSubtitle = "iOS · Claude Haiku 4.5",
-        activePersonaName = "Default",
+        threadSubtitle = "$providerLabel · $personaLabel",
+        activePersonaName = personaLabel,
         lastModelId = "claude-haiku-4-5",
         degradedMode = null,
         speechGateway = speech,
