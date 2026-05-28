@@ -22,25 +22,25 @@ KMP-friendly contract.
 | ✅ `:data:datastore` | createPreferencesDataStore (KMP factory + Android/iOS actuals), ThemeRepository, OnboardingRepository, PersonaRepository, IntegrationsRepository, MiniAppsRepository, ProviderPrefsRepository, ModelPrefsRepository — **7 repos total** |
 | ✅ `:data:sqldelight` | UndercurrentDatabase (Records.sq schema), expect class DatabaseDriverFactory + Android (AndroidSqliteDriver) / iOS (NativeSqliteDriver) actuals |
 
-## Features — 1 of 17 done
+## Features — 5 of 17 done
 
 | Feature | Status | Blocker / notes |
 |---|---|---|
-| ✅ `:feature:settings` | **DONE — both targets compile** | Used as the proof-of-pattern. SettingsScreen consumes ProviderKind from :core:model + ScreenScaffold from :core:ui. |
-| ⏳ `:feature:onboarding` | Repo migrated; Screen pending | OnboardingScreen depends on BuiltInPersonas (✅ in :core:model) + ProviderKind (✅ in :core:model) + `dev.weft.android.routing.catalogFor` (NEEDS GATEWAY: ModelCatalog). |
+| ✅ `:feature:settings` | **DONE** | Proof-of-pattern. SettingsScreen consumes ProviderKind from :core:model + ScreenScaffold from :core:ui. |
+| ✅ `:feature:conversations` | **DONE** | VM + ConversationsListScreen + ConversationGrouping in commonMain. Date bucketing now uses kotlinx.datetime (was `java.util.Calendar`/`SimpleDateFormat`). |
+| ✅ `:feature:memories` | **DONE** | VM + AgentMemoriesScreen in commonMain via MemoryStoreGateway. Manual kotlinx.datetime "MMM d · HH:mm" timestamp. |
+| ✅ `:feature:traces` | **DONE** | VM + TraceViewerScreen (full detail view + clipboard formatters) in commonMain via TraceStoreGateway. `String.format` swapped for a manual one-decimal helper. |
+| ✅ `:feature:usage` | **DONE** | VM + UsageScreen in commonMain via UsageGateway. `java.time.LocalDate.now()` → kotlinx.datetime; per-decimal `String.format` swapped for a manual helper. |
+| ⏳ `:feature:onboarding` | Repo migrated; Screen pending | OnboardingScreen depends on BuiltInPersonas (✅ in :core:model) + ProviderKind (✅ in :core:model) + ModelCatalog (✅ in :shared). |
 | ⏳ `:feature:theme` | DataStore repo migrated; Screen pending | AppearanceScreen needs migration — likely simple. |
 | ⏳ `:feature:personas` | Repo + types migrated; Screen + VM pending | PersonasScreen is 544 LOC. ViewModel directly mutates PersonaRepository — straightforward. |
-| ⏳ `:feature:miniapps` | Repo + MiniApp type migrated; Screen + VM pending | Screen consumes UIUpdate (Weft type) for the cached-render plumbing. Needs `UiBridgeGateway`. |
-| ⏳ `:feature:integrations` | Repo migrated; Screen + VM pending | ViewModel uses dev.weft.oauth.{OAuthClient, OAuthResult, OAuthTokenStore}. Needs `OAuthGateway` in :shared + :data:weft impl. |
-| ⏳ `:feature:providers` | Both repos migrated; Screen + VM pending | Largest non-chat screen (717 LOC). VM calls WeftRuntime.buildExecutorFor + model catalog. Needs `ModelCatalog` + provider-rebuild trigger gateway. |
-| ⏳ `:feature:keypaste` | — | Uses Weft KeyVault for key persistence. Needs `KeyVaultGateway`. |
-| ⏳ `:feature:conversations` | — | Uses Weft ConversationStore directly. Needs `ConversationStoreGateway` (read-only queries — list/select/delete). |
-| ⏳ `:feature:memories` | — | Uses Weft MemoryStore. Needs `MemoryStoreGateway`. |
-| ⏳ `:feature:traces` | — | Uses Weft TraceStore + AgentTrace + UsageStore. Needs `TraceStoreGateway`. |
-| ⏳ `:feature:voice` | — | Uses Weft Speech capability. Add `SpeechGateway` OR route through AgentEngine. |
+| ⏳ `:feature:miniapps` | Repo + MiniApp type migrated; Screen + VM pending | Screen consumes UIUpdate (Weft type) for the cached-render plumbing. UiBridgeGateway (✅ in :shared) covers it. |
+| ⏳ `:feature:integrations` | Repo migrated; Screen + VM pending | OAuthGateway (✅ in :shared) covers it. |
+| ⏳ `:feature:providers` | Both repos migrated; Screen + VM pending | Largest non-chat screen (717 LOC). ModelCatalog (✅) covers reads; still needs a provider-rebuild trigger gateway for `WeftRuntime.buildExecutorFor`. |
+| ⏳ `:feature:keypaste` | — | KeyVaultGateway (✅) covers it. |
+| ⏳ `:feature:voice` | — | SpeechGateway (✅) covers it. |
 | ⏳ `:feature:maps` | — | Pure Compose around a map URL string + Weft Location capability. Light. |
 | ⏳ `:feature:creator` | — | Uses agent tools (create_persona, create_mini_app). Routes through AgentEngine — manageable. |
-| ⏳ `:feature:usage` | — | Uses `dev.weft.harness.cost.UsageTotals`. Needs `UsageGateway`. Also uses java.time.LocalDate (swap to kotlinx.datetime). |
 | ⏳ `:feature:navigation` | — | Cross-cutting. Migrate alongside :core:navigation. |
 | ⏳ `:feature:chat` | — | **The big one** — 1387 LOC. Streaming UI + tool-call rendering + agent state. Consumes AgentEngine (already defined). Last to migrate per playbook. |
 
@@ -103,15 +103,23 @@ JSON round-trips cleanly between the mirror `ComponentNode` and
 
 ## Recommended next session
 
-1. **Bulk-migrate Recipe A features** (conversations, memories, traces, usage) — straightforward now that gateways exist. ~½ day for all four.
-2. **Recipe B features** (theme, onboarding, personas, miniapps without UIUpdate). ~½ day.
-3. **Recipe C features** (integrations, keypaste, voice, creator, providers, maps). ~1 day total.
-4. **`:feature:chat` last** — needs its own focused session. ~1 day.
-5. **`:androidApp` + `:composeApp` wiring** — Koin DI module that picks the platform-correct implementation of every gateway, the top-level App composable, screen routing, MainActivity. ~1 day.
-6. **iOS shell** — Xcode project, SwiftUI scene hosting ComposeApp.framework. ~½ day.
-7. **Delete `app/`** — once everything builds through the new modules.
+1. **Recipe B features** (theme, onboarding, personas, miniapps). ~½ day.
+2. **Recipe C features** (integrations, keypaste, voice, creator, providers, maps). ~1 day total.
+3. **`:feature:chat` last** — needs its own focused session. ~1 day.
+4. **`:androidApp` + `:composeApp` wiring** — Koin DI module that picks the platform-correct implementation of every gateway, the top-level App composable, screen routing, MainActivity. ~1 day.
+5. **iOS shell** — Xcode project, SwiftUI scene hosting ComposeApp.framework. ~½ day.
+6. **Delete `app/`** — once everything builds through the new modules.
 
-Estimated total remaining: ~4-5 focused days.
+Estimated total remaining: ~4 focused days.
+
+## Patterns learned from Recipe A
+
+- **`:shared` brings `:core:model` transitively.** Set up in the gateway commit; feature modules add `implementation(projects.shared)` and pick up `ProviderKind` / `ModelTier` automatically.
+- **`org.koin.compose.viewmodel.koinViewModel`** is the commonMain entry point. Don't import `org.koin.androidx.compose.koinViewModel` — that's the Android-only shim from the old app.
+- **`androidx.lifecycle.ViewModel` + `viewModelScope`** are KMP-available through koin-compose-viewmodel's transitive deps. No special imports needed.
+- **`java.util.Date` / `SimpleDateFormat` / `java.text.*` / `java.time.*`** → kotlinx.datetime + `kotlin.time.Clock` per CLAUDE.md note. Add `implementation(libs.kotlinx.datetime)` per feature, opt-in via `@OptIn(ExperimentalTime::class)` when using `kotlin.time.Instant`.
+- **`String.format("%.Nf", v)` doesn't exist in commonMain stdlib.** Write a small `formatDecimal(v, n)` helper (see `feature/usage`). One-decimal-only variants also acceptable inline.
+- **`Map.toSortedMap()` doesn't exist in commonMain stdlib.** Use `entries.sortedBy { it.key }` (ISO dates sort lexicographically = chronologically).
 
 ## What's solid right now
 

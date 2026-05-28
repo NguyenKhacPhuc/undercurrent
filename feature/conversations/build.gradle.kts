@@ -12,7 +12,10 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // feature-specific common deps (e.g. :data:repository)
+            // Gateway interfaces (ConversationStoreGateway + ConversationSummary).
+            implementation(projects.shared)
+            // Timezone-correct day bucketing in ConversationGrouping.
+            implementation(libs.kotlinx.datetime)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

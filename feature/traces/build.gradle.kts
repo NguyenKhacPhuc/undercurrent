@@ -12,7 +12,10 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // feature-specific common deps (e.g. :data:repository)
+            // Gateway interfaces (TraceStoreGateway + AgentTrace/* mirrors).
+            implementation(projects.shared)
+            // HH:mm:ss.SSS formatting in trace rows + meta blocks.
+            implementation(libs.kotlinx.datetime)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

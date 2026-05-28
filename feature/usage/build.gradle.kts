@@ -12,7 +12,10 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // feature-specific common deps (e.g. :data:repository)
+            // Gateway interfaces (UsageGateway + UsageTotals mirror).
+            implementation(projects.shared)
+            // Today's ISO-date lookup for byDay map.
+            implementation(libs.kotlinx.datetime)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

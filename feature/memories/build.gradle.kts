@@ -12,7 +12,10 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // feature-specific common deps (e.g. :data:repository)
+            // Gateway interfaces (MemoryStoreGateway + MemoryEntry/Scope mirrors).
+            implementation(projects.shared)
+            // Memory-row "MMM d · HH:mm" timestamps.
+            implementation(libs.kotlinx.datetime)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)
