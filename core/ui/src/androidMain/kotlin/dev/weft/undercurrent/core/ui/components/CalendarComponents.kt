@@ -28,14 +28,17 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.Month
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
-import java.time.Instant
-import java.time.LocalDate
-import java.time.YearMonth
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 import kotlin.math.abs
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 // =============================================================================
 // Calendar — month grid with selectable + marked days
@@ -54,6 +57,7 @@ internal data class CalendarProps(
     val showHeader: Boolean = true,
 )
 
+@OptIn(ExperimentalTime::class)
 internal class CalendarComponent : WeftComponent<CalendarProps>(
     name = "Calendar",
     description = "Full month-grid calendar. month: 'YYYY-MM' (defaults to current). selected: ISO date currently chosen. marked: list of ISO dates to show a dot under (e.g. days with notes). id: stable identifier (fires TextChanged with the ISO date when a day is tapped). Use for date picking, habit grids, schedule overviews.",
@@ -66,7 +70,7 @@ internal class CalendarComponent : WeftComponent<CalendarProps>(
         val cs = UndercurrentTheme.colors
         val tp = UndercurrentTheme.typography
 
-        val yearMonth = parseYearMonth(props.month) ?: YearMonth.now()
+        val yearMonth = parseYearMonth(props.month) ?: currentYearMonth()
         val markedSet = remember(props.marked) { props.marked.toSet() }
         var selectedDate by remember(props.id, props.selected, props.month) {
             mutableStateOf(parseDate(props.selected))
@@ -75,7 +79,7 @@ internal class CalendarComponent : WeftComponent<CalendarProps>(
         Column(modifier = Modifier.fillMaxWidth()) {
             if (props.showHeader) {
                 Text(
-                    text = yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                    text = "${yearMonth.month.fullName()} ${yearMonth.year}",
                     style = tp.sansHeader.copy(fontWeight = FontWeight.SemiBold, fontSize = 16.sp),
                     color = cs.ink,
                     modifier = Modifier.padding(bottom = 8.dp),
@@ -98,7 +102,7 @@ internal class CalendarComponent : WeftComponent<CalendarProps>(
             }
             // Build the grid: pad leading blanks so day 1 lands on its weekday.
             val firstDay = yearMonth.atDay(1)
-            val leadingBlanks = (firstDay.dayOfWeek.value - 1).coerceAtLeast(0)
+            val leadingBlanks = (firstDay.dayOfWeek.isoDayNumber - 1).coerceAtLeast(0)
             val totalDays = yearMonth.lengthOfMonth()
             val cells = (1..leadingBlanks).map { 0 } + (1..totalDays).toList()
             val rows = cells.chunked(7)
@@ -184,13 +188,64 @@ internal class CalendarComponent : WeftComponent<CalendarProps>(
     }
 }
 
+/**
+ * Local shim — kotlinx-datetime doesn't ship a `YearMonth` type. Just a
+ * tiny pair carrying the bits the calendar grid needs (year, month) +
+ * the two operations the call site uses (atDay, lengthOfMonth).
+ */
+internal data class YearMonth(val year: Int, val month: Month) {
+    fun atDay(day: Int): LocalDate = LocalDate(year, month, day)
+
+    fun lengthOfMonth(): Int = when (month) {
+        Month.JANUARY, Month.MARCH, Month.MAY, Month.JULY,
+        Month.AUGUST, Month.OCTOBER, Month.DECEMBER -> 31
+        Month.APRIL, Month.JUNE, Month.SEPTEMBER, Month.NOVEMBER -> 30
+        Month.FEBRUARY -> if (isLeapYear(year)) 29 else 28
+        else -> 30
+    }
+
+    private fun isLeapYear(year: Int): Boolean =
+        (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
+}
+
+@OptIn(ExperimentalTime::class)
+private fun currentYearMonth(): YearMonth {
+    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    return YearMonth(now.year, now.month)
+}
+
+/**
+ * Parses "YYYY-MM" (e.g. "2026-05"). Returns null on any input that
+ * isn't strictly two integers separated by a dash.
+ */
 private fun parseYearMonth(s: String): YearMonth? = runCatching {
-    if (s.isBlank()) null else YearMonth.parse(s)
+    if (s.isBlank()) return@runCatching null
+    val parts = s.split("-")
+    if (parts.size != 2) return@runCatching null
+    val year = parts[0].toInt()
+    val monthNum = parts[1].toInt()
+    YearMonth(year, Month(monthNum))
 }.getOrNull()
 
 private fun parseDate(s: String): LocalDate? = runCatching {
     if (s.isBlank()) null else LocalDate.parse(s)
 }.getOrNull()
+
+private fun Month.fullName(): String = when (this) {
+    Month.JANUARY -> "January"
+    Month.FEBRUARY -> "February"
+    Month.MARCH -> "March"
+    Month.APRIL -> "April"
+    Month.MAY -> "May"
+    Month.JUNE -> "June"
+    Month.JULY -> "July"
+    Month.AUGUST -> "August"
+    Month.SEPTEMBER -> "September"
+    Month.OCTOBER -> "October"
+    Month.NOVEMBER -> "November"
+    Month.DECEMBER -> "December"
+    else -> name
+}
 
 // =============================================================================
 // Countdown — time-until-target display, auto-formats days/hours/minutes
@@ -206,6 +261,7 @@ internal data class CountdownProps(
     val size: String = "md",
 )
 
+@OptIn(ExperimentalTime::class)
 internal class CountdownComponent : WeftComponent<CountdownProps>(
     name = "Countdown",
     description = "Time-until-target display. target: required ISO date 'YYYY-MM-DD' or datetime 'YYYY-MM-DDTHH:MM:SSZ'. label: small caption under the number. size: sm/md (default)/lg. Auto-formats: weeks, days, hours, or minutes — whichever is largest non-zero unit. Negative (past) targets show 'overdue by …'.",
@@ -216,12 +272,12 @@ internal class CountdownComponent : WeftComponent<CountdownProps>(
     override fun Render(props: CountdownProps, children: @Composable () -> Unit, onEvent: (ComponentEvent) -> Unit) {
         val cs = UndercurrentTheme.colors
         val tp = UndercurrentTheme.typography
-        val now = Instant.now()
+        val now = Clock.System.now()
         val target = parseInstant(props.target)
         val (primary, secondary, isPast) = if (target == null) {
             Triple("—", "Invalid target", false)
         } else {
-            val seconds = ChronoUnit.SECONDS.between(now, target)
+            val seconds = (target - now).inWholeSeconds
             val absSec = abs(seconds)
             val (n, unit) = bestUnit(absSec)
             val past = seconds < 0L
@@ -259,9 +315,10 @@ internal class CountdownComponent : WeftComponent<CountdownProps>(
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     private fun parseInstant(s: String): Instant? = runCatching {
         // Accept date-only ("2026-06-15") by treating as start-of-day UTC.
-        if (s.length == 10) LocalDate.parse(s).atStartOfDay(ZoneId.of("UTC")).toInstant()
+        if (s.length == 10) LocalDate.parse(s).atStartOfDayIn(TimeZone.UTC)
         else Instant.parse(s)
     }.getOrNull()
 

@@ -135,9 +135,13 @@ val appModule = module {
 
     // ─── UI singletons ────────────────────────────────────────────────
     single {
-        val imageLoader = dev.weft.compose.components.buildWeftImageLoader(
-            androidContext().applicationContext,
-        )
+        // Build the Coil 3 ImageLoader directly rather than going through
+        // the substrate's `buildWeftImageLoader` — that one returns a
+        // Coil 2 ImageLoader, and undercurrent's components migrated to
+        // Coil 3 for the eventual commonMain move. The substrate setup
+        // is just `ImageLoader.Builder(ctx).build()` anyway; no cache /
+        // interceptor config is lost.
+        val imageLoader = coil3.ImageLoader.Builder(androidContext()).build()
         WeftUi(
             context = androidContext(),
             extraComponents = dev.weft.undercurrent.core.ui.components.undercurrentComponents(imageLoader),
@@ -274,9 +278,6 @@ val appModule = module {
         )
     }
 
-    // ─── Gateways ─────────────────────────────────────────────────────
-    // KMP gateway impls. Feature screens consume the interface from
-    // :shared/commonMain; here we bind the Android impls from :data:weft.
     single<KeyVaultGateway> { WeftKeyVaultGateway(get<WeftRuntime>().keyVault) }
     single<KeyValidationGateway> { WeftKeyValidationGateway() }
     single<OAuthGateway> { WeftOAuthGateway(get<OAuthClient>(), get<OAuthTokenStore>()) }
@@ -288,12 +289,6 @@ val appModule = module {
     single<SpeechGateway> { AndroidSpeechGateway(androidContext()) }
     single<UiBridgeGateway> { WeftUiBridgeGateway(get<ComposeUiBridge>()) }
 
-    // ─── ViewModels ───────────────────────────────────────────────────
-    // AppStore as a single, not viewModel — the commonMain interface
-    // doesn't extend androidx.lifecycle.ViewModel (it can't, iOS
-    // wouldn't compile). WeftAppStore still extends ViewModel
-    // internally for viewModelScope; Koin holds the singleton across
-    // configuration changes, so we don't lose state on rotation.
     single<AppStore> {
         WeftAppStore(
             runtime = get(),

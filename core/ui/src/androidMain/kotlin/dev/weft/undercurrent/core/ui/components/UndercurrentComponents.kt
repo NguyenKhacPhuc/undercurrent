@@ -1,6 +1,6 @@
 package dev.weft.undercurrent.core.ui.components
 
-import coil.ImageLoader
+import coil3.ImageLoader
 import dev.weft.compose.components.EmbedComponents
 import dev.weft.compose.components.WeftComponent
 

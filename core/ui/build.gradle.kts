@@ -15,6 +15,11 @@ kotlin {
         commonMain.dependencies {
             // Theme tokens + UndercurrentTheme accessor.
             api(projects.core.designSystem)
+            // kotlinx-datetime — used by androidMain components (Calendar /
+            // Countdown). Declared here in commonMain so the dep stays
+            // available when these components eventually move out of
+            // androidMain. The kotlinx-datetime artifact itself is KMP.
+            implementation(libs.kotlinx.datetime)
         }
         androidMain.dependencies {
             // androidMain hosts the WeftComponent palette (`ui_render`)
@@ -30,6 +35,11 @@ kotlin {
             // factory takes an ImageLoader so the host can configure
             // caching / network behavior at runtime.
             implementation(libs.coil.compose)
+            // Coil 3 ships without networking by default; the OkHttp
+            // engine wires HTTP loading on Android. Swap to
+            // coil-network-ktor3 when these components move to
+            // commonMain — same loader API.
+            implementation(libs.coil.network.okhttp)
             // Extended Material icon set — components/Tokens.kt references
             // dozens of glyphs (Bookmark, OpenInNew, TrendingUp, …) that
             // aren't in the core icon set. Pulled in only on androidMain

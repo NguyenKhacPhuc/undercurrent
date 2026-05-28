@@ -54,7 +54,7 @@ osmerionSqlite = "0.3.0"
 androidxSecurity = "1.1.0-alpha06"
 
 # Coil — image loading. Use the multiplatform Coil for CMP modules.
-coil = "2.7.0"
+coil = "3.0.4"
 
 # Logging
 slf4j = "2.0.16"
@@ -146,9 +146,14 @@ play-services-location = { module = "com.google.android.gms:play-services-locati
 # Koog (JVM/Android-only — bridged through Weft)
 koog-agents = { module = "ai.koog:koog-agents", version.ref = "koog" }
 
-# Coil (Android-only image loading; CMP-friendly variant is coil3 — not
-# wired yet; CMP modules use the compose-resources image loader for now)
-coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
+# Coil 3 — KMP-capable image loading. The :coil-compose artifact ships
+# Compose-Multiplatform integration; we pair it with :coil-network-okhttp
+# on androidMain so the loader actually fetches over HTTP. When
+# :core:ui/androidMain components eventually move to commonMain, swap
+# the network artifact for :coil-network-ktor3 (KMP) — same loader API,
+# just a different HTTP engine.
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 
 # SQLDelight — multiplatform persistence. Each platform uses its own
 # driver: AndroidSqliteDriver on Android, NativeSqliteDriver on iOS.

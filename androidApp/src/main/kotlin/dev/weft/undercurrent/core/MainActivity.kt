@@ -127,7 +127,14 @@ private fun AndroidApp() {
 
     val platform = remember {
         PlatformAdapter(
-            chatRoute = { ChatRoute(store = store, runtime = runtime, onOpenUrl = onOpenUrl, onCopyText = onCopyText) },
+            chatRoute = {
+                ChatRoute(
+                    store = store,
+                    runtime = runtime,
+                    onOpenUrl = onOpenUrl,
+                    onCopyText = onCopyText
+                )
+            },
             renderedTreeRoute = {
                 AgentRenderedTreeScreen(
                     uiBridge = uiBridge,
@@ -227,8 +234,6 @@ private fun AndroidApp() {
         )
     }
 
-    // System back routing — sits above App() so the back gesture
-    // intercepts BEFORE any per-screen handling.
     BackHandler(enabled = state.screen != Screen.Chat) {
         if (state.screen is Screen.RenderedTree) {
             uiBridge.clearLastUpdate()
@@ -236,13 +241,11 @@ private fun AndroidApp() {
         store.dispatch(AppIntent.Navigate(Screen.Chat))
     }
 
-    // Wrap the App composable in a Surface w/ safe-drawing padding so
-    // the edge-to-edge insets don't paint under the system bars.
-    // Surface + padding live here (not inside App) because they're
-    // Android-shaped — iOS gets its own root.
-    Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
-        // Substrate-side dialog + overlay renderers. They mount above
-        // App() so dialogs sit on top of whatever screen is current.
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .safeDrawingPadding()
+    ) {
         Box(modifier = Modifier.fillMaxSize()) {
             App(store = store, platform = platform)
             PendingRequestRenderer(uiBridge)
@@ -317,7 +320,7 @@ private fun ChatRoute(
     var hasMicPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
-                == PackageManager.PERMISSION_GRANTED,
+                    == PackageManager.PERMISSION_GRANTED,
         )
     }
     val micLauncher = rememberLauncherForActivityResult(
@@ -448,7 +451,7 @@ private fun restartProcess(context: Context) {
     val launchIntent = pm.getLaunchIntentForPackage(context.packageName) ?: return
     launchIntent.addFlags(
         android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-            android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK,
+                android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK,
     )
     context.startActivity(launchIntent)
     Runtime.getRuntime().exit(0)

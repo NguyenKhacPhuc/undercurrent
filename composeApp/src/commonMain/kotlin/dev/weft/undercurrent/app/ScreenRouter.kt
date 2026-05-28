@@ -47,11 +47,6 @@ internal fun ScreenRouter(
                 onComplete = { picked, voiceId ->
                     store.dispatch(AppIntent.SetProvider(picked))
                     store.dispatch(AppIntent.CompleteOnboarding)
-                    // Voice id is persisted by the host's persona-repo
-                    // wiring (which the Android impl plumbs via
-                    // PersonasViewModel / the runtime's extraVolatilePrefix
-                    // lambda). For now we drop the voiceId on iOS — the
-                    // stub has no persona repo.
                     @Suppress("UNUSED_VARIABLE")
                     val _ignored = voiceId
                 },
@@ -126,11 +121,6 @@ internal fun ScreenRouter(
             val modelCatalog: ModelCatalog = koinInject()
             val keyValidator: KeyValidationGateway = koinInject()
             val modelPrefsRepo: ModelPrefsRepository = koinInject()
-            // Observe the overrides flow so the screen recomposes when
-            // a model override changes; the actual lookup goes through
-            // modelPrefsRepo.overrideFor below.
-            @Suppress("UNUSED_VARIABLE")
-            val modelOverridesTick by modelPrefsRepo.overrides.collectAsState()
             ProvidersScreen(
                 activeProvider = state.activeProvider,
                 defaultTier = state.defaultTier,

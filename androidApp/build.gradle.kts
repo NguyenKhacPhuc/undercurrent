@@ -69,6 +69,12 @@ dependencies {
     implementation("dev.weft:weft-android-compose-defaults")
     implementation("dev.weft:weft-oauth")
 
+    // Coil 3 ImageLoader — built in AppModule.kt and passed to the
+    // WeftComponent palette in :core:ui. Direct dep so the host can
+    // reference coil3.* types without going through :core:ui's api().
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
     // Koog (LLModel + routing types referenced by AppStore's model-pool path)
     implementation(libs.koog.agents)
 
