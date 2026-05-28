@@ -21,17 +21,11 @@ import dev.weft.undercurrent.db.UndercurrentDatabase
 import dev.weft.undercurrent.feature.chat.DisplayMessage
 import dev.weft.undercurrent.feature.chat.DisplayRole
 import dev.weft.undercurrent.feature.chat.SkillSummary
+import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.shared.gateway.KeyVaultGateway
-import kotlinx.coroutines.CoroutineScope
+import dev.weft.undercurrent.shared.mvi.Store
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
@@ -60,15 +54,9 @@ public class IosAppStore(
     private val providerPrefsRepo: ProviderPrefsRepository,
     private val personaRepo: PersonaRepository,
     private val db: UndercurrentDatabase,
-) : AppStore {
-
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-
-    private val _state = MutableStateFlow(AppState.initial())
-    override val state: StateFlow<AppState> = _state.asStateFlow()
-
-    private val _effects = Channel<AppEffect>(Channel.BUFFERED)
-    override val effects: Flow<AppEffect> = _effects.receiveAsFlow()
+) : Store<AppState, AppIntent, AppEffect>(
+    initialState = AppState.initial(),
+), AppStore {
 
     override val displayMessages: SnapshotStateList<DisplayMessage> = mutableStateListOf()
     override val skills: List<SkillSummary> = emptyList()
@@ -92,35 +80,35 @@ public class IosAppStore(
     )
 
     init {
-        scope.launch {
+        viewModelScope.launch {
             themeRepo.prefsFlow.collect { prefs ->
-                _state.value = _state.value.copy(themePrefs = prefs)
+                update { it.copy(themePrefs = prefs) }
             }
         }
-        scope.launch {
+        viewModelScope.launch {
             onboardingRepo.completedFlow.collect { done ->
-                _state.value = _state.value.copy(onboardingCompleted = done)
+                update { it.copy(onboardingCompleted = done) }
             }
         }
-        scope.launch {
+        viewModelScope.launch {
             providerPrefsRepo.activeProvider.collect { provider ->
-                _state.value = _state.value.copy(activeProvider = provider)
+                update { it.copy(activeProvider = provider) }
                 refreshProviderKeyStatus()
             }
         }
-        scope.launch {
+        viewModelScope.launch {
             providerPrefsRepo.defaultTier.collect { tier ->
-                _state.value = _state.value.copy(defaultTier = tier)
+                update { it.copy(defaultTier = tier) }
             }
         }
     }
 
     override fun dispatch(intent: AppIntent) {
         when (intent) {
-            AppIntent.Resume -> scope.launch { handleResume() }
+            AppIntent.Resume -> viewModelScope.launch { handleResume() }
 
             // ── Boot path ─────────────────────────────────────────
-            is AppIntent.SetProvider -> scope.launch {
+            is AppIntent.SetProvider -> viewModelScope.launch {
                 providerPrefsRepo.setProvider(intent.provider)
                 // Mirror Android: if the new provider has no key, drop
                 // the user on KeyPaste so they can paste one instead of
@@ -129,77 +117,77 @@ public class IosAppStore(
                     runCatching { keyVault.hasApiKey(intent.provider) }.getOrDefault(false)
                 }
                 if (!hasKey) {
-                    _state.value = _state.value.copy(
+                    update { it.copy(
                         agentReady = false,
                         screen = Screen.KeyPaste,
-                    )
-                } else if (!_state.value.agentReady) {
+                    ) }
+                } else if (!current.agentReady) {
                     // New provider has a key → ready to send.
-                    _state.value = _state.value.copy(agentReady = true)
+                    update { it.copy(agentReady = true) }
                 }
             }
-            AppIntent.CompleteOnboarding -> scope.launch {
+            AppIntent.CompleteOnboarding -> viewModelScope.launch {
                 onboardingRepo.markCompleted()
-                _state.value = _state.value.copy(screen = Screen.KeyPaste)
+                update { it.copy(screen = Screen.KeyPaste) }
             }
-            is AppIntent.SubmitKey -> scope.launch {
+            is AppIntent.SubmitKey -> viewModelScope.launch {
                 val provider = providerPrefsRepo.activeProviderNow()
                 runCatching { keyVault.putApiKey(provider, intent.key) }
                     .onFailure { t ->
-                        _effects.trySend(
+                        emit(
                             AppEffect.Error("Couldn't save key: ${t.message ?: t::class.simpleName.orEmpty()}"),
                         )
                         return@launch
                     }
                 refreshProviderKeyStatus()
-                _state.value = _state.value.copy(agentReady = true, screen = Screen.Chat)
+                update { it.copy(agentReady = true, screen = Screen.Chat) }
             }
 
             // ── Plain navigation + state mutations ────────────────
-            is AppIntent.Navigate -> _state.value = _state.value.let {
+            is AppIntent.Navigate -> update {
                 if (it.screen == intent.screen) it
                 else it.copy(screen = intent.screen, previousScreen = it.screen)
             }
-            is AppIntent.SetPalette -> scope.launch { themeRepo.setPalette(intent.palette) }
-            is AppIntent.SetThemeMode -> scope.launch { themeRepo.setMode(intent.mode) }
-            is AppIntent.SetDefaultTier -> scope.launch {
+            is AppIntent.SetPalette -> viewModelScope.launch { themeRepo.setPalette(intent.palette) }
+            is AppIntent.SetThemeMode -> viewModelScope.launch { themeRepo.setMode(intent.mode) }
+            is AppIntent.SetDefaultTier -> viewModelScope.launch {
                 providerPrefsRepo.setDefaultTier(intent.tier)
             }
-            is AppIntent.SaveProviderKey -> scope.launch {
+            is AppIntent.SaveProviderKey -> viewModelScope.launch {
                 runCatching { keyVault.putApiKey(intent.provider, intent.apiKey) }
                     .onFailure { t ->
-                        _effects.trySend(
+                        emit(
                             AppEffect.Error("Couldn't save key: ${t.message ?: t::class.simpleName.orEmpty()}"),
                         )
                     }
                 refreshProviderKeyStatus()
             }
-            is AppIntent.RemoveProviderKey -> scope.launch {
+            is AppIntent.RemoveProviderKey -> viewModelScope.launch {
                 runCatching { keyVault.clearApiKey(intent.provider) }
                 refreshProviderKeyStatus()
                 if (intent.provider == providerPrefsRepo.activeProviderNow()) {
-                    _state.value = _state.value.copy(agentReady = false, screen = Screen.KeyPaste)
+                    update { it.copy(agentReady = false, screen = Screen.KeyPaste) }
                 }
             }
-            is AppIntent.SelectAgent -> _state.value = _state.value.copy(
+            is AppIntent.SelectAgent -> update { it.copy(
                 activeAgentName = intent.name,
-            )
-            AppIntent.DismissPermissionDialog -> _state.value = _state.value.copy(
+            ) }
+            AppIntent.DismissPermissionDialog -> update { it.copy(
                 pendingPermissionDialog = null,
-            )
+            ) }
 
             // ── Chat + conversation lifecycle ──────────────────────
-            is AppIntent.SendChat -> scope.launch { handleSendChat(intent.text) }
-            AppIntent.NewChat -> scope.launch { handleNewChat() }
-            AppIntent.RegenerateLast -> scope.launch { handleRegenerate() }
-            is AppIntent.SelectConversation -> scope.launch {
+            is AppIntent.SendChat -> viewModelScope.launch { handleSendChat(intent.text) }
+            AppIntent.NewChat -> viewModelScope.launch { handleNewChat() }
+            AppIntent.RegenerateLast -> viewModelScope.launch { handleRegenerate() }
+            is AppIntent.SelectConversation -> viewModelScope.launch {
                 handleSelectConversation(intent.id)
             }
-            is AppIntent.DeleteConversation -> scope.launch {
+            is AppIntent.DeleteConversation -> viewModelScope.launch {
                 handleDeleteConversation(intent.id)
             }
-            AppIntent.DeleteCurrentConversation -> scope.launch {
-                val currentId = _state.value.currentConversationId ?: return@launch
+            AppIntent.DeleteCurrentConversation -> viewModelScope.launch {
+                val currentId = current.currentConversationId ?: return@launch
                 handleDeleteConversation(currentId)
             }
 
@@ -208,7 +196,7 @@ public class IosAppStore(
             // RenderedTree screen navigation. Just dispatch the trigger
             // prompt as if the user typed it. The Phase-3+ work to bring
             // ui_render to iOS will replace this with the full flow.
-            is AppIntent.InvokeMiniApp -> scope.launch {
+            is AppIntent.InvokeMiniApp -> viewModelScope.launch {
                 handleSendChat(intent.triggerPrompt)
             }
 
@@ -240,7 +228,7 @@ public class IosAppStore(
     private suspend fun handleResume() {
         val onboardingDone = onboardingRepo.completedFlow.first()
         if (!onboardingDone) {
-            _state.value = _state.value.copy(screen = Screen.Onboarding)
+            update { it.copy(screen = Screen.Onboarding) }
             return
         }
         val provider = providerPrefsRepo.activeProviderNow()
@@ -248,7 +236,7 @@ public class IosAppStore(
             runCatching { keyVault.hasApiKey(provider) }.getOrDefault(false)
         }
         if (!hasKey) {
-            _state.value = _state.value.copy(screen = Screen.KeyPaste)
+            update { it.copy(screen = Screen.KeyPaste) }
             return
         }
         // Land on the most recent conversation if any exists; the
@@ -262,11 +250,11 @@ public class IosAppStore(
             history.clear()
             displayMessages.clear()
         }
-        _state.value = _state.value.copy(
+        update { it.copy(
             agentReady = true,
             screen = Screen.Chat,
             currentConversationId = mostRecent?.id,
-        )
+        ) }
     }
 
     // ─── Streaming chat ───────────────────────────────────────────
@@ -274,13 +262,13 @@ public class IosAppStore(
     private suspend fun handleSendChat(text: String) {
         val trimmed = text.trim()
         if (trimmed.isBlank()) return
-        if (_state.value.chat.inFlight) return
+        if (current.chat.inFlight) return
 
-        val provider = _state.value.activeProvider
+        val provider = current.activeProvider
         val client = clients[provider] ?: run {
-            _state.value = _state.value.copy(
+            update { it.copy(
                 chat = ChatStatus(inFlight = false, lastError = "No client for $provider"),
-            )
+            ) }
             return
         }
 
@@ -288,10 +276,10 @@ public class IosAppStore(
         val conversationId = ensureConversation(now)
         val isFirstUserTurn = history.none { it.role == LlmMessage.ROLE_USER }
 
-        _state.value = _state.value.copy(
+        update { it.copy(
             chat = ChatStatus(inFlight = true, lastError = null),
             currentConversationId = conversationId,
-        )
+        ) }
 
         displayMessages += DisplayMessage.user(trimmed)
         history += LlmMessage(LlmMessage.ROLE_USER, trimmed)
@@ -328,7 +316,7 @@ public class IosAppStore(
                     if (existingId == null) {
                         val msg = DisplayMessage.assistant(
                             text = chunk.text,
-                            agentName = _state.value.activeAgentName,
+                            agentName = current.activeAgentName,
                         )
                         assistantMessageId = msg.id
                         displayMessages += msg
@@ -344,9 +332,9 @@ public class IosAppStore(
                 }
                 is LlmChunk.Error -> {
                     sawError = true
-                    _state.value = _state.value.copy(
-                        chat = _state.value.chat.copy(lastError = chunk.message),
-                    )
+                    update { it.copy(
+                        chat = current.chat.copy(lastError = chunk.message),
+                    ) }
                 }
                 LlmChunk.Done -> Unit
             }
@@ -375,23 +363,23 @@ public class IosAppStore(
                 }
             }
         }
-        _state.value = _state.value.copy(
-            chat = _state.value.chat.copy(inFlight = false),
-        )
+        update { it.copy(
+            chat = current.chat.copy(inFlight = false),
+        ) }
     }
 
     private suspend fun handleNewChat() {
         history.clear()
         displayMessages.clear()
-        _state.value = _state.value.copy(
+        update { it.copy(
             screen = Screen.Chat,
             chat = ChatStatus(),
             currentConversationId = null, // Lazy — created on next SendChat.
-        )
+        ) }
     }
 
     private suspend fun handleRegenerate() {
-        if (_state.value.chat.inFlight) return
+        if (current.chat.inFlight) return
         val lastUserIdx = displayMessages.indexOfLast { it.role == DisplayRole.USER }
         if (lastUserIdx == -1) return
         val lastUserText = displayMessages[lastUserIdx].text
@@ -416,20 +404,20 @@ public class IosAppStore(
     }
 
     private suspend fun handleSelectConversation(id: String) {
-        if (_state.value.currentConversationId == id) {
-            _state.value = _state.value.copy(screen = Screen.Chat)
+        if (current.currentConversationId == id) {
+            update { it.copy(screen = Screen.Chat) }
             return
         }
         hydrateFromConversation(id)
-        _state.value = _state.value.copy(
+        update { it.copy(
             screen = Screen.Chat,
             currentConversationId = id,
             chat = ChatStatus(),
-        )
+        ) }
     }
 
     private suspend fun handleDeleteConversation(id: String) {
-        val wasActive = _state.value.currentConversationId == id
+        val wasActive = current.currentConversationId == id
         withContext(Dispatchers.Default) {
             db.transaction {
                 db.conversationsQueries.deleteMessagesForConversation(id)
@@ -439,11 +427,11 @@ public class IosAppStore(
         if (wasActive) {
             history.clear()
             displayMessages.clear()
-            _state.value = _state.value.copy(
+            update { it.copy(
                 screen = Screen.Chat,
                 chat = ChatStatus(),
                 currentConversationId = null,
-            )
+            ) }
         }
     }
 
@@ -451,7 +439,7 @@ public class IosAppStore(
 
     /** Ensure a conversation row exists; create one if [currentConversationId] is null. */
     private suspend fun ensureConversation(nowMs: Long): String {
-        val existing = _state.value.currentConversationId
+        val existing = current.currentConversationId
         if (existing != null) return existing
         val id = newId("conv")
         withContext(Dispatchers.Default) {
@@ -480,7 +468,7 @@ public class IosAppStore(
                 LlmMessage.ROLE_ASSISTANT ->
                     displayMessages += DisplayMessage.assistant(
                         text = row.content,
-                        agentName = _state.value.activeAgentName,
+                        agentName = current.activeAgentName,
                     )
             }
         }
@@ -498,7 +486,7 @@ public class IosAppStore(
                 }
             }
         }
-        _state.value = _state.value.copy(providerKeyStatus = status)
+        update { it.copy(providerKeyStatus = status) }
     }
 
     private fun newId(prefix: String): String = "$prefix.${Uuid.random().toString().take(12)}"

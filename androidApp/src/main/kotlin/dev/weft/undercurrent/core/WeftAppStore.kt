@@ -2,7 +2,6 @@ package dev.weft.undercurrent.core
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.weft.android.WeftRuntime
 import dev.weft.android.credentials.StaticDeepSeekKeyProvider
@@ -46,16 +45,11 @@ import dev.weft.undercurrent.feature.chat.SkillSummary
 import dev.weft.undercurrent.feature.creator.CreatorKind
 import dev.weft.undercurrent.feature.creator.CreatorSession
 import dev.weft.undercurrent.shared.gateway.UiBridgeGateway
+import dev.weft.undercurrent.shared.mvi.Store
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -85,13 +79,9 @@ internal class WeftAppStore(
     private val miniAppsRepo: MiniAppsRepository,
     private val creatorSession: CreatorSession,
     private val uiBridge: UiBridgeGateway,
-) : ViewModel(), AppStore {
-
-    private val _state = MutableStateFlow(AppState.initial())
-    override val state: StateFlow<AppState> = _state.asStateFlow()
-
-    private val _effects = Channel<AppEffect>(Channel.BUFFERED)
-    override val effects: Flow<AppEffect> = _effects.receiveAsFlow()
+) : Store<AppState, AppIntent, AppEffect>(
+    initialState = AppState.initial(),
+), AppStore {
 
     override val displayMessages: SnapshotStateList<DisplayMessage> = mutableStateListOf()
 
@@ -108,17 +98,17 @@ internal class WeftAppStore(
     init {
         viewModelScope.launch {
             themeRepo.prefsFlow.collect { prefs ->
-                _state.update { it.copy(themePrefs = prefs) }
+                update { it.copy(themePrefs = prefs) }
             }
         }
         viewModelScope.launch {
             onboardingRepo.completedFlow.collect { done ->
-                _state.update { it.copy(onboardingCompleted = done) }
+                update { it.copy(onboardingCompleted = done) }
             }
         }
         viewModelScope.launch {
             providerPrefsRepo.activeProvider.collect { provider ->
-                _state.update { it.copy(activeProvider = provider) }
+                update { it.copy(activeProvider = provider) }
                 refreshProviderKeyStatus()
             }
         }
@@ -129,7 +119,7 @@ internal class WeftAppStore(
         }
         viewModelScope.launch {
             providerPrefsRepo.defaultTier.collect { tier ->
-                _state.update { it.copy(defaultTier = tier) }
+                update { it.copy(defaultTier = tier) }
             }
         }
         // Forward agent `ui_render` events into the intent stream so
@@ -150,7 +140,7 @@ internal class WeftAppStore(
         when (intent) {
             AppIntent.Resume -> viewModelScope.launch { handleResume() }
             is AppIntent.SubmitKey -> viewModelScope.launch { handleSubmitKey(intent.key) }
-            is AppIntent.Navigate -> _state.update { current ->
+            is AppIntent.Navigate -> update { current ->
                 if (current.screen == intent.screen) current
                 else current.copy(
                     screen = intent.screen,
@@ -178,9 +168,9 @@ internal class WeftAppStore(
             is AppIntent.SetThemeMode -> viewModelScope.launch { themeRepo.setMode(intent.mode) }
             AppIntent.CompleteOnboarding -> viewModelScope.launch {
                 onboardingRepo.markCompleted()
-                _state.update { it.copy(screen = Screen.KeyPaste) }
+                update { it.copy(screen = Screen.KeyPaste) }
             }
-            AppIntent.DismissPermissionDialog -> _state.update {
+            AppIntent.DismissPermissionDialog -> update {
                 it.copy(pendingPermissionDialog = null)
             }
             is AppIntent.InvokeMiniApp -> viewModelScope.launch {
@@ -225,7 +215,7 @@ internal class WeftAppStore(
             onSuccess = { reply ->
                 displayMessages += DisplayMessage.assistant(
                     text = reply,
-                    agentName = _state.value.activeAgentName,
+                    agentName = current.activeAgentName,
                 )
             },
             onFailure = { t ->
@@ -261,7 +251,7 @@ internal class WeftAppStore(
         creatorSession.start(kind)
         a.newChat()
         displayMessages.clear()
-        _state.update { current ->
+        update { current ->
             current.copy(
                 screen = Screen.Creator,
                 previousScreen = current.screen,
@@ -288,13 +278,13 @@ internal class WeftAppStore(
             CreatorKind.MiniApp -> Screen.MiniApps
             null -> Screen.Settings
         }
-        _state.update { it.copy(screen = back, previousScreen = Screen.Creator) }
+        update { it.copy(screen = back, previousScreen = Screen.Creator) }
     }
 
     private suspend fun handleResume() {
         val onboardingDone = onboardingRepo.completedFlow.first()
         if (!onboardingDone) {
-            _state.update { it.copy(screen = Screen.Onboarding) }
+            update { it.copy(screen = Screen.Onboarding) }
             return
         }
         val activeProvider = providerPrefsRepo.activeProviderNow()
@@ -302,14 +292,14 @@ internal class WeftAppStore(
             runtime.keyVault.get(activeProvider.keyAlias())
         }
         if (storedKey == null) {
-            _state.update { it.copy(screen = Screen.KeyPaste) }
+            update { it.copy(screen = Screen.KeyPaste) }
             return
         }
         val agentSummaries = runtime.agentDeclarations.values
             .filter { it.userAddressable }
             .map { AgentSummary(it.name, it.displayName, it.description) }
         val a = buildAgentFor(
-            agentName = _state.value.activeAgentName,
+            agentName = current.activeAgentName,
             provider = activeProvider,
             apiKey = storedKey,
         )
@@ -329,7 +319,7 @@ internal class WeftAppStore(
     )
 
     private suspend fun handleSelectAgent(name: String) {
-        val current = _state.value
+        val current = current
         if (name == current.activeAgentName) return
         if (current.availableAgents.none { it.name == name }) return
         val provider = providerPrefsRepo.activeProviderNow()
@@ -383,7 +373,7 @@ internal class WeftAppStore(
                 runtime.keyVault.get(provider.keyAlias())
             } ?: return
             val a = buildAgentFor(
-                agentName = _state.value.activeAgentName,
+                agentName = current.activeAgentName,
                 provider = provider,
                 apiKey = key,
             )
@@ -396,7 +386,7 @@ internal class WeftAppStore(
     private suspend fun handleSubmitKey(key: String) {
         val activeProvider = providerPrefsRepo.activeProviderNow()
         val a = buildAgentFor(
-            agentName = _state.value.activeAgentName,
+            agentName = current.activeAgentName,
             provider = activeProvider,
             apiKey = key,
         )
@@ -412,7 +402,7 @@ internal class WeftAppStore(
         }
         if (key != null) {
             val a = buildAgentFor(
-                agentName = _state.value.activeAgentName,
+                agentName = current.activeAgentName,
                 provider = provider,
                 apiKey = key,
             )
@@ -421,7 +411,7 @@ internal class WeftAppStore(
             setAgent(a)
         } else {
             agent = null
-            _state.update {
+            update {
                 it.copy(agentReady = false, currentConversationId = null)
             }
         }
@@ -435,7 +425,7 @@ internal class WeftAppStore(
         val activeProvider = providerPrefsRepo.activeProviderNow()
         if (provider == activeProvider) {
             val a = buildAgentFor(
-                agentName = _state.value.activeAgentName,
+                agentName = current.activeAgentName,
                 provider = provider,
                 apiKey = key,
             )
@@ -453,7 +443,7 @@ internal class WeftAppStore(
         val activeProvider = providerPrefsRepo.activeProviderNow()
         if (provider == activeProvider) {
             agent = null
-            _state.update {
+            update {
                 it.copy(
                     agentReady = false,
                     currentConversationId = null,
@@ -467,7 +457,7 @@ internal class WeftAppStore(
         val a = agent ?: return
         a.resume(id)
         hydrateMessages(id)
-        _state.update {
+        update {
             it.copy(
                 screen = Screen.Chat,
                 currentConversationId = a.currentConversationId.value,
@@ -479,7 +469,7 @@ internal class WeftAppStore(
         val a = agent ?: return
         a.newChat()
         displayMessages.clear()
-        _state.update {
+        update {
             it.copy(
                 screen = Screen.Chat,
                 chat = ChatStatus(),
@@ -497,7 +487,7 @@ internal class WeftAppStore(
         if (wasActive) {
             a.newChat()
             displayMessages.clear()
-            _state.update {
+            update {
                 it.copy(
                     screen = Screen.Chat,
                     chat = ChatStatus(),
@@ -508,7 +498,7 @@ internal class WeftAppStore(
     }
 
     private suspend fun handleRegenerateLast() {
-        if (_state.value.chat.inFlight) return
+        if (current.chat.inFlight) return
         val a = agent ?: return
         val lastUserIdx = displayMessages.indexOfLast { it.role == DisplayRole.USER }
         if (lastUserIdx == -1) return
@@ -517,9 +507,9 @@ internal class WeftAppStore(
             displayMessages.removeAt(displayMessages.size - 1)
         }
 
-        _state.update { it.copy(chat = ChatStatus(inFlight = true, lastError = null)) }
+        update { it.copy(chat = ChatStatus(inFlight = true, lastError = null)) }
         consumeAgentStream(a.regenerateStreaming())
-        _state.update { it.copy(chat = it.chat.copy(inFlight = false)) }
+        update { it.copy(chat = it.chat.copy(inFlight = false)) }
     }
 
     private suspend fun handleSendChat(
@@ -529,9 +519,9 @@ internal class WeftAppStore(
         val trimmed = text.trim()
         if (trimmed.isBlank()) return
         val a = agent ?: return
-        if (_state.value.chat.inFlight) return
+        if (current.chat.inFlight) return
 
-        _state.update { it.copy(chat = ChatStatus(inFlight = true, lastError = null)) }
+        update { it.copy(chat = ChatStatus(inFlight = true, lastError = null)) }
         displayMessages += DisplayMessage.user(trimmed)
 
         val match = skillRegistry.resolve(trimmed)
@@ -549,13 +539,13 @@ internal class WeftAppStore(
                         result.message,
                     )
             }
-            _state.update { it.copy(chat = it.chat.copy(inFlight = false)) }
+            update { it.copy(chat = it.chat.copy(inFlight = false)) }
             return
         }
 
-        val effectiveTier = modelTier ?: _state.value.defaultTier
+        val effectiveTier = modelTier ?: current.defaultTier
         consumeAgentStream(a.sendStreaming(trimmed, modelTier = effectiveTier?.toWeft()))
-        _state.update { it.copy(chat = it.chat.copy(inFlight = false)) }
+        update { it.copy(chat = it.chat.copy(inFlight = false)) }
     }
 
     private suspend fun consumeAgentStream(stream: Flow<StreamChunk>) {
@@ -568,7 +558,7 @@ internal class WeftAppStore(
                         if (existingId == null) {
                             val msg = DisplayMessage.assistant(
                                 text = chunk.text,
-                                agentName = _state.value.activeAgentName,
+                                agentName = current.activeAgentName,
                             )
                             streamingMessageId = msg.id
                             displayMessages += msg
@@ -591,7 +581,7 @@ internal class WeftAppStore(
                                 chunk.toolName,
                                 "Needs permission — see dialog.",
                             )
-                            _state.update { it.copy(pendingPermissionDialog = dialog) }
+                            update { it.copy(pendingPermissionDialog = dialog) }
                         } else {
                             displayMessages += DisplayMessage.toolFail(chunk.toolName, chunk.message)
                         }
@@ -600,16 +590,16 @@ internal class WeftAppStore(
                         if (streamingMessageId == null && chunk.finalReply.isNotBlank()) {
                             displayMessages += DisplayMessage.assistant(
                                 text = chunk.finalReply,
-                                agentName = _state.value.activeAgentName,
+                                agentName = current.activeAgentName,
                             )
                         }
                     }
                     is StreamChunk.Failed ->
-                        _state.update { it.copy(chat = it.chat.copy(lastError = chunk.message)) }
+                        update { it.copy(chat = it.chat.copy(lastError = chunk.message)) }
                 }
             }
         }.onFailure { t ->
-            _state.update {
+            update {
                 val existing = it.chat.lastError
                 it.copy(
                     chat = it.chat.copy(
@@ -623,7 +613,7 @@ internal class WeftAppStore(
     private suspend fun handleExportTrace(traceId: String) {
         val trace: AgentTrace? = runtime.traceStore.traces.value.firstOrNull { it.id == traceId }
         if (trace == null) {
-            _effects.trySend(
+            emit(
                 AppEffect.Error("Trace export failed: $traceId not found (evicted?)."),
             )
             return
@@ -645,7 +635,7 @@ internal class WeftAppStore(
                 ShareTarget.SystemSheet,
             )
         } catch (t: Throwable) {
-            _effects.trySend(
+            emit(
                 AppEffect.Error("Trace export failed: ${t.message ?: t::class.simpleName.orEmpty()}"),
             )
         }
@@ -653,8 +643,8 @@ internal class WeftAppStore(
 
     private fun handleUiBridgeUpdate(intent: AppIntent.UiBridgeUpdate) {
         val event = intent.event ?: return
-        if (_state.value.screen !is Screen.RenderedTree && _state.value.screen !is Screen.Creator) {
-            _state.update { it.copy(screen = Screen.RenderedTree) }
+        if (current.screen !is Screen.RenderedTree && current.screen !is Screen.Creator) {
+            update { it.copy(screen = Screen.RenderedTree) }
         }
         val miniAppId = activeMiniAppInvocationId
         if (miniAppId != null) {
@@ -682,7 +672,7 @@ internal class WeftAppStore(
                 )
                 runtime.uiBridge.emit(UIUpdate.RenderTree(tree))
             }
-            _state.update {
+            update {
                 if (it.screen is Screen.RenderedTree) it
                 else it.copy(screen = Screen.RenderedTree, previousScreen = it.screen)
             }
@@ -760,12 +750,12 @@ internal class WeftAppStore(
      */
     private fun setAgent(
         a: WeftAgent,
-        screen: Screen = _state.value.screen,
-        availableAgents: List<AgentSummary> = _state.value.availableAgents,
-        activeAgentName: String = _state.value.activeAgentName,
+        screen: Screen = current.screen,
+        availableAgents: List<AgentSummary> = current.availableAgents,
+        activeAgentName: String = current.activeAgentName,
     ) {
         agent = a
-        _state.update {
+        update {
             it.copy(
                 agentReady = true,
                 currentConversationId = a.currentConversationId.value,
@@ -784,7 +774,7 @@ internal class WeftAppStore(
         viewModelScope.launch {
             a.currentConversationId.collect { convId ->
                 if (agent === a) {
-                    _state.update { current ->
+                    update { current ->
                         if (current.currentConversationId == convId) current
                         else current.copy(currentConversationId = convId)
                     }
@@ -802,7 +792,7 @@ internal class WeftAppStore(
                 }
             }
         }
-        _state.update { it.copy(providerKeyStatus = status) }
+        update { it.copy(providerKeyStatus = status) }
     }
 
     companion object {

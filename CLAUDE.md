@@ -83,32 +83,112 @@ catalog.
 
 ## Architecture
 
-MVI with Koin DI.
+MVI everywhere — both the orchestrator (AppStore) and per-feature
+screens follow the same shape. Koin for DI.
 
-**⚠️ KMP migration in progress.** The paths below describe the
-pre-migration single-`:app` layout. Code is being moved into the new
-KMP-modular structure (see Module layout section above + the
-playbook). Until the migration is complete, both layouts coexist:
-new modules are empty skeletons; `app/` still has the working code.
+### MVI pattern (load-bearing — every new feature follows this)
 
-- `core/AppStore.kt` — root `ViewModel`. Holds the `WeftAgent`, the
-  conversation list, and the screen state machine. All state mutations
-  go through `dispatch(AppIntent.X)` and update a `MutableStateFlow<AppState>`.
-- `core/AppState.kt` — every screen's state lives here. `Screen` sealed
-  interface enumerates navigable destinations. `previousScreen` is
-  captured by the `Navigate` reducer so back-button routing works for
-  screens with multiple entry points (e.g. Integrations).
-- `core/AppIntent.kt` — every action the user / agent can take.
-- `core/MainActivity.kt` — Compose host. Renders one screen at a time
-  based on `state.screen`. Also handles the OAuth callback deep link
+The generic base lives at
+`:shared/src/commonMain/kotlin/dev/weft/undercurrent/shared/mvi/Store.kt`:
+
+```kotlin
+abstract class Store<State, Intent, Effect>(initialState: State) : ViewModel() {
+    val state: StateFlow<State>      // observable; Compose collectAsState
+    val effects: Flow<Effect>        // one-shot; LaunchedEffect collect
+    protected val current: State     // current snapshot inside handlers
+    abstract fun dispatch(intent: Intent)
+    protected fun update(reducer: (State) -> State)
+    protected fun emit(effect: Effect)
+}
+```
+
+Every feature has the same four files:
+
+```
+:feature:<name>/src/commonMain/kotlin/.../feature/<name>/
+├─ <Name>Mvi.kt        ← State (data class) + Intent + Effect (sealed)
+├─ <Name>Store.kt      ← class <Name>Store(...) : Store<State, Intent, Effect>(...)
+├─ <Name>Screen.kt     ← @Composable; reads state.collectAsState(), dispatches intents
+└─ (optional helpers)
+```
+
+Conventions:
+- **`<Name>State`** is a single immutable data class. No nullable
+  StateFlows; aggregate everything one screen needs into one bundle.
+- **`<Name>Intent`** is a sealed interface. One variant per user action;
+  data-class variants carry params. Read access doesn't go through
+  intents — only mutations do.
+- **`<Name>Effect`** is a sealed interface, often empty at first.
+  Reserve for things that genuinely shouldn't replay on configuration
+  change (toasts, transient navigation hints). State is for everything
+  else.
+- **Subscribe to repos / gateways in `init`.** The store is the
+  projection point: collect repo flows and project into your state via
+  `update { it.copy(foo = ...) }`. Don't expose repo flows directly.
+- **Plain helpers are OK for pure projections** — e.g.
+  `IntegrationsStore.statusFor(integration, enabled): IntegrationStatus`
+  is a pure function, not a mutation, so it doesn't go through dispatch.
+- **Screens never call `viewModelScope` directly.** They dispatch;
+  the store launches coroutines.
+- **`koinViewModel<XxxStore>()`** — use
+  `org.koin.compose.viewmodel.koinViewModel` (the KMP one), not the
+  Android-only `org.koin.androidx.compose.koinViewModel`.
+
+### The orchestrator (root AppStore)
+
+The same pattern applies, just at a wider scope:
+
+- **Interface** `dev.weft.undercurrent.app.AppStore` lives in
+  `:composeApp/commonMain/.../app/AppStore.kt`. Both platforms see
+  the same surface (`state` / `effects` / `displayMessages` /
+  `skills` / `dispatch` / `sendUiEvent` / `saveKey`).
+- **Android impl** `WeftAppStore` in
+  `:androidApp/.../core/WeftAppStore.kt` —
+  `: Store<AppState, AppIntent, AppEffect>(AppState.initial()), AppStore`.
+  Closes over `WeftRuntime` directly; full agent loop here.
+- **iOS impl** `IosAppStore` in `:composeApp/iosMain/.../app/IosAppStore.kt`
+  — same shape, backed by the Ktor `LlmClient` stack +
+  `KeychainKeyVaultGateway` + DataStore-Preferences + SQLDelight.
+
+State types ([`AppState`](composeApp/src/commonMain/kotlin/dev/weft/undercurrent/app/AppState.kt) /
+[`AppIntent`](composeApp/src/commonMain/kotlin/dev/weft/undercurrent/app/AppIntent.kt) /
+`AppEffect`) are commonMain mirrors — feature screens that consume the
+app store get types they can read on both platforms without dragging
+the substrate in.
+
+Per-screen surfaces are wired through `ScreenRouter`:
+- 11 KMP-clean screens render inline (Settings / Appearance / KeyPaste
+  / Onboarding / Providers / Personas / Memories / Traces / Usage /
+  Integrations / Conversations).
+- 4 substrate-coupled screens go through `PlatformAdapter` lambdas
+  (Chat / RenderedTree / Creator / MiniApps with `TreeRenderer`).
+
+Adding a new screen:
+1. Create the `:feature:<name>/` module via the convention plugin.
+2. Add the four files (Mvi / Store / Screen / + the build.gradle.kts
+   feature/data deps).
+3. Wire Koin in `:androidApp/.../di/AppModule.kt` and
+   `:composeApp/iosMain/.../app/IosKoinModule.kt`:
+   `viewModel { XxxStore(...) }`.
+4. Add a `Screen.<Name>` variant in `:core:navigation` if it's
+   navigable.
+5. Add a `ScreenRouter` branch in
+   `:composeApp/commonMain/.../app/ScreenRouter.kt`.
+
+### Other architectural notes
+
+- **`di/AppModule.kt`** (Android) + **`IosKoinModule.kt`** (iOS) are
+  the **single source of truth** for which tools the agent has, which
+  OAuth tokens exist, which MCP servers are wired up, which gateways
+  bind to which impls.
+- **`MainActivity.kt`** — Compose host. Renders `App()` from
+  `:composeApp/commonMain`. Owns OAuth deep link
   (`undercurrent://oauth/…`) and the process restart for MCP changes.
-- `di/AppModule.kt` — Koin wiring. **Single source of truth** for
-  which tools the agent has, which OAuth tokens exist, which MCP
-  servers are wired up.
-- `features/<feature>/` — one directory per surface (chat, personas,
-  integrations, providers, …). Each contains a Screen, a ViewModel
-  (if needed), a Repository (if persistent), and any feature-specific
-  tools.
+- **`features/<feature>/`** — legacy phrasing; today every feature is
+  its own KMP module under `:feature:<name>/`. Each has a Store, a
+  Screen, optionally a Repository (in `:data:datastore`), and
+  optionally agent tools (in `:data:weft/.../tools/` on Android since
+  Weft tools must be androidMain).
 
 ## Tool-authoring rules (do NOT skip)
 
