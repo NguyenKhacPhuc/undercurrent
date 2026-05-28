@@ -70,9 +70,9 @@ import org.koin.compose.viewmodel.koinViewModel
 public fun TraceViewerScreen(
     onBack: () -> Unit,
     onExportTrace: ((AgentTrace) -> Unit)? = null,
-    vm: TracesViewModel = koinViewModel(),
+    store: TracesStore = koinViewModel(),
 ) {
-    val traces by vm.traces.collectAsState()
+    val s by store.state.collectAsState(); val traces = s.traces
     var selectedTraceId by remember { mutableStateOf<String?>(null) }
     val selected = selectedTraceId?.let { id -> traces.firstOrNull { it.id == id } }
 
@@ -80,7 +80,7 @@ public fun TraceViewerScreen(
         TraceDetail(
             t = selected,
             onBack = { selectedTraceId = null },
-            onSetFeedback = { fb -> vm.setFeedback(selected.id, fb) },
+            onSetFeedback = { fb -> store.dispatch(TracesIntent.SetFeedback(selected.id, fb)) },
             onExport = onExportTrace?.let { exporter -> { exporter(selected) } },
         )
         return
@@ -95,7 +95,7 @@ public fun TraceViewerScreen(
         trailing = {
             ScaffoldTextAction(
                 label = "Clear",
-                onClick = { vm.clearAll() },
+                onClick = { store.dispatch(TracesIntent.ClearAll) },
                 enabled = traces.isNotEmpty(),
                 isDestructive = true,
             )

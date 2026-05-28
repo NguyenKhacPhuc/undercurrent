@@ -57,7 +57,7 @@ public fun ConversationsListScreen(
     onSelect: (String) -> Unit,
     onNewChat: () -> Unit,
     onBack: () -> Unit,
-    vm: ConversationsViewModel = koinViewModel(),
+    store: ConversationsStore = koinViewModel(),
 ) {
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
@@ -65,9 +65,9 @@ public fun ConversationsListScreen(
 
     var pendingDelete by remember { mutableStateOf<ConversationSummary?>(null) }
     var confirmingClearAll by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
-    val conversations by remember(searchQuery) { vm.search(searchQuery) }
-        .collectAsState(initial = emptyList())
+    val s by store.state.collectAsState()
+    val searchQuery = s.query
+    val conversations = s.conversations
 
     ScreenScaffold(
         title = "Conversations",
@@ -87,7 +87,7 @@ public fun ConversationsListScreen(
         ) {
             BasicTextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it },
+                onValueChange = { store.dispatch(ConversationsIntent.SetQuery(it)) },
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = typography.serifBody.copy(color = colors.ink),
                 cursorBrush = SolidColor(colors.accent),
@@ -153,7 +153,7 @@ public fun ConversationsListScreen(
                 TextButton(onClick = {
                     val id = target.id
                     pendingDelete = null
-                    vm.delete(id)
+                    store.dispatch(ConversationsIntent.Delete(id))
                 }) { Text("Delete", color = colors.error) }
             },
             dismissButton = {
@@ -170,7 +170,7 @@ public fun ConversationsListScreen(
             confirmButton = {
                 TextButton(onClick = {
                     confirmingClearAll = false
-                    vm.clearAll()
+                    store.dispatch(ConversationsIntent.ClearAll)
                 }) { Text("Clear all", color = colors.error) }
             },
             dismissButton = {

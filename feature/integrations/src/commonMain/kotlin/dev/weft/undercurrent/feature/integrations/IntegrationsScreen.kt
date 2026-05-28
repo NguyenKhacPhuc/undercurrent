@@ -34,7 +34,7 @@ import org.koin.compose.viewmodel.koinViewModel
 /**
  * Settings → Integrations. Lists every supported third-party
  * integration in [Integrations.All] with a Connect / Disconnect
- * affordance driving [IntegrationsViewModel] through OAuth.
+ * affordance driving [IntegrationsStore] through OAuth.
  *
  * A persistent banner appears above the list whenever the live
  * enabled set differs from what the running runtime was built with
@@ -50,11 +50,11 @@ import org.koin.compose.viewmodel.koinViewModel
 public fun IntegrationsScreen(
     onBack: () -> Unit,
     onRestart: () -> Unit,
-    vm: IntegrationsViewModel = koinViewModel(),
+    store: IntegrationsStore = koinViewModel(),
 ) {
-    val enabled by vm.enabledIds.collectAsState()
-    val pendingRestart by vm.pendingRestart.collectAsState()
-    val lastAction by vm.lastAction.collectAsState()
+    val s by store.state.collectAsState(); val enabled = s.enabledIds
+    val pendingRestart = s.pendingRestart
+    val lastAction = s.lastAction
 
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
@@ -86,13 +86,13 @@ public fun IntegrationsScreen(
                 }
 
                 items(Integrations.All, key = { it.id }) { integration ->
-                    val status = vm.statusFor(integration, enabled)
+                    val status = store.statusFor(integration, enabled)
                     IntegrationCard(
                         integration = integration,
                         status = status,
                         action = lastAction.takeIf { it !is ActionStatus.Idle && actionTargets(it, integration.id) },
-                        onConnect = { vm.connect(integration) },
-                        onDisconnect = { vm.disconnect(integration) },
+                        onConnect = { store.dispatch(IntegrationsIntent.Connect(integration)) },
+                        onDisconnect = { store.dispatch(IntegrationsIntent.Disconnect(integration)) },
                     )
                 }
 

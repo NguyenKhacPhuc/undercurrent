@@ -56,9 +56,9 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 public fun AgentMemoriesScreen(
     onBack: () -> Unit,
-    vm: MemoriesViewModel = koinViewModel(),
+    store: MemoriesStore = koinViewModel(),
 ) {
-    val memories by vm.memories.collectAsState()
+    val s by store.state.collectAsState(); val memories = s.memories
     var confirmClear by remember { mutableStateOf(false) }
 
     val colors = UndercurrentTheme.colors
@@ -110,7 +110,7 @@ public fun AgentMemoriesScreen(
                 items(memories, key = { it.id }) { entry ->
                     MemoryRow(
                         entry = entry,
-                        onDelete = { vm.delete(entry.id) },
+                        onDelete = { store.dispatch(MemoriesIntent.Delete(entry.id)) },
                     )
                     TokenDivider()
                 }
@@ -126,7 +126,7 @@ public fun AgentMemoriesScreen(
             confirmButton = {
                 TextButton(onClick = {
                     confirmClear = false
-                    vm.clearAll()
+                    store.dispatch(MemoriesIntent.ClearAll)
                 }) { Text("Forget all", color = colors.error) }
             },
             dismissButton = {

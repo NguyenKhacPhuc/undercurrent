@@ -13,13 +13,13 @@ import dev.weft.undercurrent.data.datastore.createPreferencesDataStore
 import dev.weft.undercurrent.data.sqldelight.DatabaseDriverFactory
 import dev.weft.undercurrent.data.sqldelight.createUndercurrentDatabase
 import dev.weft.undercurrent.db.UndercurrentDatabase
-import dev.weft.undercurrent.feature.conversations.ConversationsViewModel
+import dev.weft.undercurrent.feature.conversations.ConversationsStore
 import dev.weft.undercurrent.feature.creator.CreatorSession
-import dev.weft.undercurrent.feature.memories.MemoriesViewModel
-import dev.weft.undercurrent.feature.miniapps.MiniAppsViewModel
+import dev.weft.undercurrent.feature.memories.MemoriesStore
+import dev.weft.undercurrent.feature.miniapps.MiniAppsStore
 import dev.weft.undercurrent.feature.personas.PersonasStore
-import dev.weft.undercurrent.feature.traces.TracesViewModel
-import dev.weft.undercurrent.feature.usage.UsageViewModel
+import dev.weft.undercurrent.feature.traces.TracesStore
+import dev.weft.undercurrent.feature.usage.UsageStore
 import dev.weft.undercurrent.shared.gateway.ConversationStoreGateway
 import dev.weft.undercurrent.shared.gateway.KeyValidationGateway
 import dev.weft.undercurrent.shared.gateway.KeyVaultGateway
@@ -129,17 +129,17 @@ public val iosAppModule = module {
     // interfaces, so they don't care whether the backing impl is the
     // Weft one or the iOS stub.
     viewModel { PersonasStore(repo = get()) }
-    viewModel { MiniAppsViewModel(repo = get()) }
-    viewModel { UsageViewModel(gateway = get()) }
-    viewModel { MemoriesViewModel(store = get()) }
-    viewModel { TracesViewModel(store = get()) }
-    viewModel { ConversationsViewModel(store = get()) }
-    // IntegrationsViewModel needs initialEnabled (snapshot of enabled
+    viewModel { MiniAppsStore(repo = get()) }
+    viewModel { UsageStore(gateway = get()) }
+    viewModel { MemoriesStore(store = get()) }
+    viewModel { TracesStore(store = get()) }
+    viewModel { ConversationsStore(store = get()) }
+    // IntegrationsStore needs initialEnabled (snapshot of enabled
     // ids the running runtime was built with). On iOS there's no
     // runtime — pass empty set so the screen renders cleanly without
     // the restart-banner logic firing spuriously.
     viewModel {
-        dev.weft.undercurrent.feature.integrations.IntegrationsViewModel(
+        dev.weft.undercurrent.feature.integrations.IntegrationsStore(
             repo = get(),
             oauth = get(),
             initialEnabled = emptySet(),

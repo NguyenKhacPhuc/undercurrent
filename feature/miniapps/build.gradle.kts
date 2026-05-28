@@ -14,6 +14,8 @@ kotlin {
         commonMain.dependencies {
             // MiniAppsRepository (cached tree JSON + usage counters).
             implementation(projects.data.datastore)
+            // Store<State, Intent, Effect> MVI base.
+            implementation(projects.shared)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

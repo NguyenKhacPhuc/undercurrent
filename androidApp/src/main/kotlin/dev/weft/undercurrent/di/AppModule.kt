@@ -52,13 +52,13 @@ import dev.weft.undercurrent.feature.creator.CreatorKind
 import dev.weft.undercurrent.feature.creator.CreatorSession
 import dev.weft.undercurrent.feature.integrations.Integration
 import dev.weft.undercurrent.feature.integrations.Integrations
-import dev.weft.undercurrent.feature.integrations.IntegrationsViewModel
-import dev.weft.undercurrent.feature.conversations.ConversationsViewModel
-import dev.weft.undercurrent.feature.memories.MemoriesViewModel
-import dev.weft.undercurrent.feature.miniapps.MiniAppsViewModel
+import dev.weft.undercurrent.feature.integrations.IntegrationsStore
+import dev.weft.undercurrent.feature.conversations.ConversationsStore
+import dev.weft.undercurrent.feature.memories.MemoriesStore
+import dev.weft.undercurrent.feature.miniapps.MiniAppsStore
 import dev.weft.undercurrent.feature.personas.PersonasStore
-import dev.weft.undercurrent.feature.traces.TracesViewModel
-import dev.weft.undercurrent.feature.usage.UsageViewModel
+import dev.weft.undercurrent.feature.traces.TracesStore
+import dev.weft.undercurrent.feature.usage.UsageStore
 import dev.weft.undercurrent.shared.gateway.ConversationStoreGateway
 import dev.weft.undercurrent.shared.gateway.KeyValidationGateway
 import dev.weft.undercurrent.shared.gateway.KeyVaultGateway
@@ -308,14 +308,14 @@ val appModule = module {
         )
     }
     viewModel { PersonasStore(repo = get()) }
-    viewModel { MiniAppsViewModel(repo = get()) }
-    viewModel { UsageViewModel(gateway = get()) }
-    viewModel { MemoriesViewModel(store = get()) }
-    viewModel { TracesViewModel(store = get()) }
-    viewModel { ConversationsViewModel(store = get()) }
+    viewModel { MiniAppsStore(repo = get()) }
+    viewModel { UsageStore(gateway = get()) }
+    viewModel { MemoriesStore(store = get()) }
+    viewModel { TracesStore(store = get()) }
+    viewModel { ConversationsStore(store = get()) }
     viewModel {
         val integrationsRepo: IntegrationsRepository = get()
-        IntegrationsViewModel(
+        IntegrationsStore(
             repo = integrationsRepo,
             oauth = get(),
             initialEnabled = runBlocking { integrationsRepo.enabledIdsNow() },

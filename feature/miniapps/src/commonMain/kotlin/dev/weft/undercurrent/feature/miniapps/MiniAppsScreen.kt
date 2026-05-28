@@ -73,9 +73,9 @@ public fun MiniAppsScreen(
     onBack: () -> Unit,
     onOpenMiniApp: (MiniApp) -> Unit,
     onStartCreator: () -> Unit = {},
-    vm: MiniAppsViewModel = koinViewModel(),
+    store: MiniAppsStore = koinViewModel(),
 ) {
-    val miniApps by vm.miniApps.collectAsState()
+    val s by store.state.collectAsState(); val miniApps = s.miniApps
     var editing by remember { mutableStateOf<MiniApp?>(null) }
 
     val colors = UndercurrentTheme.colors
@@ -134,11 +134,11 @@ public fun MiniAppsScreen(
             onDismiss = { editing = null },
             onSave = { name, emoji, prompt ->
                 editing = null
-                vm.update(miniApp.id, name, emoji, prompt)
+                store.dispatch(MiniAppsIntent.Update(miniApp.id, name, emoji, prompt))
             },
             onDelete = {
                 editing = null
-                vm.delete(miniApp.id)
+                store.dispatch(MiniAppsIntent.Delete(miniApp.id))
             },
         )
     }

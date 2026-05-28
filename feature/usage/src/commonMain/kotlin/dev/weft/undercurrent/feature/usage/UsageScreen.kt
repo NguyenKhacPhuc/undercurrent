@@ -57,9 +57,9 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 public fun UsageScreen(
     onBack: () -> Unit,
-    vm: UsageViewModel = koinViewModel(),
+    store: UsageStore = koinViewModel(),
 ) {
-    val totals by vm.totals.collectAsState()
+    val s by store.state.collectAsState(); val totals = s.totals
     val today = remember {
         Clock.System.now()
             .toLocalDateTime(TimeZone.currentSystemDefault())
