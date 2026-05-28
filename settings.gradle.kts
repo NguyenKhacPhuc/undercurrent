@@ -105,6 +105,3 @@ include(":feature:miniapps")
 include(":feature:keypaste")
 include(":feature:integrations")
 include(":feature:navigation")
-
-// UI modules — Android-only Compose surfaces.
-include(":ui:components")        // WeftComponent palette for ui_render (Android-only)

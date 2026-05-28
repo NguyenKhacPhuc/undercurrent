@@ -9,7 +9,12 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // module-specific common deps go here
+            // ConversationSummary — consumed by the conversation grouping
+            // helpers (formatLastActivity / groupConversationsByRecency)
+            // that live here so any UI module can use them without
+            // taking a feature-module dependency.
+            implementation(projects.shared)
+            implementation(libs.kotlinx.datetime)
         }
         androidMain.dependencies {
             // Custom Tabs for openInBrowser — keep the user in-app for

@@ -14,8 +14,10 @@ kotlin {
         commonMain.dependencies {
             // Gateway interfaces (ConversationStoreGateway + ConversationSummary).
             implementation(projects.shared)
-            // Timezone-correct day bucketing in ConversationGrouping.
-            implementation(libs.kotlinx.datetime)
+            // formatLastActivity / groupConversationsByRecency — hoisted
+            // out of this module so :core:ui can use them too without
+            // forcing a feature→ui→feature cycle.
+            implementation(projects.core.ext)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

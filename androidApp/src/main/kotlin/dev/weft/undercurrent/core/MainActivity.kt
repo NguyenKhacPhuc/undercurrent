@@ -64,7 +64,7 @@ import dev.weft.undercurrent.feature.miniapps.MiniAppsScreen
 import dev.weft.undercurrent.feature.miniapps.SaveAsMiniAppDialog
 import dev.weft.undercurrent.shared.gateway.SpeechGateway
 import dev.weft.undercurrent.core.ext.openInBrowser
-import dev.weft.undercurrent.ui.components.AppDrawer
+import dev.weft.undercurrent.core.ui.components.AppDrawer
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.android.get
@@ -110,11 +110,6 @@ private fun AndroidApp() {
     val context = LocalContext.current
     val state by store.state.collectAsState()
 
-    // Derive the accent ARGB from state instead of UndercurrentTheme.colors —
-    // this composable sits OUTSIDE the UndercurrentTheme provider (the theme
-    // wraps App()'s body, not its caller), so the CompositionLocal isn't
-    // available here. Using state.themePrefs.palette mirrors what App() will
-    // apply internally.
     val systemDark = isSystemInDarkTheme()
     val darkMode = when (state.themePrefs.mode) {
         ThemeMode.Auto -> systemDark
@@ -158,7 +153,6 @@ private fun AndroidApp() {
                 )
             },
             miniAppsRoute = {
-                val miniAppScope = rememberCoroutineScope()
                 MiniAppsScreen(
                     treePreview = { treeJson, onTap ->
                         val tree = remember(treeJson) {
