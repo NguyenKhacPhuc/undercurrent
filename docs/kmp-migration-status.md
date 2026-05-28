@@ -305,16 +305,96 @@ reference"). `IosSpeechGateway` is a documented stub with
 
 The "Phase 2" items in the original plan (streaming, conversation
 persistence, OS bridges, multi-provider) all landed during Phase 1
-because it was cheap to bundle them. Remaining Phase 2 items:
+because it was cheap to bundle them. Plus mini-app invocation +
+AddToChatConfig wiring (commit `48ab0a4`).
 
-- **Per-provider model picker** — iOS currently pins one model per
-  provider in the `LlmClient` factories. Wiring
-  `ModelPrefsRepository` overrides into the clients would let the
-  Providers screen drive Sonnet / Opus / GPT-5 / etc. selection.
-- **Voice (when K/N upgrades)** — see deferred note above.
-- **Title auto-improvement** — currently the first 40 chars of the
-  user message. Could ask the model for a 3-5 word summary after
-  the first exchange.
+### iOS backlog — captured for later
+
+Picked up when iOS becomes the focus again. Ordered by value /
+effort ratio:
+
+1. **Per-provider model picker** (~1 hour)
+   - iOS currently pins one model per provider in the `LlmClient`
+     factories. Make `LlmClient.send` take `modelId` per-call (or
+     hold a `model: StateFlow<String>` that updates from
+     `ModelPrefsRepository.overrideFor(provider, tier)`).
+   - IosAppStore resolves the model id at send time:
+     `modelPrefsRepo.overrideFor(activeProvider, defaultTier ?: Standard)`.
+     Fallback to the factory default if no override.
+   - Providers screen already exists and drives ModelPrefsRepository
+     on Android — no UI work needed.
+
+2. **First-message auto-title** (~30 min)
+   - After the first user/assistant exchange completes, send a
+     follow-up "give me a 3-5 word title for this conversation" to
+     the same client. Update `conversations.title` via
+     `updateConversationTitle`.
+   - Cost: one extra short round-trip per new conversation. Cheap.
+   - Today's title = first 40 chars of user message; works but ugly.
+
+3. **First real iOS tool: `web_fetch`** (~half day)
+   - Anthropic tool_use loop in `AnthropicLlmClient`:
+     - Send `tools: [{ name, description, input_schema }]` in the
+       request.
+     - Watch for `content_block_start` with `tool_use` type.
+     - When stream ends with `stop_reason=tool_use`, execute the
+       tool, send back a `tool_result` content block with the same
+       conversation history + tool_use_id.
+     - Loop until `stop_reason != tool_use`.
+   - `web_fetch` impl is pure Kotlin (Ktor `HttpClient` GET +
+     truncate to 8KB). No iOS interop.
+   - Establishes the pattern for follow-ups: `notify_show`
+     (UNUserNotificationCenter), `share_text`
+     (UIActivityViewController).
+
+4. **Voice — waiting on Kotlin upgrade** (~half day after upgrade)
+   - Blocked: K/N 2.0.21's `platform.AVFAudio` bindings don't
+     resolve `AVAudioSession.setActive` against the iOS 26.4 SDK.
+     See [Known limits](#known-limits).
+   - Fix path 1: upgrade Kotlin to a version with fresh iOS 26.4
+     bindings. Risky — touches the whole project (Compose
+     Multiplatform compat, AGP compat).
+   - Fix path 2: custom cinterop .def for the SFSpeechRecognizer +
+     AVAudioSession surface. ~100 LOC of .def + tooling glue. Sidesteps
+     the binding mismatch entirely.
+   - Scaffolding lives in commit `7607d2d`'s git history.
+
+5. **OpenAI tool_use** (~half day after #3)
+   - Same pattern as Anthropic but using OpenAI's `tool_calls`
+     wire format. Slightly different JSON shape; loop semantics
+     identical.
+
+6. **OAuth integrations** (~1 week)
+   - Replace `StubOAuthGateway` with an `ASWebAuthenticationSession`
+     wrapper. Bridge Apple's completion handler to the gateway's
+     `authorize(config): OAuthResult`. Use `ASPresentationAnchor`
+     bound to the key window.
+   - Once OAuth works on iOS, the Linear / Notion / etc. integration
+     buttons in Settings light up.
+
+7. **Memory + trace persistence** (~half day each)
+   - Add `memories.sq` + `traces.sq` schemas to `:data:sqldelight`
+     (mirror of `Conversations.sq` pattern).
+   - Iosmemory store impl + Iostrace store impl.
+   - Wire `memory_store` / `memory_recall` tools (once #3 lands)
+     and trace recording from inside the agent loop.
+
+8. **Multi-agent declarations** (~half day)
+   - iOS currently single-agent. To match Android's "writer" /
+     "default" / custom-host-app declarations, pass an
+     `agents: List<AgentDeclaration>` to `IosAppStore`.
+   - Each declaration has its own system fragment; per-turn we use
+     `state.activeAgentName` to compose the prompt.
+
+9. **ui_render mini-apps + Creator wizard** (~1-2 weeks)
+   - Largest remaining piece. Needs:
+     - A KMP-compatible component-tree renderer (the substrate's
+       `TreeRenderer` is Android-only).
+     - A binding evaluator for `$binding` sentinels.
+     - The bridge between agent tool calls and the UI bridge.
+   - Probably easiest as a `:feature:miniapp-render` module that
+     can KMP-ify if Compose Multiplatform handles all the Compose
+     bits, with platform-specific glue for tap targets.
 
 ### Phase 3 — One or two iOS tools (~1-2 weeks, if needed)
 
