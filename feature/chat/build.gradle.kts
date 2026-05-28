@@ -12,7 +12,12 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // feature-specific common deps (e.g. :data:repository)
+            // SpeechGateway + VoiceState.
+            implementation(projects.shared)
+            // SaveAsMiniAppDialog (reused under each assistant message).
+            implementation(projects.feature.miniapps)
+            // WaveformBars (in-input audio level visualization).
+            implementation(projects.feature.voice)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

@@ -22,7 +22,7 @@ KMP-friendly contract.
 | ✅ `:data:datastore` | createPreferencesDataStore (KMP factory + Android/iOS actuals), ThemeRepository, OnboardingRepository, PersonaRepository, IntegrationsRepository, MiniAppsRepository, ProviderPrefsRepository, ModelPrefsRepository — **7 repos total** |
 | ✅ `:data:sqldelight` | UndercurrentDatabase (Records.sq schema), expect class DatabaseDriverFactory + Android (AndroidSqliteDriver) / iOS (NativeSqliteDriver) actuals |
 
-## Features — 15 of 17 done
+## Features — 16 of 17 done
 
 | Feature | Status | Blocker / notes |
 |---|---|---|
@@ -41,8 +41,8 @@ KMP-friendly contract.
 | ✅ `:feature:maps` | **DONE** | No UI to migrate — feature is just `ShowLocationOnMapTool` (a Weft tool). Moved to `:data:weft/.../tools/` since Weft tools must be androidMain. |
 | ✅ `:feature:creator` | **DONE** | CreatorSession + CreatorKind + CreatorScreen in commonMain. Tree-rendering body hoisted to a `body: @Composable () -> Unit` lambda so host can wire Weft's TreeRenderer + ComposeUiBridge. `CreatorTools` (create_persona, create_mini_app) stays in `app/` for now — depends on un-migrated `Screen` / `NavigationChannel`; moves to `:data:weft` when navigation lands. |
 | ✅ `:feature:providers` | **DONE** | Largest screen yet (~720 LOC). Switched from Koog `LLModel` to `ModelInfo` mirror; from `catalogFor`/`defaultPoolFor` to `ModelCatalog` gateway; from inline `validateKey` to `KeyValidationGateway`; from CCT `openInBrowser` to `onOpenConsole` lambda. `TipBox` promoted to `:core:ui`. Material icons (Visibility, ArrowDropDown, KeyboardArrowRight) → Unicode glyphs. |
+| ✅ `:feature:chat` | **DONE** | The big one — 2472 LOC across 6 files. ChatScreen + DegradedModeBanner + NotificationsPermissionBanner + AddToChatSheet + MarkdownText + AgentSelector + DisplayMessage/ToolInfo + DegradedMode/SkillSummary/AgentOption mirrors all in commonMain. SpeechGateway replaces VoiceRecognizer + Android permission flow. `LocalClipboardManager` → `onCopyText` lambda. CCT `openInBrowser` → `onOpenUrl` lambda (passed through to MarkdownText links). CircuitBreaker → `DegradedMode` mirror state. `SkillRegistry` → `List<SkillSummary>?`. `AgentSelector` re-implemented in commonMain (was `:android-compose-defaults`-only). Material icons-extended (Menu, MoreVert, ArrowUpward, AutoAwesome, Mic, Add) → Unicode glyphs (☰, ⋮, ↑, ✦, ●, +). |
 | ⏳ `:feature:navigation` | — | Cross-cutting. Migrate alongside `:core:navigation`. |
-| ⏳ `:feature:chat` | — | **The big one** — 1387 LOC. Streaming UI + tool-call rendering + agent state. Consumes AgentEngine (already defined). Last to migrate per playbook. |
 
 ## Patterns established
 
@@ -103,12 +103,11 @@ JSON round-trips cleanly between the mirror `ComponentNode` and
 
 ## Recommended next session
 
-1. **`:feature:chat`** — the big one. ~1 day. Streaming UI + tool-call rendering. Already has AgentEngine + UiBridgeGateway. The tree-rendering body needs hoisting (same pattern as miniapps + creator).
-2. **`:androidApp` + `:composeApp` wiring** — Koin DI module that picks the platform-correct gateway impl, the top-level App composable, screen routing, MainActivity. Also: `CreatorTools` (`create_persona`, `create_mini_app`) gets moved to `:data:weft` once `:feature:navigation` lands. ~1 day.
-3. **iOS shell** — Xcode project, SwiftUI scene hosting ComposeApp.framework. ~½ day.
-4. **Delete `app/`** — once everything builds through the new modules.
+1. **`:androidApp` + `:composeApp` wiring** — Koin DI module that picks the platform-correct gateway impl, the top-level App composable, screen routing, MainActivity. Also lands: `:feature:navigation` migration (the last feature module), then `CreatorTools` (`create_persona`, `create_mini_app`) gets moved to `:data:weft` since its `Screen` enum + `NavigationChannel` deps will be available. ~1 day.
+2. **iOS shell** — Xcode project, SwiftUI scene hosting ComposeApp.framework. ~½ day.
+3. **Delete `app/`** — once everything builds through the new modules.
 
-Estimated total remaining: ~2.5 focused days.
+Estimated total remaining: ~1.5-2 focused days.
 
 ## Patterns learned (Recipes A + B + C)
 
@@ -123,6 +122,8 @@ Estimated total remaining: ~2.5 focused days.
 - **Material `icons-extended` isn't in CMP commonMain by default.** Replace with Unicode glyphs: `▾` (ArrowDropDown), `›` (KeyboardArrowRight), `←` (back), `×` (Close), plus plain "Show"/"Hide" text for password toggles. Matches the design-language conventions of the existing migrated screens.
 - **Promote shared screen helpers to `:core:ui` lazily — when the second feature would import them.** `TipBox` lived in `app/ui/` until `:feature:providers` migration needed it; promoted then. Same approach if `:feature:chat` needs anything more.
 - **Pure-data per-provider helpers** (`apiConsoleUrl`, `signupHint`, `hostName`, `keyPlaceholder`) belong in `:core:model` as `ProviderKind` extensions — both `:feature:keypaste` and `:feature:providers` consume them.
+- **When a Weft Compose component is small** (like `AgentSelector` — ~30 lines of AssistChip + DropdownMenu), re-implementing it in commonMain is cleaner than hoisting through a lambda. Mirror the wire-format types (e.g. `AgentOption`) and the chat surface stays self-contained.
+- **CircuitBreaker / sealed-state-with-timing hosts pass naturally as snapshot mirrors.** `DegradedMode(openedAtEpochMs, cooldownMs)` is enough for a count-down banner — no need to plumb the full sealed-class state, since the screen only renders the open variant. Use `kotlin.time.Clock.System.now()` instead of `System.currentTimeMillis()` for the timer tick.
 
 ## What's solid right now
 
