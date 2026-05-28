@@ -81,3 +81,26 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# ---- Xcode ----
+# Per-user state (window layout, breakpoints, scheme prefs). The
+# .xcodeproj / .xcworkspace metadata itself stays tracked so the
+# project opens for everyone.
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.hmap
+
+# Build outputs / archives
+*.ipa
+*.dSYM
+*.dSYM.zip
+DerivedData/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# CocoaPods (not currently used; ignored prophylactically)
+Pods/
