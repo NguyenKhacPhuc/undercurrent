@@ -1,12 +1,102 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Permissions inherited from :data:weft / Weft :os-bridge merge. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+        Koog 1.0.0 ships every Android sub-module AAR with minSdkVersion=35
+        baked into the AAR's manifest — a JetBrains build-config default, not
+        a real API-26 incompatibility. The sub-modules are pure-Kotlin agent/
+        prompt/RAG code with no Android-specific platform calls. Manifest
+        merge needs an explicit override per package id.
+    -->
+    <uses-sdk tools:overrideLibrary="
+        ai.koog.koog.agents,
+        ai.koog.agents.core,
+        ai.koog.agents.features.event.handler,
+        ai.koog.agents.features.memory,
+        ai.koog.agents.features.opentelemetry,
+        ai.koog.agents.features.snapshot,
+        ai.koog.agents.features.tokenizer,
+        ai.koog.agents.features.trace,
+        ai.koog.agents.mcp.metadata,
+        ai.koog.agents.tools,
+        ai.koog.agents.utils,
+        ai.koog.embeddings.base,
+        ai.koog.embeddings.llm,
+        ai.koog.http.client.core,
+        ai.koog.http.client.ktor,
+        ai.koog.prompt.cache.files,
+        ai.koog.prompt.cache.model,
+        ai.koog.prompt.executor.anthropic.client,
+        ai.koog.prompt.executor.bedrock.client,
+        ai.koog.prompt.executor.cached,
+        ai.koog.prompt.executor.clients,
+        ai.koog.prompt.executor.model,
+        ai.koog.prompt.executor.ollama.client,
+        ai.koog.prompt.executor.openai.client,
+        ai.koog.prompt.executor.openai.client.base,
+        ai.koog.prompt.executor.openrouter.client,
+        ai.koog.prompt.llm,
+        ai.koog.prompt.markdown,
+        ai.koog.prompt.model,
+        ai.koog.prompt.processor,
+        ai.koog.prompt.structure,
+        ai.koog.prompt.tokenizer,
+        ai.koog.prompt.xml,
+        ai.koog.rag.base,
+        ai.koog.serialization.core,
+        ai.koog.utils
+    " />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 
     <application
+        android:name=".core.UndercurrentApp"
         android:label="Undercurrent"
         android:theme="@style/Theme.Undercurrent"
-        android:supportsRtl="true"
-        android:allowBackup="true">
-        <!-- TODO: MainActivity goes here once migrated -->
+        android:allowBackup="false"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".core.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="undercurrent"
+                    android:host="oauth" />
+            </intent-filter>
+        </activity>
+
     </application>
+
 </manifest>

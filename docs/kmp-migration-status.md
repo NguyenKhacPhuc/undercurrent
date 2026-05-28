@@ -101,7 +101,174 @@ Wire format compatible with the Weft originals — cached `ui_render`
 JSON round-trips cleanly between the mirror `ComponentNode` and
 `dev.weft.contracts.ComponentNode`.
 
-## Recommended next session
+## Host-app shell move — DONE (assembleDebug green)
+
+`:androidApp` now compiles and assembles a debug APK end-to-end via
+`./gradlew :androidApp:assembleDebug`. The shell move landed:
+
+- `UndercurrentApp` (Koin boot), `MainActivity` (FragmentActivity +
+  OAuth deep-link plumbing + edge-to-edge), `App()` Composable +
+  `ScreenRouter` + `ChatRoute` — all in `:androidApp/src/main/kotlin/.../core/`.
+- `AppState` / `AppIntent` / `AppPreamble` — rewritten to use the
+  commonMain mirror types (`ProviderKind` / `ModelTier` from
+  `:core:model`); AppStore translates to Weft enums at the runtime
+  boundary via `toWeft()` / `toMirror()` helpers.
+- `AppStore` (state machine, agent loop, model-pool override
+  resolution) — Android-only, references Weft types directly.
+- `AppModule` (Koin DI) — wires 7 DataStore-backed repos with named
+  qualifiers, 10 gateways (`KeyVault`, `OAuth`, `Conversation`,
+  `Memory`, `Trace`, `Usage`, `ModelCatalog`, `Speech`, `UiBridge`,
+  `KeyValidation`), the `UndercurrentDatabase` via
+  `:data:sqldelight`, the `WeftRuntime` with all extra tools
+  registered, and the 7 per-screen ViewModels.
+- `SqlDelightDataSource` rewritten against `UndercurrentDatabase`
+  (renamed from `AppDatabase`); `InMemoryDataSource` dropped (unused).
+- `SetThemePaletteTool` + `SetThemeModeTool` rewritten in
+  `:androidApp/.../tools/` against the migrated `ThemeRepository`.
+- `AppDrawer` + `UrlLauncher` + 40+ component files copied to
+  `:androidApp/.../{ui,components}/` with bulk import rewrites
+  (`dev.weft.undercurrent.theme.*` → `dev.weft.undercurrent.core.designsystem.*` etc.).
+- `AndroidApplicationConventionPlugin` now sets
+  `kotlin { compilerOptions { jvmTarget = JVM_17 } }` to match the
+  Java target — fixes the inconsistent-JVM-target error.
+
+### Follow-ups from the shell move — DONE
+
+1. **MiniAppsScreen treePreview** — wires `TreeRenderer` against the
+   `weftUi.componentRegistry` over the cached JSON; falls back to the
+   "(preview)" placeholder when the JSON can't be parsed. Taps on the
+   card always route to `onTap` (component events are swallowed).
+2. **TraceViewerScreen onExportTrace** — `AppIntent.ExportTrace` now
+   carries `traceId: String`; `AppStore.handleExportTrace` re-resolves
+   the Weft `AgentTrace` from `runtime.traceStore.traces`. Surfaces an
+   `AppEffect.Error` when the id no longer matches.
+3. **Chat copy-text wiring** — `onCopyText` calls Android's
+   `ClipboardManager.setPrimaryClip` with the message body.
+4. **Old `app/`** — deleted. Source preserved in git history (commit
+   `412a2cd` was the last working state before the shell move).
+
+## App() → :composeApp/commonMain — DONE
+
+The orchestrator layer is now genuinely shared:
+
+| New location | What's there |
+|---|---|
+| `:composeApp/commonMain/.../app/AppState.kt` | Mirror-typed state vocabulary. `agent: WeftAgent?` was replaced by `agentReady: Boolean` + `currentConversationId: String?`. Adds `providerKeyStatus: Map<ProviderKind, String>` so the providers screen doesn't need direct keyvault access. |
+| `:composeApp/commonMain/.../app/AppIntent.kt` | Mirror-typed intents. `UIUpdate?` swapped for `UiRenderEvent?` from `UiBridgeGateway`. `InvokeMiniApp` carries `cachedRenderTreeJson: String?` so the seed-then-invoke flow is one dispatch. |
+| `:composeApp/commonMain/.../app/AppStore.kt` | Interface — exposes only mirror types (`SkillSummary` / `DisplayMessage` / `AppState`). Skills are projected to `List<SkillSummary>` at the boundary. `modelPrefsRepo` removed from the interface; ScreenRouter injects it directly via Koin. |
+| `:composeApp/commonMain/.../app/App.kt` | Top-level composable — theme wrapper, snackbar host, permission-needed dialog overlay, plus the screen router. |
+| `:composeApp/commonMain/.../app/ScreenRouter.kt` | Switches over `Screen`. KMP-clean routes (Settings, Appearance, KeyPaste, Onboarding, Providers, Personas, Memories, Traces, Usage, Integrations, Conversations) render here directly. |
+| `:composeApp/commonMain/.../app/PlatformAdapter.kt` | Holds the substrate-coupled routes as `@Composable () -> Unit` lambdas (`chatRoute` / `renderedTreeRoute` / `creatorRoute` / `miniAppsRoute`) plus OS bridges (`onOpenUrl` / `onCopyText` / `onRestartProcess` / `onOpenAppDetailsSettings` / `onOpenSaveDialog`). |
+
+### Android side
+
+`:androidApp/.../core/WeftAppStore.kt` is the Weft-using impl of the
+commonMain `AppStore`. Subscribes to `UiBridgeGateway.renderEvents`
+internally (no more `snapshotFlow { uiBridge.lastUpdate }` in
+MainActivity). `MainActivity` is now ~370 LOC (down from 850):
+boots Koin, plumbs OAuth deep links, constructs the
+`PlatformAdapter` with the Android-only screen wiring (`ChatRoute`
+with drawer, the substrate `AgentRenderedTreeScreen`,
+`TreeRenderer`-backed mini-app preview, `CreatorScreen` body, the
+`SaveAsMiniAppDialog` at the App root), then calls
+`App(store, platform)`.
+
+AppStore is bound via `single<AppStore> { WeftAppStore(...) }` (not
+`viewModel<...>`) because the commonMain interface can't extend
+`androidx.lifecycle.ViewModel` — iOS wouldn't compile. WeftAppStore
+itself still extends ViewModel internally for `viewModelScope`.
+
+### iOS side
+
+`:composeApp/iosMain/.../app/IosAppStore.kt` — stub impl emitting a
+fixed loading state. `IosPlatformAdapter.kt` — placeholder
+composables for the substrate-coupled routes; OS bridges are no-ops
+until the iOS agent runtime lands. Both
+`:composeApp:compileKotlinIosArm64` and
+`:composeApp:compileKotlinIosSimulatorArm64` build green.
+
+## iOS — Kotlin side ready, Xcode shell pending
+
+The Kotlin side of iOS launch is now complete. `ComposeApp.framework`
+links successfully for both `iosArm64` + `iosSimulatorArm64`.
+
+| New file | What it does |
+|---|---|
+| `:composeApp/iosMain/.../app/MainViewController.kt` | Top-level `fun MainViewController(): UIViewController` returning a `ComposeUIViewController { App(...) }`. Resolves `AppStore` from Koin and constructs `iosPlatformAdapter()`. This is the symbol Swift calls. |
+| `:composeApp/iosMain/.../app/IosKoinModule.kt` | `val iosAppModule` — binds 7 named DataStores (via `createPreferencesDataStore(name)`), 7 repos, `DatabaseDriverFactory` + `UndercurrentDatabase`, the 11 stub gateways from `:shared/iosMain`, `IosAppStore`, and the 7 per-screen ViewModels. No `androidContext` / `WeftRuntime`. |
+| `:composeApp/iosMain/.../app/InitKoin.kt` | `fun initKoin()` — `startKoin { modules(iosAppModule) }`. Swift calls this once at launch. |
+| `IosAppStore.dispatch` (updated) | Handles `Resume` → `Screen.Onboarding` and `Navigate(...)` so iOS users see real UI on first frame instead of the loading placeholder. Other intents still no-op until a real iOS agent lands. |
+
+### Build verification
+
+```
+./gradlew :composeApp:linkDebugFrameworkIosArm64 \
+          :composeApp:linkDebugFrameworkIosSimulatorArm64
+# → BUILD SUCCESSFUL; framework binaries land under
+#   composeApp/build/bin/{iosArm64,iosSimulatorArm64}/debugFramework/ComposeApp.framework
+```
+
+Linker warnings (`i:`) about `kotlinx.datetime/Instant` symbols in
+Material3 are a known issue — kotlinx-datetime is pinned to 0.7.1
+(per the AWS-SDK transitive constraint, see CLAUDE.md note) and
+Material3's iOS `KotlinxDatetimeCalendarModel` calls 0.6.x-style
+APIs that 0.7.x renamed. Material3's `DatePicker` will crash on iOS
+if invoked; nothing else is affected. Track upstream
+compose-multiplatform for the fix.
+
+### To actually launch (Xcode side — needs Mac + Xcode)
+
+1. **Create `iosApp/` Xcode project**: File → New → Project → iOS App,
+   "Interface: SwiftUI", saved at repo root as `iosApp/`.
+2. **Swift `@main` App**:
+   ```swift
+   import SwiftUI
+   import ComposeApp
+
+   @main
+   struct iOSApp: App {
+       init() { Main_iosKt.doInitKoin() }
+       var body: some Scene {
+           WindowGroup {
+               ComposeView().ignoresSafeArea()
+           }
+       }
+   }
+   struct ComposeView: UIViewControllerRepresentable {
+       func makeUIViewController(context: Context) -> UIViewController =
+           Main_iosKt.MainViewController()
+       func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+   }
+   ```
+   (`Main_iosKt` / `doInitKoin` names follow the Kotlin/Native ObjC
+   mangling — verify with `nm ComposeApp.framework/ComposeApp | grep -i init`.)
+3. **Embed the framework**: Xcode → Build Phases → "+ Run Script Phase":
+   ```
+   ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
+   ```
+   Add `$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)`
+   to Framework Search Paths.
+4. **Build & run** — `Cmd-R` on an iOS Simulator scheme. Expected:
+   app boots → Koin init → `App()` mounts → `Resume` dispatches →
+   lands at `Screen.Onboarding`. Provider picker is fully functional
+   (`ModelCatalog` stub returns empty, but the screen renders).
+   Stepping into Chat shows the "Chat — coming to iOS" placeholder.
+
+### Still on the iOS roadmap
+
+- **iOS OS-bridge wiring** — `iosPlatformAdapter()`'s `onOpenUrl` /
+  `onCopyText` / `onOpenAppDetailsSettings` are still no-ops. Wire
+  to `UIApplication.shared.open(_:)` / `UIPasteboard.general.string` /
+  `UIApplication.openSettingsURLString` once the Xcode shell is
+  proven booting.
+- **iOS agent runtime** — `IosAppStore` is a stub. A real iOS
+  `AppStore` (Weft Swift client, or a different agent SDK on iOS)
+  is the next major chunk.
+- **iOS Material3 DatePicker** — broken at the kotlinx-datetime
+  version-pin level. Avoid in commonMain screens or guard with a
+  `expect/actual` shim.
+
+## (Stale) Recommended next session — superseded by above
 
 **Every feature is migrated.** What's left is the host-app shell move
 — big in line count but mostly mechanical now that the gateways +

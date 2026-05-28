@@ -6,6 +6,8 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.configure
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 
 /**
  * `:androidApp` — the Android entrypoint app (Application class,
@@ -36,6 +38,11 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 sourceCompatibility = JavaVersion.VERSION_17
                 targetCompatibility = JavaVersion.VERSION_17
             }
+        }
+        extensions.configure<KotlinAndroidProjectExtension> {
+            compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
+        }
+        extensions.configure<ApplicationExtension> {
             packaging {
                 resources {
                     // Koog → Netty + multiple OkHttp 5.x modules ship
