@@ -8,6 +8,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import dev.weft.undercurrent.core.model.ProviderKind
 import dev.weft.undercurrent.data.datastore.PersonaRepository
 import dev.weft.undercurrent.feature.chat.ChatScreen
 import dev.weft.undercurrent.shared.gateway.SpeechGateway
@@ -60,7 +61,16 @@ private fun IosChatRoute() {
         val roleLabel = activeRole?.name
         listOfNotNull(voiceLabel, roleLabel).joinToString(" + ").ifEmpty { "Default" }
     }
-    val providerLabel = state.activeProvider.displayName
+    // Pinned model per provider — mirrors the IDs hardcoded in the
+    // LlmClient factories (composeApp/iosMain/.../app/llm/*). When iOS
+    // gets a per-provider model picker (Phase 3+), source this from
+    // ModelPrefsRepository instead.
+    val modelLabel = when (state.activeProvider) {
+        ProviderKind.Anthropic -> "Claude Haiku 4.5"
+        ProviderKind.OpenAI -> "GPT-5 Mini"
+        ProviderKind.OpenRouter -> "Sonnet 4.5 via OpenRouter"
+        ProviderKind.DeepSeek -> "DeepSeek Chat"
+    }
 
     ChatScreen(
         displayMessages = store.displayMessages,
@@ -69,9 +79,14 @@ private fun IosChatRoute() {
         onSend = { text, _ -> store.dispatch(AppIntent.SendChat(text)) },
         defaultTier = null,
         threadTitle = "Undercurrent",
-        threadSubtitle = "$providerLabel · $personaLabel",
+        threadSubtitle = "$modelLabel · $personaLabel",
         activePersonaName = personaLabel,
-        lastModelId = "claude-haiku-4-5",
+        lastModelId = when (state.activeProvider) {
+            ProviderKind.Anthropic -> "claude-haiku-4-5"
+            ProviderKind.OpenAI -> "gpt-5-mini"
+            ProviderKind.OpenRouter -> "anthropic/claude-sonnet-4-5"
+            ProviderKind.DeepSeek -> "deepseek-chat"
+        },
         degradedMode = null,
         speechGateway = speech,
         // iOS voice deferred — IosSpeechGateway reports

@@ -122,6 +122,21 @@ public class IosAppStore(
             // ── Boot path ─────────────────────────────────────────
             is AppIntent.SetProvider -> scope.launch {
                 providerPrefsRepo.setProvider(intent.provider)
+                // Mirror Android: if the new provider has no key, drop
+                // the user on KeyPaste so they can paste one instead of
+                // silently failing the next SendChat.
+                val hasKey = withContext(Dispatchers.Default) {
+                    runCatching { keyVault.hasApiKey(intent.provider) }.getOrDefault(false)
+                }
+                if (!hasKey) {
+                    _state.value = _state.value.copy(
+                        agentReady = false,
+                        screen = Screen.KeyPaste,
+                    )
+                } else if (!_state.value.agentReady) {
+                    // New provider has a key → ready to send.
+                    _state.value = _state.value.copy(agentReady = true)
+                }
             }
             AppIntent.CompleteOnboarding -> scope.launch {
                 onboardingRepo.markCompleted()
