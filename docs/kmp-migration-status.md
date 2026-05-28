@@ -9,33 +9,34 @@ still needs doing."
 
 ## TL;DR — what works today
 
-**Android: fully functional. iOS: builds, but core chat is hollow.**
+**Android: fully functional via Weft agent. iOS: text chat works
+end-to-end via a parallel Ktor stack — tools / OAuth / voice / mini-
+apps still stubbed.**
 
 | | Android | iOS |
 |---|---|---|
-| **Build target** | `./gradlew :androidApp:assembleDebug` → APK | `./gradlew :composeApp:linkDebugFrameworkIos{Arm64,SimulatorArm64}` → `ComposeApp.framework` |
-| Launch & render UI | ✅ | ⚠️ needs `iosApp/` Xcode project (see [iOS roadmap](#ios-roadmap)) |
-| Theme / Appearance / Settings | ✅ | ✅ (once Xcode shell exists) |
-| Personas / Memories / Traces / Usage / Integrations / Conversations | ✅ | ✅ (renders against stub gateways — empty data) |
-| Onboarding → KeyPaste → Chat handshake | ✅ | ⛔ stalls at KeyPaste — `StubKeyVaultGateway` no-ops |
-| **Send a chat message** | ✅ (Koog → Anthropic/OpenAI/OpenRouter/DeepSeek) | ⛔ `IosAppStore` is a stub |
-| Tool calls (calendar/location/notify/files/share/etc.) | ✅ | ⛔ no agent |
+| **Build target** | `./gradlew :androidApp:assembleDebug` → APK | Xcode → ⌘R from `iosApp/iosApp.xcodeproj` |
+| Launch & render UI | ✅ | ✅ |
+| Theme / Appearance / Settings | ✅ | ✅ (persists via DataStore-Preferences) |
+| Personas (voice + role) | ✅ (Weft `extraVolatilePrefix`) | ✅ (composed into per-turn system prompt by `IosAppStore`) |
+| Onboarding → KeyPaste → Chat handshake | ✅ | ✅ (persists across restart) |
+| **Send a chat message** | ✅ via Koog | ✅ via Ktor — streaming SSE |
+| Multi-provider (Anthropic / OpenAI / OpenRouter / DeepSeek) | ✅ | ✅ (one `LlmClient` impl per provider) |
+| Multi-conversation history | ✅ (Weft `ConversationStore`) | ✅ (SQLDelight `Conversations.sq`; Conversations screen lists + selects + deletes) |
+| Key storage | ✅ Android Keystore | ✅ iOS Keychain (`kSecClassGenericPassword`) |
+| Tool calls (calendar / location / files / notify / share / etc.) | ✅ | ⛔ no agent tool loop on iOS yet |
 | `ui_render` mini-apps + cached-tree replay | ✅ | ⛔ no agent |
-| OAuth integrations (Linear, etc.) | ✅ | ⛔ `StubOAuthGateway` returns `UserCancelled` |
-| Voice input | ✅ (Android `SpeechRecognizer`) | ⛔ `StubSpeechGateway` no-ops |
-| Conversation / memory / trace persistence | ✅ (SQLDelight + DataStore) | ⚠️ DataStore + SQLite work, but no agent writes to them |
-| Key storage | ✅ (Android Keystore-encrypted prefs) | ⛔ stub |
+| OAuth integrations (Linear, etc.) | ✅ Custom Tabs | ⛔ `StubOAuthGateway` returns `UserCancelled` |
+| Voice input | ✅ Android `SpeechRecognizer` | ⛔ K/N 2.0.21 + iOS 26.4 SDK binding mismatch on `AVAudioSession.setActive` |
+| Memory + trace persistence | ✅ Weft stores | ⛔ stubs (no agent to write into them) |
+| Multi-agent declarations | ✅ | ⛔ single agent |
 
-**Why iOS is hollow today:** Weft's agent loop depends on Koog 1.0.0,
-which publishes only `-jvm` and `-android` variants. See [The Koog
-blocker](#the-koog-blocker).
-
-**The plan:** don't try to port Weft. Ship a minimal Ktor-based
-Anthropic client for iOS (~600 LOC total: Keychain + HTTP client +
-real `IosAppStore`), stub everything else with clear "not on iOS yet"
-messages. Each phase in [iOS roadmap](#ios-roadmap--minimal-first-incremental)
-ships incremental value; the first usable iOS build is ~1 week of
-work, not months.
+**Why iOS chat works without Weft:** rather than KMP-ifying the
+Koog-dependent agent loop, `:composeApp/iosMain` ships a ~600 LOC
+parallel Ktor stack — `AnthropicLlmClient` (SSE) +
+`OpenAICompatLlmClient` (covers OpenAI / OpenRouter / DeepSeek) +
+`IosAppStore` that routes per `state.activeProvider`.
+See [The Koog blocker](#the-koog-blocker) for why we didn't port Weft.
 
 ---
 
@@ -240,117 +241,80 @@ codebase.
 
 ## iOS roadmap — minimal-first, incremental
 
-**Strategy:** ship a minimal vertical slice (text-only chat against
-Anthropic) and stub everything else as "not on iOS yet." Don't try to
-port all of Weft. Each phase below ships an actually-usable
-incremental improvement; stop at whichever phase is good enough.
+**Strategy:** ship a minimal vertical slice and stub everything else
+as "not on iOS yet." Don't try to port all of Weft. Each phase
+below ships incremental value; stop at whichever phase is good
+enough.
 
-The Koog blocker means we can't reuse the agent loop — but we don't
-need to. A minimal chat is **~300 lines of Ktor calling the Anthropic
-Messages API.** Tools, OAuth, voice, mini-apps, traces — all
-deferred or stubbed.
+### Phase 0 — Xcode shell — DONE (commit `1d34743`)
 
-### Phase 0 — Xcode shell (~1 hour, needs Mac)
+`iosApp/iosApp.xcodeproj` with SwiftUI `@main App` calling
+`InitKoinKt.doInitKoin()` + `MainViewControllerKt.MainViewController()`.
+Run Script build phase invokes
+`./gradlew :composeApp:linkDebugFrameworkIos{SimulatorArm64,Arm64}`
+before Compile Sources; framework linked via the static-path
+Framework Search Paths.
 
-Create `iosApp/iosApp.xcodeproj` with SwiftUI `@main`:
+Info.plist sets `CADisableMinimumFrameDurationOnPhone` (CMP needs it
+for ProMotion) plus `NSSpeechRecognitionUsageDescription` +
+`NSMicrophoneUsageDescription` (preemptive for the eventual voice
+work).
 
-```swift
-import SwiftUI
-import ComposeApp
+User Script Sandboxing must be **off** so Gradle can write outside
+the Xcode sandbox.
 
-@main
-struct iOSApp: App {
-    init() { Main_iosKt.doInitKoin() }
-    var body: some Scene {
-        WindowGroup { ComposeView().ignoresSafeArea() }
-    }
-}
+### Phase 1 — Minimal viable chat — DONE (commits `7607d2d`, `2722dd5`, `77e1067`, `be4b439`)
 
-struct ComposeView: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> UIViewController {
-        Main_iosKt.MainViewController()
-    }
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
-}
-```
+Done in three slices:
 
-Embed framework via a Run Script build phase:
+1. **Boot + key persistence + one-shot Anthropic chat** (`7607d2d`):
+   - `KeychainKeyVaultGateway` via `platform.Security.SecItem*` (`kSecClassGenericPassword`, accessible-after-first-unlock)
+   - `KeyVaultGateway.getApiKey(provider)` added to the commonMain interface
+   - One-shot `AnthropicClient` (Ktor + Darwin engine)
+   - Real `IosAppStore` subscribing to `OnboardingRepository` / `ThemeRepository` / `ProviderPrefsRepository` — Resume / SetProvider / CompleteOnboarding / SubmitKey / SetPalette / SetThemeMode etc all flow through real persistence
+   - iOS OS-bridge wiring (`onOpenUrl` → UIApplication, `onCopyText` → UIPasteboard, `onOpenAppDetailsSettings` → openSettingsURLString)
+   - `ChatRoute` placeholder replaced with the commonMain `ChatScreen`
 
-```
-./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
-```
+2. **Streaming + multi-provider + multi-conversation** (`2722dd5`):
+   - `LlmClient` interface returning `Flow<LlmChunk>`
+   - `AnthropicLlmClient` (SSE via manual `data:` line parsing)
+   - `OpenAICompatLlmClient` (one impl for OpenAI / OpenRouter / DeepSeek — same wire format, different base URL + auth)
+   - `IosAppStore` routes per `state.activeProvider`; streams chunks into `displayMessages` token-by-token
+   - `Conversations.sq` schema added to `:data:sqldelight` (conversations + messages tables, transactional CRUD)
+   - `IosConversationStoreGateway` (SQLDelight + sqldelight-coroutines-extensions)
+   - `IosAppStore` tracks `currentConversationId`, persists every turn, hydrates on Resume + SelectConversation, autosets title from first user message
+   - Drawer (☰) routes to the commonMain `ConversationsListScreen` for thread switching / deletion
 
-Framework Search Paths:
-`$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)`.
+3. **Persona wiring** (`77e1067`):
+   - Subscribes to `PersonaRepository.activeVoice` / `activeRole`
+   - Composes per-turn system prompt = base + voice instructions + role instructions (matches Weft's `extraVolatilePrefix` shape)
+   - Chat header subtitle shows `<Model> · <PersonaLabel>`
 
-After this: `Cmd-R` launches an iOS Simulator app that boots,
-mounts `App()`, lands at `Screen.Onboarding`. Settings + theme
-screens render. Chat tab shows "Chat — coming to iOS" placeholder.
+4. **Polish** (`be4b439`):
+   - SetProvider with no key routes to KeyPaste (mirrors Android UX)
+   - Header shows the actual model name (`Claude Haiku 4.5`, not `Anthropic`)
 
-### Phase 1 — Minimal viable chat (~3-5 days)
+**Voice — DEFERRED.** K/N 2.0.21's `platform.AVFAudio` bindings
+against the iOS 26.4 SDK can't resolve `AVAudioSession.setActive`
+(method exists in the .knm but the compiler reports "Unresolved
+reference"). `IosSpeechGateway` is a documented stub with
+`isAvailable = false`; mic CTA hides. Scaffolding lives in commit
+`7607d2d` for pickup once Kotlin is upgraded.
 
-The smallest amount of code that gets the user from KeyPaste → "I can
-have a text conversation with the assistant." No tools, no streaming,
-no OAuth, no voice. Just: type → wait → see the reply.
+### Phase 2 — Polish (mostly absorbed into Phase 1)
 
-Components needed:
+The "Phase 2" items in the original plan (streaming, conversation
+persistence, OS bridges, multi-provider) all landed during Phase 1
+because it was cheap to bundle them. Remaining Phase 2 items:
 
-1. **iOS Keychain `KeyVaultGateway`** (~150 LOC)
-   - Replace `StubKeyVaultGateway` with an impl using
-     `platform.Security.SecItemAdd` / `SecItemCopyMatching`.
-   - One generic-password item per provider alias.
-   - Unblocks: KeyPaste → key persists → boot advances past KeyPaste.
-
-2. **Minimal Anthropic Ktor client** (~200 LOC)
-   - Lives in `:composeApp/iosMain` (or a new `:data:ios-agent`
-     module if it grows). Ktor `HttpClient(Darwin)` posting to
-     `https://api.anthropic.com/v1/messages`.
-   - One-shot request/response (no SSE streaming yet).
-   - Just `text → text`. Pass a `messages: List<{role, content}>`
-     history.
-   - **Skip** tool_use, system prompts beyond a minimal one,
-     model routing — pin to `claude-haiku-4-5` or similar.
-
-3. **Real `IosAppStore`** (~250 LOC)
-   - Replaces today's `IosAppStore` stub.
-   - `dispatch(SendChat)` → append user message to
-     `displayMessages` → call the Anthropic client → append assistant
-     reply.
-   - `dispatch(SubmitKey)` → persist via Keychain gateway → set
-     `agentReady = true` → navigate to Chat.
-   - Holds the message history in a `MutableStateList` (no persistence
-     yet — Phase 2 adds SQLDelight).
-
-4. **Real iOS `ChatRoute`** in `iosPlatformAdapter`
-   - Replace the "Chat — coming to iOS" placeholder with a real
-     call to the commonMain `ChatScreen`. Most of `ChatScreen`'s
-     params are already KMP — wire `displayMessages` from
-     `IosAppStore`, no-op the drawer / mini-apps / agent-selector
-     bits.
-
-5. **Stub everything else with clear "not yet" messages**
-   - `StubOAuthGateway` already returns `UserCancelled` ✓
-   - `StubSpeechGateway` no-ops ✓
-   - Hide / disable the Tools / Integrations / MiniApps / Creator
-     sections in the drawer when on iOS (a `LocalPlatform.current`
-     `expect/actual` or just a flag on `PlatformAdapter`).
-
-**Phase 1 deliverable:** iOS user pastes API key → can have a
-conversation with Claude. Settings/theme/personas work. Anything
-agent-tool-shaped politely says "not available on iOS yet."
-
-### Phase 2 — Polish (~1 week, post-launch)
-
-- **Streaming** — Anthropic SSE → emit `StreamChunk.TextDelta` to
-  match Android UX.
-- **Conversation persistence** — add `Conversations.sq` schema to
-  `:data:sqldelight`, write a real iOS `ConversationStoreGateway`
-  impl using SQLDelight. Reuses Android schema → easy port.
-- **OS bridges** — wire `onOpenUrl` / `onCopyText` /
-  `onOpenAppDetailsSettings` to UIKit (4 small Kotlin/Native interop
-  functions).
-- **Multi-provider** — extend the Ktor client to OpenAI + OpenRouter
-  + DeepSeek. Each is ~50 LOC of endpoint + auth-header swapping.
+- **Per-provider model picker** — iOS currently pins one model per
+  provider in the `LlmClient` factories. Wiring
+  `ModelPrefsRepository` overrides into the clients would let the
+  Providers screen drive Sonnet / Opus / GPT-5 / etc. selection.
+- **Voice (when K/N upgrades)** — see deferred note above.
+- **Title auto-improvement** — currently the first 40 chars of the
+  user message. Could ask the model for a 3-5 word summary after
+  the first exchange.
 
 ### Phase 3 — One or two iOS tools (~1-2 weeks, if needed)
 
