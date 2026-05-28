@@ -2,7 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Compose Multiplatform on iOS needs this to render at the
+	     device's actual refresh rate (e.g. 120Hz on ProMotion).
+	     Without it CoreAnimation caps Compose at 60Hz. -->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+
+	<!-- Voice input. SFSpeechRecognizer + AVAudioEngine usage.
+	     iOS shows these strings in the permission prompt the first
+	     time the user taps the mic in the chat input. -->
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Undercurrent uses speech recognition to turn what you say into chat messages.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Undercurrent records your voice so you can dictate chat messages.</string>
 </dict>
 </plist>

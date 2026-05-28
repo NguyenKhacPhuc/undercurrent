@@ -1,0 +1,89 @@
+-- Chat thread + per-message persistence.
+--
+-- iOS-only consumer for now: IosAppStore writes to these tables;
+-- Android continues to use Weft's :harness:conversation store which
+-- has its own schema. Both Android and iOS share the
+-- UndercurrentDatabase class, but Android never queries these tables
+-- in practice.
+--
+-- Title is the leading 40 chars of the first user message — set
+-- lazily on the first turn that has a non-blank user input. Until
+-- then, "New chat" placeholder.
+
+CREATE TABLE conversations (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    created_at_ms INTEGER NOT NULL,
+    last_message_at_ms INTEGER NOT NULL
+);
+
+CREATE INDEX conversations_by_last_message
+    ON conversations(last_message_at_ms DESC);
+
+CREATE TABLE messages (
+    id TEXT NOT NULL PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at_ms INTEGER NOT NULL
+);
+
+CREATE INDEX messages_by_conversation
+    ON messages(conversation_id, created_at_ms);
+
+-- ─── Conversations CRUD ─────────────────────────────────────
+
+listConversations:
+SELECT id, title, created_at_ms, last_message_at_ms
+FROM conversations
+ORDER BY last_message_at_ms DESC;
+
+selectConversation:
+SELECT id, title, created_at_ms, last_message_at_ms
+FROM conversations
+WHERE id = :id;
+
+insertConversation:
+INSERT INTO conversations(id, title, created_at_ms, last_message_at_ms)
+VALUES (?, ?, ?, ?);
+
+updateConversationTitle:
+UPDATE conversations
+SET title = :title, last_message_at_ms = :ts
+WHERE id = :id;
+
+touchConversation:
+UPDATE conversations
+SET last_message_at_ms = :ts
+WHERE id = :id;
+
+deleteConversation:
+DELETE FROM conversations
+WHERE id = :id;
+
+deleteMessagesForConversation:
+DELETE FROM messages
+WHERE conversation_id = :id;
+
+clearAllConversations:
+DELETE FROM conversations;
+
+clearAllMessages:
+DELETE FROM messages;
+
+countMessagesForConversation:
+SELECT COUNT(*)
+FROM messages
+WHERE conversation_id = :id;
+
+-- ─── Messages CRUD ──────────────────────────────────────────
+
+listMessagesByConversation:
+SELECT id, conversation_id, role, content, created_at_ms
+FROM messages
+WHERE conversation_id = :id
+ORDER BY created_at_ms;
+
+insertMessage:
+INSERT INTO messages(id, conversation_id, role, content, created_at_ms)
+VALUES (?, ?, ?, ?, ?);

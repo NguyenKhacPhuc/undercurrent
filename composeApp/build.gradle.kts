@@ -72,6 +72,10 @@ kotlin {
             implementation(libs.ktor.client.darwin)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
+            // SQLDelight reactive queries — used by IosConversationStoreGateway
+            // to expose `asFlow().mapToList(...)` against the conversations
+            // table.
+            implementation(libs.sqldelight.coroutines.extensions)
         }
     }
 }

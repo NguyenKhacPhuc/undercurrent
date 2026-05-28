@@ -62,16 +62,22 @@ private fun IosChatRoute() {
         lastModelId = "claude-haiku-4-5",
         degradedMode = null,
         speechGateway = speech,
-        // Voice input not wired on iOS yet — StubSpeechGateway no-ops
-        // so granting the permission wouldn't help. Hide the mic CTA.
+        // iOS voice deferred — IosSpeechGateway reports
+        // isAvailable=false until the AVAudioSession.setActive
+        // cinterop resolution is sorted out. Mic CTA hidden via the
+        // gateway's availability flag; this flag is informational.
         hasMicPermission = false,
-        onRequestMicPermission = { /* no-op */ },
+        onRequestMicPermission = { /* iOS voice deferred */ },
         onCopyText = { text -> UIPasteboard.generalPasteboard.string = text },
         onOpenUrl = { url -> openUrl(url) },
-        // No drawer on iOS yet — multi-thread conversation history is
-        // Phase 2. The onOpenDrawer callback fires when the user taps
-        // the hamburger; tapping does nothing visible.
-        onOpenDrawer = { /* no-op */ },
+        // No native drawer composable on iOS — the hamburger tap
+        // routes to the Conversations list screen (commonMain) which
+        // shows all persisted threads and supports switching /
+        // deleting. The user taps a row → ConversationsListScreen
+        // dispatches SelectConversation, which hydrates from SQLDelight.
+        onOpenDrawer = {
+            store.dispatch(AppIntent.Navigate(dev.weft.undercurrent.core.navigation.Screen.Conversations))
+        },
         onNewChat = { store.dispatch(AppIntent.NewChat) },
         onDeleteThread = { store.dispatch(AppIntent.NewChat) },
         onRegenerate = { store.dispatch(AppIntent.RegenerateLast) },

@@ -27,13 +27,12 @@ import dev.weft.undercurrent.shared.gateway.MemoryStoreGateway
 import dev.weft.undercurrent.shared.gateway.ModelCatalog
 import dev.weft.undercurrent.shared.gateway.OAuthGateway
 import dev.weft.undercurrent.shared.gateway.SpeechGateway
-import dev.weft.undercurrent.shared.gateway.StubConversationStoreGateway
 import dev.weft.undercurrent.shared.gateway.StubKeyValidationGateway
 import dev.weft.undercurrent.shared.gateway.KeychainKeyVaultGateway
 import dev.weft.undercurrent.shared.gateway.StubMemoryStoreGateway
 import dev.weft.undercurrent.shared.gateway.StubModelCatalog
 import dev.weft.undercurrent.shared.gateway.StubOAuthGateway
-import dev.weft.undercurrent.shared.gateway.StubSpeechGateway
+import dev.weft.undercurrent.shared.gateway.IosSpeechGateway
 import dev.weft.undercurrent.shared.gateway.StubTraceStoreGateway
 import dev.weft.undercurrent.shared.gateway.StubUiBridgeGateway
 import dev.weft.undercurrent.shared.gateway.StubUsageGateway
@@ -105,12 +104,12 @@ public val iosAppModule = module {
     single<KeyVaultGateway> { KeychainKeyVaultGateway() }
     single<KeyValidationGateway> { StubKeyValidationGateway() }
     single<OAuthGateway> { StubOAuthGateway() }
-    single<ConversationStoreGateway> { StubConversationStoreGateway() }
+    single<ConversationStoreGateway> { IosConversationStoreGateway(get()) }
     single<MemoryStoreGateway> { StubMemoryStoreGateway() }
     single<TraceStoreGateway> { StubTraceStoreGateway() }
     single<UsageGateway> { StubUsageGateway() }
     single<ModelCatalog> { StubModelCatalog() }
-    single<SpeechGateway> { StubSpeechGateway() }
+    single<SpeechGateway> { IosSpeechGateway() }
     single<UiBridgeGateway> { StubUiBridgeGateway() }
 
     // ─── AppStore — iOS impl ────────────────────────────────────────
@@ -120,6 +119,7 @@ public val iosAppModule = module {
             onboardingRepo = get(),
             themeRepo = get(),
             providerPrefsRepo = get(),
+            db = get(),
         )
     }
 

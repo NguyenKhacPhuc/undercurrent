@@ -2,14 +2,21 @@ package dev.weft.undercurrent.app
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import dev.weft.undercurrent.app.AnthropicClient.Message.Companion.ROLE_ASSISTANT
-import dev.weft.undercurrent.app.AnthropicClient.Message.Companion.ROLE_USER
+import dev.weft.undercurrent.app.llm.AnthropicLlmClient
+import dev.weft.undercurrent.app.llm.IOS_SYSTEM_PROMPT
+import dev.weft.undercurrent.app.llm.LlmChunk
+import dev.weft.undercurrent.app.llm.LlmClient
+import dev.weft.undercurrent.app.llm.LlmMessage
+import dev.weft.undercurrent.app.llm.deepSeekClient
+import dev.weft.undercurrent.app.llm.openAIClient
+import dev.weft.undercurrent.app.llm.openRouterClient
 import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.ProviderKind
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.data.datastore.OnboardingRepository
 import dev.weft.undercurrent.data.datastore.ProviderPrefsRepository
 import dev.weft.undercurrent.data.datastore.ThemeRepository
+import dev.weft.undercurrent.db.UndercurrentDatabase
 import dev.weft.undercurrent.feature.chat.DisplayMessage
 import dev.weft.undercurrent.feature.chat.DisplayRole
 import dev.weft.undercurrent.feature.chat.SkillSummary
@@ -26,29 +33,31 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
- * iOS [AppStore] impl. Backed by:
- *  - Real DataStore-Preferences for theme / persona / onboarding /
- *    provider prefs (via the KMP repos in `:data:datastore`).
- *  - Real iOS Keychain for API key storage (via
- *    [dev.weft.undercurrent.shared.gateway.KeychainKeyVaultGateway]).
- *  - No agent runtime yet — `SendChat` and friends still no-op until
- *    the Ktor-based Anthropic client lands (Phase 1, next step).
+ * iOS [AppStore] impl. Persistence layers:
+ *  - DataStore-Preferences for theme / onboarding / provider prefs
+ *  - iOS Keychain for API keys
+ *  - SQLDelight (`UndercurrentDatabase`) for conversations + messages
  *
- * What works on iOS after this:
- *  - Onboarding completion persists across restarts.
- *  - API key paste persists (Keychain) and survives uninstall by default.
- *  - Theme palette + mode persist (DataStore).
- *  - Active provider + default tier persist.
- *  - Chat surface still shows the "Chat — coming to iOS" placeholder
- *    until the Anthropic client lands.
+ * Streaming LLM clients per provider (Anthropic / OpenAI / OpenRouter /
+ * DeepSeek). Multi-conversation: chat threads persist across restarts;
+ * the user can switch between threads via the Conversations screen.
+ *
+ * Still no-op (deferred): tools, OAuth, mini-apps, traces, memory,
+ * voice (waiting on cinterop fix).
  */
+@OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
 public class IosAppStore(
     private val keyVault: KeyVaultGateway,
     private val onboardingRepo: OnboardingRepository,
     private val themeRepo: ThemeRepository,
     private val providerPrefsRepo: ProviderPrefsRepository,
+    private val db: UndercurrentDatabase,
 ) : AppStore {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -62,16 +71,22 @@ public class IosAppStore(
     override val displayMessages: SnapshotStateList<DisplayMessage> = mutableStateListOf()
     override val skills: List<SkillSummary> = emptyList()
 
-    /**
-     * In-memory conversation history fed to the Anthropic Messages API.
-     * Mirrors [displayMessages] but stripped to alternating user/
-     * assistant roles (no tool / event entries). Reset on `NewChat`
-     * and survives only the session — persistent history is Phase 2.
-     */
-    private val anthropicHistory: MutableList<AnthropicClient.Message> = mutableListOf()
+    /** In-memory history kept in sync with the persisted messages of the current conversation. */
+    private val history: MutableList<LlmMessage> = mutableListOf()
 
-    private val anthropic = AnthropicClient(
-        getApiKey = { keyVault.getApiKey(ProviderKind.Anthropic) },
+    private val clients: Map<ProviderKind, LlmClient> = mapOf(
+        ProviderKind.Anthropic to AnthropicLlmClient(
+            getApiKey = { keyVault.getApiKey(ProviderKind.Anthropic) },
+        ),
+        ProviderKind.OpenAI to openAIClient(
+            getApiKey = { keyVault.getApiKey(ProviderKind.OpenAI) },
+        ),
+        ProviderKind.OpenRouter to openRouterClient(
+            getApiKey = { keyVault.getApiKey(ProviderKind.OpenRouter) },
+        ),
+        ProviderKind.DeepSeek to deepSeekClient(
+            getApiKey = { keyVault.getApiKey(ProviderKind.DeepSeek) },
+        ),
     )
 
     init {
@@ -115,20 +130,15 @@ public class IosAppStore(
                 runCatching { keyVault.putApiKey(provider, intent.key) }
                     .onFailure { t ->
                         _effects.trySend(
-                            AppEffect.Error(
-                                "Couldn't save key: ${t.message ?: t::class.simpleName.orEmpty()}",
-                            ),
+                            AppEffect.Error("Couldn't save key: ${t.message ?: t::class.simpleName.orEmpty()}"),
                         )
                         return@launch
                     }
                 refreshProviderKeyStatus()
-                _state.value = _state.value.copy(
-                    agentReady = true,
-                    screen = Screen.Chat,
-                )
+                _state.value = _state.value.copy(agentReady = true, screen = Screen.Chat)
             }
 
-            // ── Plain navigation + persistent state mutations ────
+            // ── Plain navigation + state mutations ────────────────
             is AppIntent.Navigate -> _state.value = _state.value.let {
                 if (it.screen == intent.screen) it
                 else it.copy(screen = intent.screen, previousScreen = it.screen)
@@ -150,13 +160,8 @@ public class IosAppStore(
             is AppIntent.RemoveProviderKey -> scope.launch {
                 runCatching { keyVault.clearApiKey(intent.provider) }
                 refreshProviderKeyStatus()
-                // Mirror Android: clearing the active provider's key
-                // drops the agent + sends the user back to KeyPaste.
                 if (intent.provider == providerPrefsRepo.activeProviderNow()) {
-                    _state.value = _state.value.copy(
-                        agentReady = false,
-                        screen = Screen.KeyPaste,
-                    )
+                    _state.value = _state.value.copy(agentReady = false, screen = Screen.KeyPaste)
                 }
             }
             is AppIntent.SelectAgent -> _state.value = _state.value.copy(
@@ -166,24 +171,23 @@ public class IosAppStore(
                 pendingPermissionDialog = null,
             )
 
-            // ── Real chat (Anthropic only, no tools, no streaming) ──
+            // ── Chat + conversation lifecycle ──────────────────────
             is AppIntent.SendChat -> scope.launch { handleSendChat(intent.text) }
-            AppIntent.NewChat -> {
-                anthropicHistory.clear()
-                displayMessages.clear()
-                _state.value = _state.value.copy(chat = ChatStatus())
-            }
+            AppIntent.NewChat -> scope.launch { handleNewChat() }
             AppIntent.RegenerateLast -> scope.launch { handleRegenerate() }
+            is AppIntent.SelectConversation -> scope.launch {
+                handleSelectConversation(intent.id)
+            }
+            is AppIntent.DeleteConversation -> scope.launch {
+                handleDeleteConversation(intent.id)
+            }
+            AppIntent.DeleteCurrentConversation -> scope.launch {
+                val currentId = _state.value.currentConversationId ?: return@launch
+                handleDeleteConversation(currentId)
+            }
 
-            // ── Still no-op on iOS ──────────────────────────────────
-            // Need persistent conversations / agent declarations /
-            // ui_render / etc. Either feature isn't wired (mini-apps,
-            // creator) or needs Phase 2+ work (multi-conversation
-            // history, traces, agent selector, tools).
-            AppIntent.DeleteCurrentConversation,
+            // ── Still no-op (Phase 3+) ──────────────────────────────
             AppIntent.CancelCreator,
-            is AppIntent.SelectConversation,
-            is AppIntent.DeleteConversation,
             is AppIntent.ExportTrace,
             is AppIntent.UiBridgeUpdate,
             is AppIntent.InvokeMiniApp,
@@ -192,84 +196,13 @@ public class IosAppStore(
         }
     }
 
-    /** One round-trip against Anthropic. No streaming yet — Phase 2. */
-    private suspend fun handleSendChat(text: String) {
-        val trimmed = text.trim()
-        if (trimmed.isBlank()) return
-        if (_state.value.chat.inFlight) return
-
-        _state.value = _state.value.copy(
-            chat = ChatStatus(inFlight = true, lastError = null),
-        )
-        displayMessages += DisplayMessage.user(trimmed)
-        anthropicHistory += AnthropicClient.Message(ROLE_USER, trimmed)
-
-        val result = withContext(Dispatchers.Default) {
-            runCatching { anthropic.send(anthropicHistory) }
-        }
-        result.fold(
-            onSuccess = { reply ->
-                anthropicHistory += AnthropicClient.Message(ROLE_ASSISTANT, reply)
-                displayMessages += DisplayMessage.assistant(
-                    text = reply,
-                    agentName = _state.value.activeAgentName,
-                )
-                _state.value = _state.value.copy(chat = ChatStatus(inFlight = false))
-            },
-            onFailure = { t ->
-                // Roll the user message back out of the model-facing
-                // history so retry doesn't double up. The display
-                // message stays so the user sees what they sent.
-                anthropicHistory.removeLastOrNull()
-                _state.value = _state.value.copy(
-                    chat = ChatStatus(
-                        inFlight = false,
-                        lastError = t.message ?: t::class.simpleName.orEmpty(),
-                    ),
-                )
-            },
-        )
-    }
-
-    /** "Ask again" — replay the last user message after popping the previous reply. */
-    private suspend fun handleRegenerate() {
-        if (_state.value.chat.inFlight) return
-        val lastUserIdx = displayMessages.indexOfLast { it.role == DisplayRole.USER }
-        if (lastUserIdx == -1) return
-        val lastUserText = displayMessages[lastUserIdx].text
-
-        // Trim display + history to just-through-last-user.
-        while (displayMessages.size > lastUserIdx + 1) {
-            displayMessages.removeAt(displayMessages.size - 1)
-        }
-        while (anthropicHistory.isNotEmpty() && anthropicHistory.last().role != ROLE_USER) {
-            anthropicHistory.removeAt(anthropicHistory.size - 1)
-        }
-        // Pop the trailing user too — handleSendChat re-appends it.
-        if (anthropicHistory.lastOrNull()?.role == ROLE_USER) {
-            anthropicHistory.removeAt(anthropicHistory.size - 1)
-        }
-        // Same pop for displayMessages so handleSendChat re-appends.
-        if (displayMessages.lastOrNull()?.role == DisplayRole.USER) {
-            displayMessages.removeAt(displayMessages.size - 1)
-        }
-        handleSendChat(lastUserText)
-    }
-
     override suspend fun sendUiEvent(
         action: String,
         sourceLabel: String?,
         fieldValues: Map<String, String>,
-    ) {
-        // No-op until a real iOS agent lands.
-    }
+    ) = Unit
 
     override suspend fun saveKey(key: String) {
-        // Suspend variant used by the KeyPaste screen's `saveKey`
-        // callback. The screen also dispatches SubmitKey afterwards,
-        // which is where we persist + advance — this method writes
-        // the key without changing screen state so the dispatch path
-        // owns transitions.
         val provider = providerPrefsRepo.activeProviderNow()
         withContext(Dispatchers.Default) {
             runCatching { keyVault.putApiKey(provider, key) }
@@ -293,21 +226,242 @@ public class IosAppStore(
             _state.value = _state.value.copy(screen = Screen.KeyPaste)
             return
         }
-        // Key present + onboarding done → land on Chat. The Chat surface
-        // renders the "Chat — coming to iOS" placeholder; `agentReady`
-        // is true so the screen actually mounts (vs. defensive
-        // redirect-to-KeyPaste in ScreenRouter).
+        // Land on the most recent conversation if any exists; the
+        // ConversationsListScreen lets the user switch.
+        val mostRecent = withContext(Dispatchers.Default) {
+            db.conversationsQueries.listConversations().executeAsList().firstOrNull()
+        }
+        if (mostRecent != null) {
+            hydrateFromConversation(mostRecent.id)
+        } else {
+            history.clear()
+            displayMessages.clear()
+        }
         _state.value = _state.value.copy(
             agentReady = true,
             screen = Screen.Chat,
+            currentConversationId = mostRecent?.id,
         )
     }
 
+    // ─── Streaming chat ───────────────────────────────────────────
+
+    private suspend fun handleSendChat(text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isBlank()) return
+        if (_state.value.chat.inFlight) return
+
+        val provider = _state.value.activeProvider
+        val client = clients[provider] ?: run {
+            _state.value = _state.value.copy(
+                chat = ChatStatus(inFlight = false, lastError = "No client for $provider"),
+            )
+            return
+        }
+
+        val now = Clock.System.now().toEpochMilliseconds()
+        val conversationId = ensureConversation(now)
+        val isFirstUserTurn = history.none { it.role == LlmMessage.ROLE_USER }
+
+        _state.value = _state.value.copy(
+            chat = ChatStatus(inFlight = true, lastError = null),
+            currentConversationId = conversationId,
+        )
+
+        displayMessages += DisplayMessage.user(trimmed)
+        history += LlmMessage(LlmMessage.ROLE_USER, trimmed)
+
+        // Persist the user turn synchronously so a process kill mid-
+        // stream doesn't lose it.
+        withContext(Dispatchers.Default) {
+            db.conversationsQueries.insertMessage(
+                id = newId("msg"),
+                conversation_id = conversationId,
+                role = LlmMessage.ROLE_USER,
+                content = trimmed,
+                created_at_ms = now,
+            )
+            db.conversationsQueries.touchConversation(now, conversationId)
+            if (isFirstUserTurn) {
+                db.conversationsQueries.updateConversationTitle(
+                    title = trimmed.take(40),
+                    ts = now,
+                    id = conversationId,
+                )
+            }
+        }
+
+        var assistantMessageId: Long? = null
+        val replyBuilder = StringBuilder()
+        var sawError = false
+
+        client.send(history, IOS_SYSTEM_PROMPT).collect { chunk ->
+            when (chunk) {
+                is LlmChunk.TextDelta -> {
+                    replyBuilder.append(chunk.text)
+                    val existingId = assistantMessageId
+                    if (existingId == null) {
+                        val msg = DisplayMessage.assistant(
+                            text = chunk.text,
+                            agentName = _state.value.activeAgentName,
+                        )
+                        assistantMessageId = msg.id
+                        displayMessages += msg
+                    } else {
+                        val idx = displayMessages.indexOfLast { it.id == existingId }
+                        if (idx >= 0) {
+                            val current = displayMessages[idx]
+                            displayMessages[idx] = current.copy(
+                                text = current.text + chunk.text,
+                            )
+                        }
+                    }
+                }
+                is LlmChunk.Error -> {
+                    sawError = true
+                    _state.value = _state.value.copy(
+                        chat = _state.value.chat.copy(lastError = chunk.message),
+                    )
+                }
+                LlmChunk.Done -> Unit
+            }
+        }
+
+        if (sawError) {
+            // Roll the user turn off model-facing history (display
+            // keeps it so the user can see what they sent). Don't
+            // touch the DB — the user message stays persisted; on
+            // re-load the failed turn is visible without a reply.
+            if (history.isNotEmpty()) history.removeAt(history.size - 1)
+        } else {
+            val reply = replyBuilder.toString()
+            if (reply.isNotEmpty()) {
+                history += LlmMessage(LlmMessage.ROLE_ASSISTANT, reply)
+                val replyTs = Clock.System.now().toEpochMilliseconds()
+                withContext(Dispatchers.Default) {
+                    db.conversationsQueries.insertMessage(
+                        id = newId("msg"),
+                        conversation_id = conversationId,
+                        role = LlmMessage.ROLE_ASSISTANT,
+                        content = reply,
+                        created_at_ms = replyTs,
+                    )
+                    db.conversationsQueries.touchConversation(replyTs, conversationId)
+                }
+            }
+        }
+        _state.value = _state.value.copy(
+            chat = _state.value.chat.copy(inFlight = false),
+        )
+    }
+
+    private suspend fun handleNewChat() {
+        history.clear()
+        displayMessages.clear()
+        _state.value = _state.value.copy(
+            screen = Screen.Chat,
+            chat = ChatStatus(),
+            currentConversationId = null, // Lazy — created on next SendChat.
+        )
+    }
+
+    private suspend fun handleRegenerate() {
+        if (_state.value.chat.inFlight) return
+        val lastUserIdx = displayMessages.indexOfLast { it.role == DisplayRole.USER }
+        if (lastUserIdx == -1) return
+        val lastUserText = displayMessages[lastUserIdx].text
+
+        // Trim display + history + DB back to just-before-the-last-user.
+        // We don't fully reset the DB row for the user message — keeping
+        // it lets the user see what they sent. We just drop the trailing
+        // assistant reply (if any) so handleSendChat replays cleanly.
+        while (displayMessages.size > lastUserIdx + 1) {
+            displayMessages.removeAt(displayMessages.size - 1)
+        }
+        while (history.isNotEmpty() && history.last().role != LlmMessage.ROLE_USER) {
+            history.removeAt(history.size - 1)
+        }
+        if (history.lastOrNull()?.role == LlmMessage.ROLE_USER) {
+            history.removeAt(history.size - 1)
+        }
+        if (displayMessages.lastOrNull()?.role == DisplayRole.USER) {
+            displayMessages.removeAt(displayMessages.size - 1)
+        }
+        handleSendChat(lastUserText)
+    }
+
+    private suspend fun handleSelectConversation(id: String) {
+        if (_state.value.currentConversationId == id) {
+            _state.value = _state.value.copy(screen = Screen.Chat)
+            return
+        }
+        hydrateFromConversation(id)
+        _state.value = _state.value.copy(
+            screen = Screen.Chat,
+            currentConversationId = id,
+            chat = ChatStatus(),
+        )
+    }
+
+    private suspend fun handleDeleteConversation(id: String) {
+        val wasActive = _state.value.currentConversationId == id
+        withContext(Dispatchers.Default) {
+            db.transaction {
+                db.conversationsQueries.deleteMessagesForConversation(id)
+                db.conversationsQueries.deleteConversation(id)
+            }
+        }
+        if (wasActive) {
+            history.clear()
+            displayMessages.clear()
+            _state.value = _state.value.copy(
+                screen = Screen.Chat,
+                chat = ChatStatus(),
+                currentConversationId = null,
+            )
+        }
+    }
+
+    // ─── DB helpers ───────────────────────────────────────────────
+
+    /** Ensure a conversation row exists; create one if [currentConversationId] is null. */
+    private suspend fun ensureConversation(nowMs: Long): String {
+        val existing = _state.value.currentConversationId
+        if (existing != null) return existing
+        val id = newId("conv")
+        withContext(Dispatchers.Default) {
+            db.conversationsQueries.insertConversation(
+                id = id,
+                title = "New chat",
+                created_at_ms = nowMs,
+                last_message_at_ms = nowMs,
+            )
+        }
+        return id
+    }
+
+    /** Load every message for [id] into history + displayMessages. */
+    private suspend fun hydrateFromConversation(id: String) {
+        val rows = withContext(Dispatchers.Default) {
+            db.conversationsQueries.listMessagesByConversation(id).executeAsList()
+        }
+        history.clear()
+        displayMessages.clear()
+        for (row in rows) {
+            history += LlmMessage(role = row.role, content = row.content)
+            when (row.role) {
+                LlmMessage.ROLE_USER ->
+                    displayMessages += DisplayMessage.user(row.content)
+                LlmMessage.ROLE_ASSISTANT ->
+                    displayMessages += DisplayMessage.assistant(
+                        text = row.content,
+                        agentName = _state.value.activeAgentName,
+                    )
+            }
+        }
+    }
+
     // ─── Provider key status snapshot ─────────────────────────────
-    // Iterates KeyVaultGateway.hasApiKey for each provider. The map
-    // value is a placeholder string ("•••") since the gateway doesn't
-    // expose last-4 — the Providers screen renders "configured" when
-    // an entry exists, otherwise "Add key".
 
     private suspend fun refreshProviderKeyStatus() {
         val status = withContext(Dispatchers.Default) {
@@ -321,4 +475,6 @@ public class IosAppStore(
         }
         _state.value = _state.value.copy(providerKeyStatus = status)
     }
+
+    private fun newId(prefix: String): String = "$prefix.${Uuid.random().toString().take(12)}"
 }
