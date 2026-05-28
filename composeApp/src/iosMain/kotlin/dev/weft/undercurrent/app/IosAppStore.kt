@@ -203,11 +203,19 @@ public class IosAppStore(
                 handleDeleteConversation(currentId)
             }
 
+            // ── Mini-app invocation (text-only on iOS) ──────────────
+            // No ui_render on iOS yet → no cached-tree seeding, no
+            // RenderedTree screen navigation. Just dispatch the trigger
+            // prompt as if the user typed it. The Phase-3+ work to bring
+            // ui_render to iOS will replace this with the full flow.
+            is AppIntent.InvokeMiniApp -> scope.launch {
+                handleSendChat(intent.triggerPrompt)
+            }
+
             // ── Still no-op (Phase 3+) ──────────────────────────────
             AppIntent.CancelCreator,
             is AppIntent.ExportTrace,
             is AppIntent.UiBridgeUpdate,
-            is AppIntent.InvokeMiniApp,
             is AppIntent.SetModelForTier,
             is AppIntent.StartCreator -> Unit
         }

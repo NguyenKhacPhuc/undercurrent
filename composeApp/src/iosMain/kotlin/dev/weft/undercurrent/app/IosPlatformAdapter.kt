@@ -9,9 +9,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import dev.weft.undercurrent.core.model.ProviderKind
+import dev.weft.undercurrent.data.datastore.MiniAppsRepository
 import dev.weft.undercurrent.data.datastore.PersonaRepository
+import dev.weft.undercurrent.feature.chat.AddToChatConfig
 import dev.weft.undercurrent.feature.chat.ChatScreen
 import dev.weft.undercurrent.shared.gateway.SpeechGateway
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import org.koin.compose.koinInject
@@ -34,7 +38,7 @@ import platform.UIKit.UIPasteboard
 public fun iosPlatformAdapter(): PlatformAdapter = PlatformAdapter(
     chatRoute = { IosChatRoute() },
     renderedTreeRoute = { IosPlaceholder(label = "Rendered tree") },
-    miniAppsRoute = { IosPlaceholder(label = "Mini apps") },
+    miniAppsRoute = { IosMiniAppsRoute() },
     creatorRoute = { IosPlaceholder(label = "Creator") },
     onOpenUrl = { url -> openUrl(url) },
     onCopyText = { text -> UIPasteboard.generalPasteboard.string = text },
@@ -51,9 +55,12 @@ private fun IosChatRoute() {
     val store: AppStore = koinInject()
     val speech: SpeechGateway = koinInject()
     val personaRepo: PersonaRepository = koinInject()
+    val miniAppsRepo: MiniAppsRepository = koinInject()
+    val miniAppsScope = rememberCoroutineScope()
     val state by store.state.collectAsState()
     val activeVoice by personaRepo.activeVoice.collectAsState()
     val activeRole by personaRepo.activeRole.collectAsState()
+    val miniApps by miniAppsRepo.miniApps.collectAsState()
 
     // Persona label: voice + role joined. Default voice + no role → "Default".
     val personaLabel = run {
@@ -109,10 +116,86 @@ private fun IosChatRoute() {
         onDeleteThread = { store.dispatch(AppIntent.NewChat) },
         onRegenerate = { store.dispatch(AppIntent.RegenerateLast) },
         skills = null,
-        addToChatConfig = null,
+        // The Add-to-Chat sheet ("+") gives iOS users access to:
+        //  - Theme palette + mode toggles
+        //  - Persona picker shortcut
+        //  - Mini-apps row + invocation (text-only — no ui_render on iOS yet)
+        //  - "Add a mini-app" affordance
+        // Integrations row hidden because StubOAuthGateway can't actually
+        // connect anything; connectedIntegrationsCount stays 0.
+        addToChatConfig = AddToChatConfig(
+            activePalette = state.themePrefs.palette,
+            activeMode = state.themePrefs.mode,
+            connectedIntegrationsCount = 0,
+            miniApps = miniApps,
+            onSelectPalette = { p -> store.dispatch(AppIntent.SetPalette(p)) },
+            onSelectMode = { m -> store.dispatch(AppIntent.SetThemeMode(m)) },
+            onShowPersonas = {
+                store.dispatch(AppIntent.Navigate(dev.weft.undercurrent.core.navigation.Screen.Personas))
+            },
+            onShowIntegrations = {
+                store.dispatch(AppIntent.Navigate(dev.weft.undercurrent.core.navigation.Screen.Integrations))
+            },
+            onShowMiniApps = {
+                store.dispatch(AppIntent.Navigate(dev.weft.undercurrent.core.navigation.Screen.MiniApps))
+            },
+            onInvokeMiniApp = { miniApp ->
+                store.dispatch(
+                    AppIntent.InvokeMiniApp(
+                        miniAppId = miniApp.id,
+                        triggerPrompt = miniApp.triggerPrompt,
+                        cachedRenderTreeJson = null,
+                    ),
+                )
+            },
+            onAddMiniApp = { name, emoji, prompt ->
+                miniAppsScope.launch {
+                    miniAppsRepo.add(name, emoji, prompt)
+                }
+            },
+        ),
         agents = emptyList(),
         activeAgentName = state.activeAgentName,
         onSelectAgent = { },
+    )
+}
+
+@Composable
+private fun IosMiniAppsRoute() {
+    val store: AppStore = koinInject()
+    dev.weft.undercurrent.feature.miniapps.MiniAppsScreen(
+        // No ui_render preview on iOS — show a "(no preview)" label.
+        // The user still sees the mini-app card (name + emoji +
+        // trigger prompt) and tapping invokes via SendChat.
+        treePreview = { _, _ ->
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) { Text("(no preview)") }
+        },
+        onBack = {
+            store.dispatch(
+                AppIntent.Navigate(dev.weft.undercurrent.core.navigation.Screen.Chat),
+            )
+        },
+        onOpenMiniApp = { miniApp ->
+            store.dispatch(
+                AppIntent.InvokeMiniApp(
+                    miniAppId = miniApp.id,
+                    triggerPrompt = miniApp.triggerPrompt,
+                    cachedRenderTreeJson = null,
+                ),
+            )
+        },
+        onStartCreator = {
+            // Creator wizard requires the agent's `ui_render` tool to
+            // pose QnA — not available on iOS yet. The "+ New" button
+            // in MiniAppsScreen calls this; we surface an effect-style
+            // message instead of letting the user wander into a
+            // broken flow.
+            //
+            // TODO when iOS ui_render lands: dispatch StartCreator(MiniApp).
+        },
     )
 }
 
