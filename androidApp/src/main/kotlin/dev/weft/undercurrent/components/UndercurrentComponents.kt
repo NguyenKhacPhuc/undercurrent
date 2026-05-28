@@ -1,6 +1,7 @@
 package dev.weft.undercurrent.components
 
 import coil.ImageLoader
+import dev.weft.compose.components.EmbedComponents
 import dev.weft.compose.components.WeftComponent
 
 /**
@@ -65,4 +66,12 @@ internal fun undercurrentComponents(imageLoader: ImageLoader): List<WeftComponen
         // ── Ninth wave — social ─────────────────────────────────────
         socialComponents(imageLoader) +
         // ── Tenth wave — music + games ──────────────────────────────
-        musicGamesComponents(imageLoader)
+        musicGamesComponents(imageLoader) +
+        // ── Eleventh wave — embed (HTML / WebView) ──────────────────
+        // Lifted from the substrate's :android-compose-defaults rather than
+        // re-implemented here. HtmlComponent (with runScripts=true) is the
+        // path for self-contained interactive widgets — calculators,
+        // countdowns, mini-games (snake, tic-tac-toe). Without these in the
+        // registry the agent has no choice but to dump HTML source into a
+        // Text block.
+        EmbedComponents
