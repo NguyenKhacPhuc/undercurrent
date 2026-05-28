@@ -14,6 +14,9 @@ kotlin {
         commonMain.dependencies {
             // PersonaRepository (active voice / role + custom personas).
             implementation(projects.data.datastore)
+            // Store<State, Intent, Effect> MVI base + the gateway
+            // interfaces in :shared/commonMain.
+            implementation(projects.shared)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

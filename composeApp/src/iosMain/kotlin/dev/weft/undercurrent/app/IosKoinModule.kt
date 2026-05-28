@@ -17,7 +17,7 @@ import dev.weft.undercurrent.feature.conversations.ConversationsViewModel
 import dev.weft.undercurrent.feature.creator.CreatorSession
 import dev.weft.undercurrent.feature.memories.MemoriesViewModel
 import dev.weft.undercurrent.feature.miniapps.MiniAppsViewModel
-import dev.weft.undercurrent.feature.personas.PersonasViewModel
+import dev.weft.undercurrent.feature.personas.PersonasStore
 import dev.weft.undercurrent.feature.traces.TracesViewModel
 import dev.weft.undercurrent.feature.usage.UsageViewModel
 import dev.weft.undercurrent.shared.gateway.ConversationStoreGateway
@@ -128,7 +128,7 @@ public val iosAppModule = module {
     // Same per-screen VMs as Android — they consume the gateway
     // interfaces, so they don't care whether the backing impl is the
     // Weft one or the iOS stub.
-    viewModel { PersonasViewModel(repo = get()) }
+    viewModel { PersonasStore(repo = get()) }
     viewModel { MiniAppsViewModel(repo = get()) }
     viewModel { UsageViewModel(gateway = get()) }
     viewModel { MemoriesViewModel(store = get()) }

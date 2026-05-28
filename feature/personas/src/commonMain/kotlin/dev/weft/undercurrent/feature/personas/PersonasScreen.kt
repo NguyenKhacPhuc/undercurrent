@@ -63,11 +63,12 @@ import org.koin.compose.viewmodel.koinViewModel
 public fun PersonasScreen(
     onBack: () -> Unit,
     onStartCreator: (PersonaKind) -> Unit = {},
-    vm: PersonasViewModel = koinViewModel(),
+    store: PersonasStore = koinViewModel(),
 ) {
-    val activeVoice by vm.activeVoice.collectAsState()
-    val activeRole by vm.activeRole.collectAsState()
-    val customPersonas by vm.customPersonas.collectAsState()
+    val s by store.state.collectAsState()
+    val activeVoice = s.activeVoice
+    val activeRole = s.activeRole
+    val customPersonas = s.customPersonas
 
     val activeVoiceId = activeVoice.id
     val activeRoleId = activeRole?.id
@@ -119,7 +120,7 @@ public fun PersonasScreen(
                 PersonaCard(
                     persona = persona,
                     active = persona.id == activeVoiceId || persona.id == activeRoleId,
-                    onTap = { vm.onPersonaTap(persona) },
+                    onTap = { store.dispatch(PersonasIntent.TapPersona(persona)) },
                     onLongPress = null,
                 )
             }
@@ -127,7 +128,7 @@ public fun PersonasScreen(
                 PersonaCard(
                     persona = persona,
                     active = persona.id == activeVoiceId || persona.id == activeRoleId,
-                    onTap = { vm.onPersonaTap(persona) },
+                    onTap = { store.dispatch(PersonasIntent.TapPersona(persona)) },
                     onLongPress = { editorMode = EditorMode.Edit(persona) },
                 )
             }
@@ -142,7 +143,7 @@ public fun PersonasScreen(
                 PersonaCard(
                     persona = persona,
                     active = persona.id == activeVoiceId || persona.id == activeRoleId,
-                    onTap = { vm.onPersonaTap(persona) },
+                    onTap = { store.dispatch(PersonasIntent.TapPersona(persona)) },
                     onLongPress = null,
                 )
             }
@@ -150,7 +151,7 @@ public fun PersonasScreen(
                 PersonaCard(
                     persona = persona,
                     active = persona.id == activeVoiceId || persona.id == activeRoleId,
-                    onTap = { vm.onPersonaTap(persona) },
+                    onTap = { store.dispatch(PersonasIntent.TapPersona(persona)) },
                     onLongPress = { editorMode = EditorMode.Edit(persona) },
                 )
             }
@@ -176,7 +177,7 @@ public fun PersonasScreen(
             onDismiss = { editorMode = null },
             onSave = { name, tagline, text ->
                 editorMode = null
-                vm.addCustom(name, tagline, text, mode.kind)
+                store.dispatch(PersonasIntent.AddCustom(name, tagline, text, mode.kind))
             },
             onDelete = null,
         )
@@ -186,11 +187,11 @@ public fun PersonasScreen(
             onDismiss = { editorMode = null },
             onSave = { name, tagline, text ->
                 editorMode = null
-                vm.updateCustom(mode.persona.id, name, tagline, text)
+                store.dispatch(PersonasIntent.UpdateCustom(mode.persona.id, name, tagline, text))
             },
             onDelete = {
                 editorMode = null
-                vm.deleteCustom(mode.persona.id)
+                store.dispatch(PersonasIntent.DeleteCustom(mode.persona.id))
             },
         )
         null -> Unit

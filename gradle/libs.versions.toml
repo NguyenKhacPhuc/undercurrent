@@ -113,6 +113,7 @@ androidx-browser = { module = "androidx.browser:browser", version = "1.8.0" }
 androidx-biometric = { module = "androidx.biometric:biometric", version = "1.1.0" }
 androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version = "1.8.5" }
 androidx-activity = { module = "androidx.activity:activity", version.ref = "activityCompose" }
+androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycle" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }

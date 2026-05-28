@@ -56,7 +56,7 @@ import dev.weft.undercurrent.feature.integrations.IntegrationsViewModel
 import dev.weft.undercurrent.feature.conversations.ConversationsViewModel
 import dev.weft.undercurrent.feature.memories.MemoriesViewModel
 import dev.weft.undercurrent.feature.miniapps.MiniAppsViewModel
-import dev.weft.undercurrent.feature.personas.PersonasViewModel
+import dev.weft.undercurrent.feature.personas.PersonasStore
 import dev.weft.undercurrent.feature.traces.TracesViewModel
 import dev.weft.undercurrent.feature.usage.UsageViewModel
 import dev.weft.undercurrent.shared.gateway.ConversationStoreGateway
@@ -307,7 +307,7 @@ val appModule = module {
             uiBridge = get(),
         )
     }
-    viewModel { PersonasViewModel(repo = get()) }
+    viewModel { PersonasStore(repo = get()) }
     viewModel { MiniAppsViewModel(repo = get()) }
     viewModel { UsageViewModel(gateway = get()) }
     viewModel { MemoriesViewModel(store = get()) }

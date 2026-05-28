@@ -13,6 +13,10 @@ kotlin {
             // ModelTier — keep :core:model as an API dependency so
             // feature modules pick them up transitively from :shared.
             api(projects.core.model)
+            // androidx.lifecycle.ViewModel — base for the generic
+            // Store<S, I, E> in :shared/.../mvi. API-exposed so feature
+            // modules extending Store inherit ViewModel cleanly.
+            api(libs.androidx.lifecycle.viewmodel)
         }
         androidMain.dependencies {
             // module-specific Android deps go here
