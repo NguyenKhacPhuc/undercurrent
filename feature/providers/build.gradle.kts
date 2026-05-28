@@ -12,7 +12,8 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // feature-specific common deps (e.g. :data:repository)
+            // ModelCatalog + KeyValidationGateway + ValidationResult.
+            implementation(projects.shared)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

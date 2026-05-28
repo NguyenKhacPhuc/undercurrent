@@ -22,26 +22,26 @@ KMP-friendly contract.
 | ✅ `:data:datastore` | createPreferencesDataStore (KMP factory + Android/iOS actuals), ThemeRepository, OnboardingRepository, PersonaRepository, IntegrationsRepository, MiniAppsRepository, ProviderPrefsRepository, ModelPrefsRepository — **7 repos total** |
 | ✅ `:data:sqldelight` | UndercurrentDatabase (Records.sq schema), expect class DatabaseDriverFactory + Android (AndroidSqliteDriver) / iOS (NativeSqliteDriver) actuals |
 
-## Features — 9 of 17 done
+## Features — 15 of 17 done
 
 | Feature | Status | Blocker / notes |
 |---|---|---|
-| ✅ `:feature:settings` | **DONE** | Proof-of-pattern. SettingsScreen consumes ProviderKind from :core:model + ScreenScaffold from :core:ui. |
-| ✅ `:feature:conversations` | **DONE** | VM + ConversationsListScreen + ConversationGrouping in commonMain. Date bucketing now uses kotlinx.datetime (was `java.util.Calendar`/`SimpleDateFormat`). |
-| ✅ `:feature:memories` | **DONE** | VM + AgentMemoriesScreen in commonMain via MemoryStoreGateway. Manual kotlinx.datetime "MMM d · HH:mm" timestamp. |
-| ✅ `:feature:traces` | **DONE** | VM + TraceViewerScreen (full detail view + clipboard formatters) in commonMain via TraceStoreGateway. `String.format` swapped for a manual one-decimal helper. |
-| ✅ `:feature:usage` | **DONE** | VM + UsageScreen in commonMain via UsageGateway. `java.time.LocalDate.now()` → kotlinx.datetime; per-decimal `String.format` swapped for a manual helper. |
-| ✅ `:feature:theme` | **DONE** | Stateless AppearanceScreen in commonMain. Palette swatches + light/dark/system segmented control. Pulls `AppPalette.colors(dark)` from :core:design-system. |
-| ✅ `:feature:onboarding` | **DONE** | 4-page stateless onboarding (Hi → Memory → Voice → Provider) in commonMain. `catalogFor(provider)` (Android-only) lifted to a `modelCountFor: (ProviderKind) -> Int` lambda parameter — host wires it to `ModelCatalog`. |
-| ✅ `:feature:personas` | **DONE** | VM + 544-LOC PersonasScreen + PersonaEditorDialog in commonMain. `CreatorKind` dependency replaced with `(PersonaKind) -> Unit` lambda since `:feature:creator` hasn't migrated yet. |
-| ✅ `:feature:miniapps` | **DONE** | VM + SaveAsMiniAppDialog + MiniAppsScreen in commonMain. `TreeRenderer` + `WeftComponentRegistry` (both Android-only) hoisted to a `treePreview: @Composable (treeJson, onTap) -> Unit` lambda — host wires it on Android, iOS shell can render a placeholder. |
-| ⏳ `:feature:integrations` | Repo migrated; Screen + VM pending | OAuthGateway (✅ in :shared) covers it. |
-| ⏳ `:feature:providers` | Both repos migrated; Screen + VM pending | Largest non-chat screen (717 LOC). ModelCatalog (✅) covers reads; still needs a provider-rebuild trigger gateway for `WeftRuntime.buildExecutorFor`. |
-| ⏳ `:feature:keypaste` | — | KeyVaultGateway (✅) covers it. |
-| ⏳ `:feature:voice` | — | SpeechGateway (✅) covers it. |
-| ⏳ `:feature:maps` | — | Pure Compose around a map URL string + Weft Location capability. Light. |
-| ⏳ `:feature:creator` | — | Uses agent tools (create_persona, create_mini_app). Routes through AgentEngine — manageable. |
-| ⏳ `:feature:navigation` | — | Cross-cutting. Migrate alongside :core:navigation. |
+| ✅ `:feature:settings` | **DONE** | Proof-of-pattern. |
+| ✅ `:feature:conversations` | **DONE** | Recipe A. |
+| ✅ `:feature:memories` | **DONE** | Recipe A. |
+| ✅ `:feature:traces` | **DONE** | Recipe A. Full detail view + clipboard formatters. |
+| ✅ `:feature:usage` | **DONE** | Recipe A. |
+| ✅ `:feature:theme` | **DONE** | Stateless AppearanceScreen. |
+| ✅ `:feature:onboarding` | **DONE** | `catalogFor(provider)` lifted to `modelCountFor` lambda. |
+| ✅ `:feature:personas` | **DONE** | `CreatorKind` dep replaced with `(PersonaKind) -> Unit` lambda. |
+| ✅ `:feature:miniapps` | **DONE** | `TreeRenderer` hoisted to `treePreview` lambda. |
+| ✅ `:feature:integrations` | **DONE** | OAuthGateway + IntegrationsRepository. Integration mirror uses commonMain OAuthConfig. |
+| ✅ `:feature:keypaste` | **DONE** | New `KeyValidationGateway` added; pure-data helpers (`apiConsoleUrl`, `signupHint`, `hostName`, `keyPlaceholder`) moved to `:core:model`. `openInBrowser` lifted to `onOpenConsole` lambda. Material icons replaced with "Show"/"Hide" labels. |
+| ✅ `:feature:voice` | **DONE** | WaveformBars in commonMain reading from `SpeechGateway.rmsdB`. Old Android-only VoiceRecognizer replaced by AndroidSpeechGateway (landed with gateway batch). |
+| ✅ `:feature:maps` | **DONE** | No UI to migrate — feature is just `ShowLocationOnMapTool` (a Weft tool). Moved to `:data:weft/.../tools/` since Weft tools must be androidMain. |
+| ✅ `:feature:creator` | **DONE** | CreatorSession + CreatorKind + CreatorScreen in commonMain. Tree-rendering body hoisted to a `body: @Composable () -> Unit` lambda so host can wire Weft's TreeRenderer + ComposeUiBridge. `CreatorTools` (create_persona, create_mini_app) stays in `app/` for now — depends on un-migrated `Screen` / `NavigationChannel`; moves to `:data:weft` when navigation lands. |
+| ✅ `:feature:providers` | **DONE** | Largest screen yet (~720 LOC). Switched from Koog `LLModel` to `ModelInfo` mirror; from `catalogFor`/`defaultPoolFor` to `ModelCatalog` gateway; from inline `validateKey` to `KeyValidationGateway`; from CCT `openInBrowser` to `onOpenConsole` lambda. `TipBox` promoted to `:core:ui`. Material icons (Visibility, ArrowDropDown, KeyboardArrowRight) → Unicode glyphs. |
+| ⏳ `:feature:navigation` | — | Cross-cutting. Migrate alongside `:core:navigation`. |
 | ⏳ `:feature:chat` | — | **The big one** — 1387 LOC. Streaming UI + tool-call rendering + agent state. Consumes AgentEngine (already defined). Last to migrate per playbook. |
 
 ## Patterns established
@@ -103,15 +103,14 @@ JSON round-trips cleanly between the mirror `ComponentNode` and
 
 ## Recommended next session
 
-1. **Recipe C features** (integrations, keypaste, voice, creator, providers, maps). ~1 day total.
-2. **`:feature:chat` last** — needs its own focused session. ~1 day.
-3. **`:androidApp` + `:composeApp` wiring** — Koin DI module that picks the platform-correct implementation of every gateway, the top-level App composable, screen routing, MainActivity. ~1 day.
-4. **iOS shell** — Xcode project, SwiftUI scene hosting ComposeApp.framework. ~½ day.
-5. **Delete `app/`** — once everything builds through the new modules.
+1. **`:feature:chat`** — the big one. ~1 day. Streaming UI + tool-call rendering. Already has AgentEngine + UiBridgeGateway. The tree-rendering body needs hoisting (same pattern as miniapps + creator).
+2. **`:androidApp` + `:composeApp` wiring** — Koin DI module that picks the platform-correct gateway impl, the top-level App composable, screen routing, MainActivity. Also: `CreatorTools` (`create_persona`, `create_mini_app`) gets moved to `:data:weft` once `:feature:navigation` lands. ~1 day.
+3. **iOS shell** — Xcode project, SwiftUI scene hosting ComposeApp.framework. ~½ day.
+4. **Delete `app/`** — once everything builds through the new modules.
 
-Estimated total remaining: ~3.5 focused days.
+Estimated total remaining: ~2.5 focused days.
 
-## Patterns learned (Recipes A + B)
+## Patterns learned (Recipes A + B + C)
 
 - **`:shared` brings `:core:model` transitively.** Set up in the gateway commit; feature modules add `implementation(projects.shared)` and pick up `ProviderKind` / `ModelTier` automatically.
 - **`org.koin.compose.viewmodel.koinViewModel`** is the commonMain entry point. Don't import `org.koin.androidx.compose.koinViewModel` — that's the Android-only shim from the old app.
@@ -121,6 +120,9 @@ Estimated total remaining: ~3.5 focused days.
 - **`Map.toSortedMap()` doesn't exist in commonMain stdlib.** Use `entries.sortedBy { it.key }` (ISO dates sort lexicographically = chronologically).
 - **Lift Android-only Composable dependencies to lambda parameters** (Recipe B insight). When a screen needs an Android-only Composable like `TreeRenderer` or a static Android-only call like `catalogFor()`, take the rendering / lookup as a constructor lambda. The host wires it from the Android nav glue; the screen stays commonMain. See `feature/miniapps` (`treePreview`) + `feature/onboarding` (`modelCountFor`).
 - **When a screen depends on a sibling feature module that hasn't migrated yet** (e.g. `:feature:personas` used `:feature:creator`'s `CreatorKind`), lift to a generic callback — `(PersonaKind) -> Unit` instead of `(CreatorKind) -> Unit`. The host translates. Avoids cross-feature ordering constraints.
+- **Material `icons-extended` isn't in CMP commonMain by default.** Replace with Unicode glyphs: `▾` (ArrowDropDown), `›` (KeyboardArrowRight), `←` (back), `×` (Close), plus plain "Show"/"Hide" text for password toggles. Matches the design-language conventions of the existing migrated screens.
+- **Promote shared screen helpers to `:core:ui` lazily — when the second feature would import them.** `TipBox` lived in `app/ui/` until `:feature:providers` migration needed it; promoted then. Same approach if `:feature:chat` needs anything more.
+- **Pure-data per-provider helpers** (`apiConsoleUrl`, `signupHint`, `hostName`, `keyPlaceholder`) belong in `:core:model` as `ProviderKind` extensions — both `:feature:keypaste` and `:feature:providers` consume them.
 
 ## What's solid right now
 

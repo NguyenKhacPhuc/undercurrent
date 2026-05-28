@@ -12,7 +12,10 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // feature-specific common deps (e.g. :data:repository)
+            // OAuthGateway + OAuthConfig mirror.
+            implementation(projects.shared)
+            // IntegrationsRepository (enabled-ids DataStore set).
+            implementation(projects.data.datastore)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)
