@@ -1,4 +1,4 @@
-package dev.weft.undercurrent.ui
+package dev.weft.undercurrent.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,7 +56,7 @@ import dev.weft.undercurrent.shared.gateway.ConversationSummary
  * the open drawer naturally.
  */
 @Composable
-internal fun AppDrawer(
+fun AppDrawer(
     conversations: List<ConversationSummary>,
     activeConversationId: String?,
     onSelect: (String) -> Unit,

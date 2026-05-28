@@ -46,6 +46,18 @@ dependencies {
     // Theme tokens — UndercurrentTheme.colors / typography / shapes are
     // referenced by every visual component to honor the active palette.
     implementation(projects.core.designSystem)
+    // TokenDivider + other shared composable primitives consumed by
+    // AppDrawer (the host's side-navigation surface).
+    implementation(projects.core.ui)
+    // ConversationSummary — the AppDrawer renders the conversation list
+    // from this shared gateway type.
+    implementation(projects.shared)
+    // Conversation grouping + relative-time formatting helpers consumed
+    // by AppDrawer. Directional caveat: :ui:components depending on
+    // :feature:conversations is unusual (features normally depend on
+    // shared UI, not vice versa). The helpers in question are pure
+    // data utilities though — if they grow, hoist them to :core:ext.
+    implementation(projects.feature.conversations)
 
     // Weft substrate — WeftComponent base + Local* composition locals +
     // EmbedComponents (Html / WebView) re-exported from the

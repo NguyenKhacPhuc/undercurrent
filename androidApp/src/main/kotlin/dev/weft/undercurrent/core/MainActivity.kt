@@ -63,8 +63,8 @@ import dev.weft.undercurrent.feature.creator.CreatorScreen
 import dev.weft.undercurrent.feature.miniapps.MiniAppsScreen
 import dev.weft.undercurrent.feature.miniapps.SaveAsMiniAppDialog
 import dev.weft.undercurrent.shared.gateway.SpeechGateway
-import dev.weft.undercurrent.ui.AppDrawer
-import dev.weft.undercurrent.ui.openInBrowser
+import dev.weft.undercurrent.core.ext.openInBrowser
+import dev.weft.undercurrent.ui.components.AppDrawer
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.android.get

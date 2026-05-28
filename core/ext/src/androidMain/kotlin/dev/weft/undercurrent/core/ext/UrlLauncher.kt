@@ -1,4 +1,4 @@
-package dev.weft.undercurrent.ui
+package dev.weft.undercurrent.core.ext
 
 import android.content.Context
 import android.content.Intent
@@ -19,7 +19,7 @@ import androidx.browser.customtabs.CustomTabsIntent
  * Shared between [MarkdownText] (assistant message link taps) and the
  * BYOK flow ("Get an API key" buttons in KeyPasteScreen + ProvidersScreen).
  */
-internal fun openInBrowser(context: Context, url: String, toolbarColorArgb: Int) {
+fun openInBrowser(context: Context, url: String, toolbarColorArgb: Int) {
     val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return
     val scheme = uri.scheme?.lowercase()
     if (scheme == "http" || scheme == "https") {

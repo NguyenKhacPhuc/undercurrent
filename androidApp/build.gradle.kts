@@ -38,6 +38,7 @@ dependencies {
     implementation(projects.core.designSystem)
     implementation(projects.core.navigation)
     implementation(projects.core.ui)
+    implementation(projects.core.ext)
 
     // UI layer — Android-only Compose surfaces (WeftComponent palette, etc).
     implementation(projects.ui.components)

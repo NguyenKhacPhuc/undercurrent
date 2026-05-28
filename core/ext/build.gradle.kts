@@ -12,7 +12,9 @@ kotlin {
             // module-specific common deps go here
         }
         androidMain.dependencies {
-            // module-specific Android deps go here
+            // Custom Tabs for openInBrowser — keep the user in-app for
+            // BYOK provider-console links and assistant markdown taps.
+            implementation(libs.androidx.browser)
         }
         iosMain.dependencies {
             // module-specific iOS deps go here
