@@ -68,6 +68,29 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
             }
         }
 
+        // androidUnitTest gets the JVM-only mocking + assertion stack
+        // (mockk + kotest-runner-junit5 + kotest-assertions + turbine).
+        // This wires every KMP library module automatically so per-
+        // feature build files don't have to repeat the test deps. iOS
+        // tests fall back to commonTest using kotlin.test + hand-rolled
+        // fakes — MockK doesn't support Kotlin/Native, and kotest-
+        // runner-junit5 is JVM-only.
+        kotlin.sourceSets.named("androidUnitTest") {
+            dependencies {
+                implementation(libs.findLibrary("kotest-runner-junit5").get())
+                implementation(libs.findLibrary("kotest-assertions-core").get())
+                implementation(libs.findLibrary("mockk").get())
+                implementation(libs.findLibrary("turbine").get())
+            }
+        }
+
+        // JUnit 5 runner — Kotest's `FunSpec` / `DescribeSpec` discovery
+        // depends on `useJUnitPlatform()`. Without this Gradle picks the
+        // JUnit 4 runner and silently skips every test class.
+        tasks.withType(org.gradle.api.tasks.testing.Test::class.java).configureEach {
+            useJUnitPlatform()
+        }
+
         extensions.configure<LibraryExtension> {
             compileSdk = androidCompileSdk
             defaultConfig {

@@ -65,6 +65,10 @@ napier = "2.7.1"
 junit = "5.11.3"
 kotest = "5.9.1"
 turbine = "1.2.0"
+# MockK — JVM-only mocking. Used in the feature stores' androidUnitTest
+# source sets to stub gateway dependencies. iOS-side tests fall back
+# to hand-rolled fakes (the Stub* gateways the host already ships).
+mockk = "1.13.13"
 
 # Lint
 detekt = "1.23.7"
@@ -179,6 +183,7 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "jun
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 
 # --- Convention-plugin compile classpath ---
 # build-logic/convention/build.gradle.kts depends on these as
