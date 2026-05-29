@@ -558,7 +558,7 @@ internal class HotelCardComponent(private val imageLoader: ImageLoader) : WeftCo
                             color = cs.accent,
                         )
                         Text(
-                            text = " ${"%.1f".format(props.rating)}",
+                            text = " ${props.rating.toFixed(1)}",
                             style = tp.sansLabel.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
                             color = cs.ink,
                         )

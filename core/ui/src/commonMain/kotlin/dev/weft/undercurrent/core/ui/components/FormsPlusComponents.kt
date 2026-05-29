@@ -175,7 +175,7 @@ private fun formatSliderValue(v: Float, format: String): String = when (format.l
     "currency" -> "$${v.roundToInt()}"
     else -> {
         if (v == v.toInt().toFloat()) v.toInt().toString()
-        else "%.2f".format(v)
+        else v.toFixed(2)
     }
 }
 

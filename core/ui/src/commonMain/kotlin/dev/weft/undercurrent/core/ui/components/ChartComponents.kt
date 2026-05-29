@@ -488,7 +488,7 @@ private fun ChartEmpty(message: String) {
 }
 
 private fun formatNum(v: Float): String =
-    if (v == v.toInt().toFloat()) v.toInt().toString() else "%.1f".format(v)
+    if (v == v.toInt().toFloat()) v.toInt().toString() else v.toFixed(1)
 
 /**
  * Generate [count] colors derived from [base] by rotating hue in HSL space.

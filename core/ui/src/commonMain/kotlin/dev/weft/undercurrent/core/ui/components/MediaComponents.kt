@@ -141,7 +141,7 @@ internal class AudioPlayerComponent : WeftComponent<AudioPlayerProps>(
         if (s <= 0) return "0:00"
         val mm = s / 60
         val ss = s % 60
-        return "%d:%02d".format(mm, ss)
+        return formatDuration(mm, ss)
     }
 }
 
