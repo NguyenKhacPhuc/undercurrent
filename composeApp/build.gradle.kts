@@ -63,11 +63,28 @@ kotlin {
             implementation(projects.data.weft)
         }
         iosMain.dependencies {
-            // Minimal iOS agent stack — Ktor HTTP client + JSON
-            // serialization for the Anthropic Messages API. The full
-            // Weft / Koog agent loop isn't available on iOS (Koog has
-            // no iOS variants); a parallel Ktor client lives here
-            // until upstream Koog ships iOS or we switch strategy.
+            // The substrate's KMP agent loop. As of weft@6c6dc28 every
+            // Koog-using harness module + WeftAgent itself publishes
+            // iOS klibs (jvm + androidTarget + iosArm64 +
+            // iosSimulatorArm64). On iOS we instantiate WeftAgent
+            // directly without going through :android's WeftRuntime
+            // composition root (Application-class-bound).
+            implementation("dev.weft:weft-harness-agents")
+            implementation("dev.weft:weft-harness-prompt")
+            implementation("dev.weft:weft-harness-observability")
+            implementation("dev.weft:weft-harness-conversation")
+            implementation("dev.weft:weft-harness-cost")
+            implementation("dev.weft:weft-harness-memory")
+            implementation("dev.weft:weft-harness-reliability")
+            implementation("dev.weft:weft-harness-behavior")
+            implementation("dev.weft:weft-tools")
+
+            // Ktor — still needed: the parallel LlmClient path is kept
+            // alongside the substrate path during the migration so
+            // current iOS chat keeps working. Plus Koog's
+            // KtorKoogHttpClient.Factory needs a Ktor engine to talk
+            // to providers — we pass it explicitly because the
+            // ServiceLoader-based discovery doesn't apply to K/N.
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.darwin)
             implementation(libs.ktor.client.content.negotiation)

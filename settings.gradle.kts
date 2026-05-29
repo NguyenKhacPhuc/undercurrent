@@ -39,8 +39,11 @@ rootProject.name = "undercurrent"
 //   <parent>/weft/           (Weft SDK)
 //   <parent>/undercurrent/   (this app)
 //
-// Weft is Android-only (per the KMP migration decision: Weft stays
-// Android-only; Undercurrent's `:data:weft` module is the bridge).
+// Weft composite-build. The substrate is mostly KMP now (jvm +
+// androidTarget + iosArm64 + iosSimulatorArm64) — only the
+// composition-root + Android-specific OS bridges stay Android-only.
+// iOS-target consumers in this build pull the KMP variants directly;
+// host-app shells continue to pull the Android-library ones.
 includeBuild("../weft") {
     dependencySubstitution {
         substitute(module("dev.weft:weft-android"))
@@ -53,6 +56,27 @@ includeBuild("../weft") {
             .using(project(":oauth"))
         substitute(module("dev.weft.devtools:weft-android-devtools"))
             .using(project(":android-devtools"))
+
+        // KMP-published harness modules. Required by composeApp's
+        // iosMain so it can build a substrate-backed WeftAgent.
+        substitute(module("dev.weft:weft-harness-agents"))
+            .using(project(":harness:agents"))
+        substitute(module("dev.weft:weft-harness-prompt"))
+            .using(project(":harness:prompt"))
+        substitute(module("dev.weft:weft-harness-observability"))
+            .using(project(":harness:observability"))
+        substitute(module("dev.weft:weft-harness-conversation"))
+            .using(project(":harness:conversation"))
+        substitute(module("dev.weft:weft-harness-cost"))
+            .using(project(":harness:cost"))
+        substitute(module("dev.weft:weft-harness-memory"))
+            .using(project(":harness:memory"))
+        substitute(module("dev.weft:weft-harness-reliability"))
+            .using(project(":harness:reliability"))
+        substitute(module("dev.weft:weft-harness-behavior"))
+            .using(project(":harness:behavior"))
+        substitute(module("dev.weft:weft-tools"))
+            .using(project(":tools"))
     }
 }
 
