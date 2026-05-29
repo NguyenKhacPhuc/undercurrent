@@ -76,6 +76,10 @@ kotlin {
             // to expose `asFlow().mapToList(...)` against the conversations
             // table.
             implementation(libs.sqldelight.coroutines.extensions)
+
+            // Napier — initialised in InitKoin.doInitKoin() so the
+            // substrate's logger calls route to NSLog / Xcode console.
+            implementation(libs.napier)
         }
     }
 }

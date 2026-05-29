@@ -75,6 +75,10 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
+    // Napier — initialised in UndercurrentApp.onCreate so substrate-side
+    // log calls (e.g. WeftBindings traces) route to logcat in debug.
+    implementation(libs.napier)
+
     // Koog (LLModel + routing types referenced by AppStore's model-pool path)
     implementation(libs.koog.agents)
 

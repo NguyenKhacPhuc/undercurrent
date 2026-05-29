@@ -58,6 +58,8 @@ coil = "3.0.4"
 
 # Logging
 slf4j = "2.0.16"
+# Napier — KMP logger (logcat / os_log / stdout per platform).
+napier = "2.7.1"
 
 # Test
 junit = "5.11.3"
@@ -154,6 +156,9 @@ koog-agents = { module = "ai.koog:koog-agents", version.ref = "koog" }
 # just a different HTTP engine.
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+
+# Napier — KMP logger initialised once per host bootstrap.
+napier = { module = "io.github.aakira:napier", version.ref = "napier" }
 
 # SQLDelight — multiplatform persistence. Each platform uses its own
 # driver: AndroidSqliteDriver on Android, NativeSqliteDriver on iOS.
