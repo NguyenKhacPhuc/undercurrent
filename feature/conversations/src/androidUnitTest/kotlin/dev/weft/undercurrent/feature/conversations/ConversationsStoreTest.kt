@@ -19,12 +19,19 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * Exercises [ConversationsStore] in BDD style.
+ * MockK-only interaction tests for [ConversationsStore].
  *
- * Key behavior under test: SetQuery cancels the previous search
- * subscription and starts a new one — the resubscribe pattern — so
- * stale emissions from the old query's flow stop propagating into
- * state.
+ * State-projection coverage (initial state, live flow updates, query
+ * propagation into state) lives in commonTest at
+ * `ConversationsStoreStateTest.kt` and runs on Android + iOS. The
+ * Thens here are exclusively about:
+ *
+ *  - The resubscribe pattern: SetQuery cancels the old search() Flow
+ *    and starts a new one, requiring per-query stubbing only MockK
+ *    handles cleanly.
+ *  - Stale-emission isolation: after SetQuery, emissions on the old
+ *    flow MUST NOT leak into state.
+ *  - Delete + ClearAll forwarding to the gateway.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ConversationsStoreTest : BehaviorSpec({
@@ -47,36 +54,18 @@ class ConversationsStoreTest : BehaviorSpec({
         return gateway
     }
 
-    Given("a fresh ConversationsStore") {
-        val store = ConversationsStore(fakeGateway())
-
-        Then("the initial state has empty query and empty conversations") {
-            store.state.value shouldBe ConversationsState()
-        }
-    }
-
-    Given("a gateway whose initial search returns two conversations") {
-        Then("init kicks off a search with the empty query and the store reflects the results") {
-            runTest {
-                val results = MutableStateFlow(listOf(summary("a"), summary("b")))
-                val gateway = fakeGateway(results)
-
-                val store = ConversationsStore(gateway)
-                advanceUntilIdle()
-
-                store.state.value.conversations shouldBe listOf(summary("a"), summary("b"))
-                coVerify(exactly = 1) { gateway.search("") }
-            }
-        }
-    }
-
     Given("a store with an active subscription") {
-        When("SetQuery('hello') is dispatched") {
-            Then("the query slot updates immediately") {
-                val store = ConversationsStore(fakeGateway())
-                store.dispatch(ConversationsIntent.SetQuery("hello"))
+        When("init runs against a gateway returning two conversations") {
+            Then("gateway.search('') is invoked exactly once") {
+                runTest {
+                    val results = MutableStateFlow(listOf(summary("a"), summary("b")))
+                    val gateway = fakeGateway(results)
 
-                store.state.value.query shouldBe "hello"
+                    ConversationsStore(gateway)
+                    advanceUntilIdle()
+
+                    coVerify(exactly = 1) { gateway.search("") }
+                }
             }
         }
 
@@ -103,7 +92,7 @@ class ConversationsStoreTest : BehaviorSpec({
             }
         }
 
-        When("the old query's flow continues to emit after SetQuery resubscribes") {
+        When("the old query's flow keeps emitting after SetQuery resubscribes") {
             Then("the stale emissions do NOT update state — the old job is cancelled") {
                 runTest {
                     val initialFlow = MutableStateFlow(listOf(summary("first")))
@@ -145,7 +134,7 @@ class ConversationsStoreTest : BehaviorSpec({
         }
     }
 
-    Given("a store with the user typing into the query slot") {
+    Given("a fresh store with a stubbed gateway") {
         When("Delete('conv-42') is dispatched") {
             Then("gateway.deleteConversation('conv-42') is called once") {
                 runTest {
@@ -156,20 +145,6 @@ class ConversationsStoreTest : BehaviorSpec({
                     advanceUntilIdle()
 
                     coVerify(exactly = 1) { gateway.deleteConversation("conv-42") }
-                }
-            }
-
-            Then("the query value is not touched by the Delete") {
-                runTest {
-                    val gateway = fakeGateway()
-                    val store = ConversationsStore(gateway)
-                    store.dispatch(ConversationsIntent.SetQuery("keeper"))
-                    advanceUntilIdle()
-
-                    store.dispatch(ConversationsIntent.Delete("conv-42"))
-                    advanceUntilIdle()
-
-                    store.state.value.query shouldBe "keeper"
                 }
             }
         }
@@ -186,25 +161,6 @@ class ConversationsStoreTest : BehaviorSpec({
                     coVerify(exactly = 1) { gateway.clearAll() }
                     coVerify(exactly = 0) { gateway.deleteConversation(any()) }
                 }
-            }
-        }
-    }
-
-    Given("a store with a mutable search flow") {
-        Then("emissions update conversations live as they arrive") {
-            runTest {
-                val flow = MutableStateFlow<List<ConversationSummary>>(emptyList())
-                val gateway = fakeGateway(flow)
-                val store = ConversationsStore(gateway)
-                advanceUntilIdle()
-
-                flow.value = listOf(summary("a"))
-                advanceUntilIdle()
-                store.state.value.conversations shouldBe listOf(summary("a"))
-
-                flow.value = listOf(summary("a"), summary("b"))
-                advanceUntilIdle()
-                store.state.value.conversations shouldBe listOf(summary("a"), summary("b"))
             }
         }
     }

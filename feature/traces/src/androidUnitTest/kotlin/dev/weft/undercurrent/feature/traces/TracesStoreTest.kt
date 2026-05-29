@@ -5,7 +5,6 @@ import dev.weft.undercurrent.shared.gateway.TraceFeedback
 import dev.weft.undercurrent.shared.gateway.TraceStatus
 import dev.weft.undercurrent.shared.gateway.TraceStoreGateway
 import io.kotest.core.spec.style.BehaviorSpec
-import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -20,10 +19,12 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * Exercises [TracesStore] in BDD style.
+ * MockK-only interaction tests for [TracesStore].
  *
- * Intent coverage: every [TraceFeedback] enum value through
- * SetFeedback, plus ClearAll.
+ * State-projection coverage (initial state, live flow updates,
+ * feedback re-emission propagation) lives in commonTest at
+ * `TracesStoreStateTest.kt`. The Thens here verify gateway forwarding
+ * for each `TraceFeedback` enum value and `ClearAll`.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class TracesStoreTest : BehaviorSpec({
@@ -32,20 +33,15 @@ class TracesStoreTest : BehaviorSpec({
     beforeTest { Dispatchers.setMain(mainDispatcher) }
     afterTest { Dispatchers.resetMain() }
 
-    fun trace(
-        id: String,
-        userMessage: String = "msg-$id",
-        status: TraceStatus = TraceStatus.COMPLETED,
-        feedback: TraceFeedback = TraceFeedback.NONE,
-    ): AgentTrace = AgentTrace(
+    fun trace(id: String): AgentTrace = AgentTrace(
         id = id,
         conversationId = "conv-1",
         startEpochMs = 0L,
         endEpochMs = 100L,
-        userMessage = userMessage,
+        userMessage = "msg-$id",
         finalAssistantMessage = "reply",
-        status = status,
-        feedback = feedback,
+        status = TraceStatus.COMPLETED,
+        feedback = TraceFeedback.NONE,
     )
 
     fun fakeGateway(initial: List<AgentTrace> = emptyList()): TraceStoreGateway {
@@ -54,69 +50,6 @@ class TracesStoreTest : BehaviorSpec({
         coEvery { gateway.setFeedback(any(), any()) } returns Unit
         coEvery { gateway.clear() } returns Unit
         return gateway
-    }
-
-    Given("a gateway seeded with two traces") {
-        val seed = listOf(trace("a"), trace("b"))
-        val store = TracesStore(fakeGateway(initial = seed))
-
-        Then("the initial state mirrors the seed list") {
-            store.state.value shouldBe TracesState(traces = seed)
-        }
-    }
-
-    Given("a gateway with no traces") {
-        val store = TracesStore(fakeGateway())
-
-        Then("the initial state has an empty list") {
-            store.state.value shouldBe TracesState(traces = emptyList())
-        }
-    }
-
-    Given("a store subscribed to a mutable traces flow") {
-        val flow = MutableStateFlow<List<AgentTrace>>(emptyList())
-        val gateway = mockk<TraceStoreGateway>().apply {
-            every { traces } returns flow
-            coEvery { setFeedback(any(), any()) } returns Unit
-            coEvery { clear() } returns Unit
-        }
-        val store = TracesStore(gateway)
-
-        When("the gateway emits a new list") {
-            Then("the store's state reflects it") {
-                runTest {
-                    advanceUntilIdle()
-                    flow.value = listOf(trace("new"))
-                    advanceUntilIdle()
-
-                    store.state.value.traces shouldBe listOf(trace("new"))
-                }
-            }
-        }
-
-        When("the gateway re-emits a trace whose feedback flipped to THUMBS_UP") {
-            Then("the store reflects the feedback change") {
-                runTest {
-                    val initial = trace("t1", feedback = TraceFeedback.NONE)
-                    val (gw2, flow2) = run {
-                        val f = MutableStateFlow(listOf(initial))
-                        val g = mockk<TraceStoreGateway>().apply {
-                            every { traces } returns f
-                            coEvery { setFeedback(any(), any()) } returns Unit
-                            coEvery { clear() } returns Unit
-                        }
-                        g to f
-                    }
-                    val s = TracesStore(gw2)
-                    advanceUntilIdle()
-
-                    flow2.value = listOf(initial.copy(feedback = TraceFeedback.THUMBS_UP))
-                    advanceUntilIdle()
-
-                    s.state.value.traces.first().feedback shouldBe TraceFeedback.THUMBS_UP
-                }
-            }
-        }
     }
 
     Given("a fresh store with a stubbed gateway") {

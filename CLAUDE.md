@@ -277,17 +277,25 @@ describes the intent dispatched (or event simulated), innermost
 collision. A `Given` with no `When` is fine for pure initial-state
 projections (no action — just observe).
 
-**Per-spec split convention.** For each MVI store, prefer two specs:
+**Per-spec split convention.** For each MVI store, prefer two specs
+with **NO overlap** between them:
 
   - `<Name>StoreStateTest.kt` in **commonTest** — covers initial state,
     live-flow propagation, "store didn't mutate optimistically" — any
     assertion that only reads `store.state.value` or observes via
     Turbine. Uses a hand-rolled `Fake<Gateway>` (KMP-portable). Runs
     on Android + iOS.
-  - `<Name>StoreTest.kt` in **androidUnitTest** — covers
-    intent-dispatch consequences that need `coVerify(exactly = N) {
-    repo.method(args) }` to assert the right gateway method was
-    called with the right arguments. MockK only. Runs on Android.
+  - `<Name>StoreTest.kt` in **androidUnitTest** — **only** the Thens
+    that need MockK's `coVerify(exactly = N) { gateway.method(args) }`
+    to assert the right gateway method was called with the right
+    arguments. State-shape assertions (`shouldBe …` on
+    `store.state.value`) live in the commonTest sibling — do not
+    duplicate them here.
+
+The split is by *what an assertion checks*, not by *what the test
+exercises*: a test that dispatches an Intent and asserts only the
+new state belongs in commonTest; a test that dispatches and asserts
+the gateway was called belongs in androidUnitTest.
 
 The base `Store` class (`shared/.../mvi/StoreTest.kt`) and the
 read-only `UsageStore` (one interface gateway, no dispatch) live
