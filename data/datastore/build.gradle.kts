@@ -1,24 +1,23 @@
-// Pure KMP library — preferences persistence for both Android + iOS.
+// Pure KMP library — DataStore-Preferences infrastructure for both
+// Android + iOS.
 //
 // DataStore-Preferences ships a KMP `core` artifact + platform-specific
-// extensions. commonMain holds the repository classes (taking a
-// DataStore<Preferences> by constructor) plus a path-based factory.
-// Each platform's DI layer constructs the platform-appropriate file
-// location and hands the DataStore to the repository.
+// extensions. commonMain holds the path-based factory; androidMain and
+// iosMain each provide a thin platform-aware overload that builds the
+// path against `filesDir` / `NSDocumentDirectory` respectively. The
+// repository classes that consume `DataStore<Preferences>` live in
+// `:core:domain`.
 
 plugins {
     alias(libs.plugins.undercurrent.kmp.library)
-    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // ThemeRepository, etc. — domain types live in :core:model.
-            api(projects.core.model)
-            // KMP DataStore-Preferences core. Use commonMain createDataStore
-            // factory + platform path producers (androidMain → filesDir;
-            // iosMain → NSDocumentDirectory).
+            // KMP DataStore-Preferences core. `api` because the factory
+            // returns `DataStore<Preferences>` and callers need to see
+            // the type without re-declaring this dep.
             api(libs.androidx.datastore.preferences.core)
             // okio.Path — supplied transitively by datastore-preferences-core
             // but we declare it explicitly so iOS path building can import

@@ -5,7 +5,7 @@ import dev.weft.undercurrent.core.model.Persona
 import dev.weft.undercurrent.core.model.PersonaKind
 
 /**
- * Personas-screen state. Projects [dev.weft.undercurrent.data.datastore.PersonaRepository]'s
+ * Personas-screen state. Projects [dev.weft.undercurrent.core.domain.PersonaRepository]'s
  * three flows into a single immutable bundle so the screen has one
  * `collectAsState` to observe.
  */

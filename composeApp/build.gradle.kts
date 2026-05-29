@@ -51,6 +51,7 @@ kotlin {
             implementation(projects.feature.integrations)
             implementation(projects.feature.navigation)
 
+            implementation(projects.core.domain)
             implementation(projects.data.repository)
             implementation(projects.data.datastore)
             implementation(projects.data.sqldelight)

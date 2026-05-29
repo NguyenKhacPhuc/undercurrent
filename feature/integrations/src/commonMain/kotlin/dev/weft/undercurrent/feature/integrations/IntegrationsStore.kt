@@ -1,7 +1,7 @@
 package dev.weft.undercurrent.feature.integrations
 
 import androidx.lifecycle.viewModelScope
-import dev.weft.undercurrent.data.datastore.IntegrationsRepository
+import dev.weft.undercurrent.core.domain.IntegrationsRepository
 import dev.weft.undercurrent.shared.gateway.OAuthGateway
 import dev.weft.undercurrent.shared.gateway.OAuthResult
 import dev.weft.undercurrent.shared.mvi.Store

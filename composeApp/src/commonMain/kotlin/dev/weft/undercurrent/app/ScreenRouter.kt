@@ -18,7 +18,7 @@ import dev.weft.undercurrent.feature.settings.SettingsScreen
 import dev.weft.undercurrent.feature.theme.AppearanceScreen
 import dev.weft.undercurrent.feature.traces.TraceViewerScreen
 import dev.weft.undercurrent.feature.usage.UsageScreen
-import dev.weft.undercurrent.data.datastore.ModelPrefsRepository
+import dev.weft.undercurrent.core.domain.ModelPrefsRepository
 import dev.weft.undercurrent.feature.conversations.ConversationsListScreen
 import dev.weft.undercurrent.shared.gateway.KeyValidationGateway
 import dev.weft.undercurrent.shared.gateway.ModelCatalog

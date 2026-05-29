@@ -1,7 +1,7 @@
 package dev.weft.undercurrent.feature.miniapps
 
 import dev.weft.undercurrent.core.model.MiniApp
-import dev.weft.undercurrent.data.datastore.MiniAppsRepository
+import dev.weft.undercurrent.core.domain.MiniAppsRepository
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery

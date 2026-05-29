@@ -87,7 +87,6 @@ include(":androidApp")        // Android app shell (Application + MainActivity)
 include(":composeApp")        // CMP shared UI surface
 // include(":iosApp")         // iOS Xcode project — not a Gradle module
 include(":shared")            // KMP shared business logic
-include(":sharedCatalog")     // KMP shared design tokens (for sibling apps)
 
 // =============================================================
 // Core modules — shared infrastructure
@@ -97,14 +96,14 @@ include(":core:ui")              // shared composables (loading, error, …)
 include(":core:design-system")   // colors, typography, spacing tokens
 include(":core:navigation")      // navigation primitives
 include(":core:resources")       // strings, drawables, icons
-include(":core:domain")          // use cases
+include(":core:domain")          // repositories + use cases
 include(":core:ext")             // Kotlin extensions
 
 // =============================================================
 // Data modules — persistence + network + integrations
 // =============================================================
 include(":data:repository")      // top-level repositories (KMP common API)
-include(":data:datastore")       // preferences (multiplatform-settings or platform-specific)
+include(":data:datastore")       // DataStore-Preferences factory (commonMain + per-platform path builders)
 include(":data:sqldelight")      // SQLDelight schema + drivers
 include(":data:network")         // Ktor HTTP client (when needed outside Weft)
 include(":data:weft")            // Weft bridge — Android-only; wraps WeftRuntime

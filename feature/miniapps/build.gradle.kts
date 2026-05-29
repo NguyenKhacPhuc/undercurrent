@@ -13,7 +13,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // MiniAppsRepository (cached tree JSON + usage counters).
-            implementation(projects.data.datastore)
+            implementation(projects.core.domain)
             // Store<State, Intent, Effect> MVI base.
             implementation(projects.shared)
         }

@@ -51,9 +51,9 @@ import dev.weft.undercurrent.app.PlatformAdapter
 import dev.weft.undercurrent.core.designsystem.colors
 import dev.weft.undercurrent.core.model.ThemeMode
 import dev.weft.undercurrent.core.navigation.Screen
-import dev.weft.undercurrent.data.datastore.IntegrationsRepository
-import dev.weft.undercurrent.data.datastore.MiniAppsRepository
-import dev.weft.undercurrent.data.datastore.PersonaRepository
+import dev.weft.undercurrent.core.domain.IntegrationsRepository
+import dev.weft.undercurrent.core.domain.MiniAppsRepository
+import dev.weft.undercurrent.core.domain.PersonaRepository
 import dev.weft.undercurrent.feature.chat.AddToChatConfig
 import dev.weft.undercurrent.feature.chat.AgentOption
 import dev.weft.undercurrent.feature.chat.ChatScreen

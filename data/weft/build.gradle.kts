@@ -43,7 +43,7 @@ dependencies {
     // (open_personas, open_memories, …) and by CreatorTools' nav-back.
     implementation(projects.core.navigation)
     // PersonaRepository + MiniAppsRepository — consumed by CreatorTools.
-    implementation(projects.data.datastore)
+    implementation(projects.core.domain)
     // CreatorSession — consumed by CreatorTools to clear the active
     // creation kind after the finalize tool fires.
     implementation(projects.feature.creator)

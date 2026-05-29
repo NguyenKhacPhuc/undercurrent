@@ -2,7 +2,7 @@ package dev.weft.undercurrent.feature.miniapps
 
 import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.core.model.MiniApp
-import dev.weft.undercurrent.data.datastore.MiniAppsRepository
+import dev.weft.undercurrent.core.domain.MiniAppsRepository
 import dev.weft.undercurrent.shared.mvi.Store
 import kotlinx.coroutines.launch
 

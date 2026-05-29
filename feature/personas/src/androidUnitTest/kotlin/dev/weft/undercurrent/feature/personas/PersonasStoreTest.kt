@@ -3,7 +3,7 @@ package dev.weft.undercurrent.feature.personas
 import dev.weft.undercurrent.core.model.BuiltInPersonas
 import dev.weft.undercurrent.core.model.Persona
 import dev.weft.undercurrent.core.model.PersonaKind
-import dev.weft.undercurrent.data.datastore.PersonaRepository
+import dev.weft.undercurrent.core.domain.PersonaRepository
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery

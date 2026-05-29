@@ -13,7 +13,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // PersonaRepository (active voice / role + custom personas).
-            implementation(projects.data.datastore)
+            implementation(projects.core.domain)
             // Store<State, Intent, Effect> MVI base + the gateway
             // interfaces in :shared/commonMain.
             implementation(projects.shared)

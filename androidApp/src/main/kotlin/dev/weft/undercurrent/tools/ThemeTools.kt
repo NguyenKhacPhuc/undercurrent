@@ -8,7 +8,7 @@ import dev.weft.tools.WeftContext
 import dev.weft.tools.WeftTool
 import dev.weft.undercurrent.core.model.AppPalette
 import dev.weft.undercurrent.core.model.ThemeMode
-import dev.weft.undercurrent.data.datastore.ThemeRepository
+import dev.weft.undercurrent.core.domain.ThemeRepository
 import kotlinx.serialization.Serializable
 import kotlin.reflect.typeOf
 

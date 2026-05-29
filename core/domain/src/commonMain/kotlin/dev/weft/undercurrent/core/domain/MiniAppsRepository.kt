@@ -1,4 +1,4 @@
-package dev.weft.undercurrent.data.datastore
+package dev.weft.undercurrent.core.domain
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences

@@ -15,7 +15,7 @@ kotlin {
             // OAuthGateway + OAuthConfig mirror.
             implementation(projects.shared)
             // IntegrationsRepository (enabled-ids DataStore set).
-            implementation(projects.data.datastore)
+            implementation(projects.core.domain)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

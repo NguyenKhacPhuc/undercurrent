@@ -1,6 +1,6 @@
 package dev.weft.undercurrent.feature.integrations
 
-import dev.weft.undercurrent.data.datastore.IntegrationsRepository
+import dev.weft.undercurrent.core.domain.IntegrationsRepository
 import dev.weft.undercurrent.shared.gateway.OAuthConfig
 import dev.weft.undercurrent.shared.gateway.OAuthGateway
 import dev.weft.undercurrent.shared.gateway.OAuthResult

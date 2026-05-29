@@ -9,8 +9,8 @@ import dev.weft.tools.WeftTool
 import dev.weft.undercurrent.core.model.PersonaKind
 import dev.weft.undercurrent.core.navigation.NavigationChannel
 import dev.weft.undercurrent.core.navigation.Screen
-import dev.weft.undercurrent.data.datastore.MiniAppsRepository
-import dev.weft.undercurrent.data.datastore.PersonaRepository
+import dev.weft.undercurrent.core.domain.MiniAppsRepository
+import dev.weft.undercurrent.core.domain.PersonaRepository
 import dev.weft.undercurrent.feature.creator.CreatorSession
 import kotlinx.serialization.Serializable
 import kotlin.reflect.typeOf

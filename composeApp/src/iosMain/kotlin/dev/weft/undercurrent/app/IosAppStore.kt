@@ -13,10 +13,10 @@ import dev.weft.undercurrent.app.llm.openRouterClient
 import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.ProviderKind
 import dev.weft.undercurrent.core.navigation.Screen
-import dev.weft.undercurrent.data.datastore.OnboardingRepository
-import dev.weft.undercurrent.data.datastore.PersonaRepository
-import dev.weft.undercurrent.data.datastore.ProviderPrefsRepository
-import dev.weft.undercurrent.data.datastore.ThemeRepository
+import dev.weft.undercurrent.core.domain.OnboardingRepository
+import dev.weft.undercurrent.core.domain.PersonaRepository
+import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
+import dev.weft.undercurrent.core.domain.ThemeRepository
 import dev.weft.undercurrent.db.UndercurrentDatabase
 import dev.weft.undercurrent.feature.chat.DisplayMessage
 import dev.weft.undercurrent.feature.chat.DisplayRole

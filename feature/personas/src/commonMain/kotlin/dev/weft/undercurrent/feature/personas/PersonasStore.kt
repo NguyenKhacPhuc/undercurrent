@@ -2,7 +2,7 @@ package dev.weft.undercurrent.feature.personas
 
 import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.core.model.PersonaKind
-import dev.weft.undercurrent.data.datastore.PersonaRepository
+import dev.weft.undercurrent.core.domain.PersonaRepository
 import dev.weft.undercurrent.shared.mvi.Store
 import kotlinx.coroutines.launch
 

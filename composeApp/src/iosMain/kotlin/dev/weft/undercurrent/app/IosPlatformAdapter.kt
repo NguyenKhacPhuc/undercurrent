@@ -9,8 +9,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import dev.weft.undercurrent.core.model.ProviderKind
-import dev.weft.undercurrent.data.datastore.MiniAppsRepository
-import dev.weft.undercurrent.data.datastore.PersonaRepository
+import dev.weft.undercurrent.core.domain.MiniAppsRepository
+import dev.weft.undercurrent.core.domain.PersonaRepository
 import dev.weft.undercurrent.feature.chat.AddToChatConfig
 import dev.weft.undercurrent.feature.chat.ChatScreen
 import dev.weft.undercurrent.shared.gateway.SpeechGateway

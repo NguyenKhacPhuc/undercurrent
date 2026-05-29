@@ -40,7 +40,10 @@ dependencies {
     implementation(projects.core.ui)
     implementation(projects.core.ext)
 
-    // Data layer — repos + databases + Weft bridge (Android-only)
+    // Domain — repositories (DataStore-Preferences-backed)
+    implementation(projects.core.domain)
+
+    // Data layer — DataStore factory + databases + Weft bridge (Android-only)
     implementation(projects.data.datastore)
     implementation(projects.data.sqldelight)
     implementation(projects.data.weft)

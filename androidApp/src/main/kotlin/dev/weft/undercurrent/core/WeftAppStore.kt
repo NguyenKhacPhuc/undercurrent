@@ -34,11 +34,11 @@ import dev.weft.undercurrent.core.model.ModelTier
 import dev.weft.undercurrent.core.model.ProviderKind
 import dev.weft.undercurrent.core.navigation.NavigationChannel
 import dev.weft.undercurrent.core.navigation.Screen
-import dev.weft.undercurrent.data.datastore.MiniAppsRepository
-import dev.weft.undercurrent.data.datastore.ModelPrefsRepository
-import dev.weft.undercurrent.data.datastore.OnboardingRepository
-import dev.weft.undercurrent.data.datastore.ProviderPrefsRepository
-import dev.weft.undercurrent.data.datastore.ThemeRepository
+import dev.weft.undercurrent.core.domain.MiniAppsRepository
+import dev.weft.undercurrent.core.domain.ModelPrefsRepository
+import dev.weft.undercurrent.core.domain.OnboardingRepository
+import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
+import dev.weft.undercurrent.core.domain.ThemeRepository
 import dev.weft.undercurrent.feature.chat.DisplayMessage
 import dev.weft.undercurrent.feature.chat.DisplayRole
 import dev.weft.undercurrent.feature.chat.SkillSummary
