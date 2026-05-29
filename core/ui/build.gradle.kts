@@ -38,7 +38,7 @@ kotlin {
             // weft@2ac7c49 — that's what made this commonMain move
             // possible. Stays `api` because callers reference
             // WeftComponent / ComponentEvent directly.
-            api("dev.weft:weft-android-compose")
+            api("dev.weft:weft-compose")
             // Coil 3 — KMP-friendly image loader for the
             // SubcomposeAsyncImage call sites in PhotoFrame / Avatar /
             // hero-style components. Network engine is per-platform
@@ -65,7 +65,7 @@ kotlin {
             // Those wrap `android.webkit.WebView` so the dependency
             // stays Android-only — commonMain references them via
             // the `platformEmbedComponents` expect/actual.
-            implementation("dev.weft:weft-android-compose-defaults")
+            implementation("dev.weft:weft-compose-defaults")
             // Coil 3's Android HTTP engine. SubcomposeAsyncImage loads
             // remote URLs the agent emits; without this the loader
             // can't fetch.

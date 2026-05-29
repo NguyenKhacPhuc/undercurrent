@@ -46,16 +46,16 @@ rootProject.name = "undercurrent"
 // host-app shells continue to pull the Android-library ones.
 includeBuild("../weft") {
     dependencySubstitution {
-        substitute(module("dev.weft:weft-android"))
-            .using(project(":android"))
-        substitute(module("dev.weft:weft-android-compose"))
-            .using(project(":android-compose"))
-        substitute(module("dev.weft:weft-android-compose-defaults"))
-            .using(project(":android-compose-defaults"))
+        substitute(module("dev.weft:weft-runtime"))
+            .using(project(":runtime"))
+        substitute(module("dev.weft:weft-compose"))
+            .using(project(":compose"))
+        substitute(module("dev.weft:weft-compose-defaults"))
+            .using(project(":compose-defaults"))
         substitute(module("dev.weft:weft-oauth"))
             .using(project(":oauth"))
-        substitute(module("dev.weft.devtools:weft-android-devtools"))
-            .using(project(":android-devtools"))
+        substitute(module("dev.weft.devtools:weft-devtools"))
+            .using(project(":devtools"))
 
         // KMP-published harness modules. Required by composeApp's
         // iosMain so it can build a substrate-backed WeftAgent.

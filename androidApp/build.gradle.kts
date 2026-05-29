@@ -64,9 +64,9 @@ dependencies {
 
     // Weft SDK — substrate. The host references WeftRuntime, ComposeUiBridge,
     // tool base classes, and the OAuth client directly.
-    implementation("dev.weft:weft-android")
-    implementation("dev.weft:weft-android-compose")
-    implementation("dev.weft:weft-android-compose-defaults")
+    implementation("dev.weft:weft-runtime")
+    implementation("dev.weft:weft-compose")
+    implementation("dev.weft:weft-compose-defaults")
     implementation("dev.weft:weft-oauth")
 
     // Coil 3 ImageLoader — built in AppModule.kt and passed to the

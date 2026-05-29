@@ -50,11 +50,11 @@ dependencies {
 
     // The Weft SDK itself — wired via the `includeBuild("../weft")`
     // composite + dependencySubstitution in settings.gradle.kts.
-    api("dev.weft:weft-android")
-    api("dev.weft:weft-android-compose")
-    api("dev.weft:weft-android-compose-defaults")
+    api("dev.weft:weft-runtime")
+    api("dev.weft:weft-compose")
+    api("dev.weft:weft-compose-defaults")
     api("dev.weft:weft-oauth")
-    debugImplementation("dev.weft.devtools:weft-android-devtools")
+    debugImplementation("dev.weft.devtools:weft-devtools")
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.koin.android)
