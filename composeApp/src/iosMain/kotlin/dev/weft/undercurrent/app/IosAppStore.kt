@@ -2,7 +2,7 @@ package dev.weft.undercurrent.app
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import dev.weft.undercurrent.app.llm.AnthropicLlmClient
+import dev.weft.undercurrent.app.llm.WeftAgentLlmClient
 import dev.weft.undercurrent.app.llm.IOS_SYSTEM_PROMPT
 import dev.weft.undercurrent.app.llm.LlmChunk
 import dev.weft.undercurrent.app.llm.LlmClient
@@ -65,7 +65,12 @@ class IosAppStore(
     private val history: MutableList<LlmMessage> = mutableListOf()
 
     private val clients: Map<ProviderKind, LlmClient> = mapOf(
-        ProviderKind.Anthropic to AnthropicLlmClient(
+        // Substrate-backed: Anthropic chat flows through WeftAgent
+        // (model routing, retry, circuit breaker, cache binding) via
+        // the WeftAgentLlmClient adapter. The hand-rolled
+        // AnthropicLlmClient is kept in the source tree as a fallback
+        // / reference while the substrate path bakes in.
+        ProviderKind.Anthropic to WeftAgentLlmClient(
             getApiKey = { keyVault.getApiKey(ProviderKind.Anthropic) },
         ),
         ProviderKind.OpenAI to openAIClient(
