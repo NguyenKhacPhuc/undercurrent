@@ -51,6 +51,13 @@ adb shell am force-stop dev.weft.undercurrent
 adb install -r androidApp/build/outputs/apk/debug/androidApp-debug.apk
 adb shell am start -n dev.weft.undercurrent/.MainActivity
 adb logcat | grep -E "Undercurrent|YourTag"
+
+# Unit tests — one feature module
+./gradlew :feature:personas:testDebugUnitTest
+
+# Unit tests — all modules (`testDebugUnitTest` is the conventional
+# task name from the AGP test plugin).
+./gradlew testDebugUnitTest
 ```
 
 ## Module layout (KMP)
@@ -241,6 +248,79 @@ verb-noun shape, shorten description.
   Keep it — without it, Claude sometimes describes tool calls in
   text without emitting the tool_use block.
 
+## Testing (MVI stores)
+
+Unit-testing rules for feature stores. The harness is wired in
+`KmpLibraryConventionPlugin` — MockK + Kotest + Turbine + coroutines-test
+are auto-added to every KMP library's `androidUnitTest` source set; no
+per-module build changes needed.
+
+**Stack.** MockK for collaborators, Kotest `FunSpec` for structure,
+Kotest matchers for assertions, Turbine for flow observation,
+`StandardTestDispatcher` for coroutine control.
+
+**Source set.** Tests live under
+`<module>/src/androidUnitTest/kotlin/<package>/<Class>Test.kt`. The
+Android target's JVM runs them via the JUnit 5 runner. Do NOT put
+JVM-only mocking in `commonTest` — MockK doesn't support Kotlin/Native.
+
+**The 5 idioms every store test repeats:**
+
+1. **Replace `Dispatchers.Main`.** `Store` extends `ViewModel`;
+   `viewModelScope` dispatches on Main. Every spec needs:
+   ```kotlin
+   val mainDispatcher = StandardTestDispatcher()
+   beforeTest { Dispatchers.setMain(mainDispatcher) }
+   afterTest { Dispatchers.resetMain() }
+   ```
+
+2. **`fakeGateway(...)` helper.** Centralize the MockK setup — every
+   StateFlow property returns a `MutableStateFlow(seed)`, every
+   suspend method `coEvery { … } returns Unit`:
+   ```kotlin
+   fun fakeRepo(initial: List<Foo> = emptyList()): FooRepo {
+       val repo = mockk<FooRepo>()
+       every { repo.foos } returns MutableStateFlow(initial)
+       coEvery { repo.add(any()) } returns Unit
+       return repo
+   }
+   ```
+
+3. **`runTest { … advanceUntilIdle() }`** for any test that calls
+   `dispatch()`. The store does `viewModelScope.launch { repo.foo() }`
+   internally — the suspend call doesn't fire until the test scheduler
+   drains.
+
+4. **Simulate live emissions via `flow.value = newValue`** then
+   `advanceUntilIdle()`. The store's init-block collector picks up
+   the change and projects it into state.
+
+5. **`coVerify(exactly = N)` over `confirmVerified`.** The store's init
+   block reads gateway flow getters (`activeVoice`, etc.) to seed the
+   projection — those reads would falsely trip `confirmVerified`. Use
+   per-method `coVerify(exactly = N)` calls instead; they catch the
+   same regression class without the false positive.
+
+**Coverage targets per store:** initial state from gateway snapshot,
+live state updates on each flow emission, every Intent variant's
+gateway call + resulting state/effect change, at least one
+"interaction discipline" test (a single intent doesn't fire unrelated
+methods — catches the regression-class where Tap accidentally fires
+Add).
+
+**What NOT to test in this layer:** transient state between
+`dispatch()` and a suspend completion. MockK's `coEvery { … } returns
+…` doesn't truly suspend, so `runCurrent()` advances through the
+whole launched block in one step — the InProgress / Loading state is
+gone before assertions run. Test the final state of each intent path
+instead, and trust the `update { … }` calls in the middle.
+
+**Reference templates.** `feature/personas/.../PersonasStoreTest.kt`
+for collaborator-stubbed stores. `shared/.../mvi/StoreTest.kt` for the
+generic base. `feature/integrations/.../IntegrationsStoreTest.kt` for
+multi-collaborator + sealed-result-handling stores (OAuth flow with
+five `OAuthResult` variants).
+
 ## Provider + persona + theme
 
 - `features/providers/` — Anthropic / OpenAI / OpenRouter / DeepSeek
@@ -276,3 +356,15 @@ verb-noun shape, shorten description.
   tuned against agent behavior.
 - Don't add screens that don't show up in the side drawer or
   Settings — the user has no way to reach them otherwise.
+- Don't put JVM-only test deps (MockK, kotest-runner-junit5,
+  Turbine) in `commonTest` — they break the iOS K/N build. The
+  convention plugin already wires them into `androidUnitTest`.
+- Don't reach for `confirmVerified(mock)` in store tests. The init
+  block reads gateway flow getters to seed state; `confirmVerified`
+  treats those as unverified calls and fails. Use per-method
+  `coVerify(exactly = N)`.
+- Don't try to assert transient `Loading` / `InProgress` state
+  mid-coroutine with MockK + `runCurrent()`. MockK's `coEvery`
+  returns immediately rather than suspending, so the dispatcher
+  advances past the transient before the assertion runs. Test the
+  terminal state of each path instead.
