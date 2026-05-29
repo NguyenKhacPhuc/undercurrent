@@ -61,26 +61,36 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
             }
         }
 
+        // commonTest gets the KMP-portable test stack — Kotest engine +
+        // matchers + Turbine + kotlinx-coroutines-test. Specs here
+        // compile against every target (Android + iOS) and run on
+        // each. Use hand-rolled fakes (not MockK — JVM-only) for
+        // collaborator stubs.
         kotlin.sourceSets.named("commonTest") {
             dependencies {
                 implementation(libs.findLibrary("kotlin-test").get())
                 implementation(libs.findLibrary("kotlinx-coroutines-test").get())
+                implementation(libs.findLibrary("kotest-framework-engine").get())
+                implementation(libs.findLibrary("kotest-assertions-core").get())
+                implementation(libs.findLibrary("turbine").get())
             }
         }
 
-        // androidUnitTest gets the JVM-only mocking + assertion stack
-        // (mockk + kotest-runner-junit5 + kotest-assertions + turbine).
-        // This wires every KMP library module automatically so per-
-        // feature build files don't have to repeat the test deps. iOS
-        // tests fall back to commonTest using kotlin.test + hand-rolled
-        // fakes — MockK doesn't support Kotlin/Native, and kotest-
-        // runner-junit5 is JVM-only.
+        // androidUnitTest adds the JVM-only pieces on top:
+        //   - kotest-runner-junit5 — bridges Kotest specs into the
+        //     JUnit 5 test platform Gradle runs.
+        //   - mockk — JVM byte-code mocking. Use here for
+        //     collaborator-interaction tests where `coVerify` /
+        //     `coVerifyOrder` earns its keep.
+        //
+        // Convention: pure state-projection tests live in commonTest
+        // with hand-rolled fakes so iOS runs them; dispatch-side-
+        // effect assertions (mock verification) live in
+        // androidUnitTest because MockK is JVM-only.
         kotlin.sourceSets.named("androidUnitTest") {
             dependencies {
                 implementation(libs.findLibrary("kotest-runner-junit5").get())
-                implementation(libs.findLibrary("kotest-assertions-core").get())
                 implementation(libs.findLibrary("mockk").get())
-                implementation(libs.findLibrary("turbine").get())
             }
         }
 

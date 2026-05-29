@@ -255,18 +255,53 @@ Unit-testing rules for feature stores. The harness is wired in
 are auto-added to every KMP library's `androidUnitTest` source set; no
 per-module build changes needed.
 
-**Stack.** MockK for collaborators, Kotest `BehaviorSpec` (BDD
-`Given` / `When` / `Then`) for structure, Kotest matchers for
-assertions, Turbine for flow observation, `StandardTestDispatcher`
-for coroutine control.
+**Stack — split across `commonTest` and `androidUnitTest`.**
 
-The BDD nesting reads as the spec sentence: outer `Given` describes
-the setup precondition (a fresh store, a seeded gateway, a specific
-flow shape), inner `When` describes the intent dispatched (or the
-event simulated), innermost `Then` describes the observable outcome.
-Use uppercase `Given` / `When` / `Then` to avoid the `when` keyword
-backtick collision. A `Given` block with no `When` is fine for pure
-initial-state projections (no action — just observe).
+- **commonTest** (runs on Android + iOS): Kotest `BehaviorSpec` engine
+  + Kotest matchers + Turbine + kotlinx-coroutines-test +
+  `kotlin.test`. Tests here use **hand-rolled fakes** for
+  collaborators — MockK is JVM-only.
+- **androidUnitTest** (JVM only, layered on top of commonTest): adds
+  `kotest-runner-junit5` (so JUnit Platform discovers the specs) and
+  **MockK**. Use these for collaborator-interaction tests where
+  `coVerify` / `coVerifyOrder` earns its keep.
+
+The convention plugin wires both source sets automatically. Per-feature
+`build.gradle.kts` files don't touch test deps.
+
+**BDD style.** Outer `Given` describes the setup precondition (a fresh
+store, a seeded gateway, a specific flow shape), inner `When`
+describes the intent dispatched (or event simulated), innermost
+`Then` describes the observable outcome. Use uppercase
+`Given` / `When` / `Then` to avoid the `when` keyword backtick
+collision. A `Given` with no `When` is fine for pure initial-state
+projections (no action — just observe).
+
+**Per-spec split convention.** For each MVI store, prefer two specs:
+
+  - `<Name>StoreStateTest.kt` in **commonTest** — covers initial state,
+    live-flow propagation, "store didn't mutate optimistically" — any
+    assertion that only reads `store.state.value` or observes via
+    Turbine. Uses a hand-rolled `Fake<Gateway>` (KMP-portable). Runs
+    on Android + iOS.
+  - `<Name>StoreTest.kt` in **androidUnitTest** — covers
+    intent-dispatch consequences that need `coVerify(exactly = N) {
+    repo.method(args) }` to assert the right gateway method was
+    called with the right arguments. MockK only. Runs on Android.
+
+The base `Store` class (`shared/.../mvi/StoreTest.kt`) and the
+read-only `UsageStore` (one interface gateway, no dispatch) live
+**entirely in commonTest** — they don't need MockK at all.
+
+**Blocker: three feature stores can't fully split today.**
+`MiniAppsStore`, `PersonasStore`, and `IntegrationsStore` each take a
+concrete `final` repository (`MiniAppsRepository`, `PersonaRepository`,
+`IntegrationsRepository`) — Kotlin classes, not interfaces, so a
+commonTest fake can't subclass them. To split these, the production
+code needs an interface extraction (rename current → `…Impl`, add an
+interface with the public surface), or a commonTest fake has to wrap
+the real class with an in-memory `DataStore<Preferences>` stand-in.
+Neither is shipped yet; those three specs stay JVM-only via MockK.
 
 **Source set.** Tests live under
 `<module>/src/androidUnitTest/kotlin/<package>/<Class>Test.kt`. The
@@ -324,11 +359,23 @@ whole launched block in one step — the InProgress / Loading state is
 gone before assertions run. Test the final state of each intent path
 instead, and trust the `update { … }` calls in the middle.
 
-**Reference templates.** `feature/personas/.../PersonasStoreTest.kt`
-for collaborator-stubbed stores. `shared/.../mvi/StoreTest.kt` for the
-generic base. `feature/integrations/.../IntegrationsStoreTest.kt` for
-multi-collaborator + sealed-result-handling stores (OAuth flow with
-five `OAuthResult` variants).
+**Reference templates.**
+
+- `shared/.../mvi/StoreTest.kt` (**commonTest**) — generic `Store`
+  base, no MockK, no fakes; test double is a tiny `CounterStore`.
+- `feature/usage/.../UsageStoreTest.kt` (**commonTest**) — single
+  interface gateway, hand-rolled `FakeUsageGateway`. Cleanest
+  illustration of the KMP pattern.
+- `feature/memories/.../MemoriesStoreStateTest.kt` (**commonTest**) +
+  `MemoriesStoreTest.kt` (**androidUnitTest**) — the split pattern.
+  State-projection in commonTest with a fake; intent forwarding in
+  androidUnitTest with MockK `coVerify`.
+- `feature/personas/.../PersonasStoreTest.kt` (**androidUnitTest**) —
+  the all-MockK pattern for stores whose collaborator is a concrete
+  final class.
+- `feature/integrations/.../IntegrationsStoreTest.kt`
+  (**androidUnitTest**) — sealed-result-handling reference
+  (`OAuthResult` mapped to `ActionStatus.Failure` per variant).
 
 ## Provider + persona + theme
 
@@ -365,9 +412,10 @@ five `OAuthResult` variants).
   tuned against agent behavior.
 - Don't add screens that don't show up in the side drawer or
   Settings — the user has no way to reach them otherwise.
-- Don't put JVM-only test deps (MockK, kotest-runner-junit5,
-  Turbine) in `commonTest` — they break the iOS K/N build. The
-  convention plugin already wires them into `androidUnitTest`.
+- Don't put MockK or kotest-runner-junit5 in `commonTest` — both
+  are JVM-only. The convention plugin keeps them in
+  `androidUnitTest`. Kotest's engine + assertions + Turbine
+  themselves ARE KMP and DO live in `commonTest`.
 - Don't reach for `confirmVerified(mock)` in store tests. The init
   block reads gateway flow getters to seed state; `confirmVerified`
   treats those as unverified calls and fails. Use per-method

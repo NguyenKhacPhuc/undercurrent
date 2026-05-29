@@ -4,11 +4,10 @@ import dev.weft.undercurrent.shared.gateway.UsageGateway
 import dev.weft.undercurrent.shared.gateway.UsageTotals
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
-import io.mockk.every
-import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -16,9 +15,12 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * Exercises [UsageStore]. Read-only screen — no intents — so all
- * assertions are about state projection from the gateway's totals
- * StateFlow.
+ * Exercises [UsageStore]. KMP — runs on Android + iOS.
+ *
+ * Read-only screen (no intents) so every assertion is about state
+ * projection from `gateway.totals`. Uses a hand-rolled
+ * [FakeUsageGateway] instead of MockK so the spec can live in
+ * commonTest and run on every target.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UsageStoreTest : BehaviorSpec({
@@ -27,12 +29,6 @@ class UsageStoreTest : BehaviorSpec({
     beforeTest { Dispatchers.setMain(mainDispatcher) }
     afterTest { Dispatchers.resetMain() }
 
-    fun fakeGateway(initial: UsageTotals = UsageTotals()): UsageGateway {
-        val gateway = mockk<UsageGateway>()
-        every { gateway.totals } returns MutableStateFlow(initial)
-        return gateway
-    }
-
     Given("a gateway seeded with a populated UsageTotals snapshot") {
         val seed = UsageTotals(
             lifetimeUsd = 12.34,
@@ -40,7 +36,7 @@ class UsageStoreTest : BehaviorSpec({
             lifetimeOutputTokens = 500,
             lastCallModelId = "claude-sonnet-4-6",
         )
-        val store = UsageStore(fakeGateway(initial = seed))
+        val store = UsageStore(FakeUsageGateway(initial = seed))
 
         Then("the initial state mirrors the snapshot exactly") {
             store.state.value.totals shouldBe seed
@@ -48,7 +44,7 @@ class UsageStoreTest : BehaviorSpec({
     }
 
     Given("a gateway with no usage recorded yet") {
-        val store = UsageStore(fakeGateway())
+        val store = UsageStore(FakeUsageGateway())
 
         Then("the initial state defaults to zero-valued totals") {
             store.state.value.totals shouldBe UsageTotals()
@@ -56,15 +52,14 @@ class UsageStoreTest : BehaviorSpec({
     }
 
     Given("a store subscribed to a mutable totals flow") {
-        val flow = MutableStateFlow(UsageTotals())
-        val gateway = mockk<UsageGateway>().apply { every { totals } returns flow }
+        val gateway = FakeUsageGateway()
         val store = UsageStore(gateway)
 
         When("the gateway emits a new totals snapshot") {
             Then("the store's state reflects the new snapshot") {
                 runTest {
                     advanceUntilIdle()
-                    flow.value = UsageTotals(lifetimeUsd = 0.50, lifetimeInputTokens = 100)
+                    gateway.emit(UsageTotals(lifetimeUsd = 0.50, lifetimeInputTokens = 100))
                     advanceUntilIdle()
 
                     store.state.value.totals shouldBe UsageTotals(
@@ -79,13 +74,11 @@ class UsageStoreTest : BehaviorSpec({
             Then("the new snapshot replaces — does not merge with — the old one") {
                 runTest {
                     advanceUntilIdle()
-                    flow.value = UsageTotals(lifetimeUsd = 1.00)
+                    gateway.emit(UsageTotals(lifetimeUsd = 1.00))
                     advanceUntilIdle()
-                    flow.value = UsageTotals(lifetimeInputTokens = 99)
+                    gateway.emit(UsageTotals(lifetimeInputTokens = 99))
                     advanceUntilIdle()
 
-                    // lifetimeUsd resets to the new emission's 0.0,
-                    // not the prior 1.00.
                     store.state.value.totals shouldBe UsageTotals(lifetimeInputTokens = 99)
                 }
             }
@@ -97,7 +90,7 @@ class UsageStoreTest : BehaviorSpec({
                     advanceUntilIdle()
                     val byDay = mapOf("2026-05-29" to 1.50, "2026-05-30" to 2.25)
                     val byAgent = mapOf("default" to 3.50, "researcher" to 0.25)
-                    flow.value = UsageTotals(byDay = byDay, byAgent = byAgent)
+                    gateway.emit(UsageTotals(byDay = byDay, byAgent = byAgent))
                     advanceUntilIdle()
 
                     store.state.value.totals.byDay shouldBe byDay
@@ -108,14 +101,31 @@ class UsageStoreTest : BehaviorSpec({
     }
 
     Given("a UsageStore with no intent variants defined yet") {
-        val store = UsageStore(fakeGateway())
+        val store = UsageStore(FakeUsageGateway())
 
         Then("constructing the store doesn't throw and produces a default state") {
-            // sealed UsageIntent has no implementations; this test
-            // documents the structural contract — adding a new variant
-            // later should surface in the exhaustive `when` inside
-            // dispatch() and (likely) require a new Given block here.
+            // sealed UsageIntent has no implementations; documents the
+            // structural contract — adding a new variant later would
+            // surface in the exhaustive `when` inside dispatch() and
+            // (likely) require a new Given block here.
             store.state.value shouldBe UsageState()
         }
     }
 })
+
+/**
+ * KMP-portable [UsageGateway] double. The MockK-using JVM tests reach
+ * for `every { gateway.totals } returns MutableStateFlow(seed)`; here
+ * the same shape is a regular class.
+ */
+private class FakeUsageGateway(
+    initial: UsageTotals = UsageTotals(),
+) : UsageGateway {
+    private val _totals = MutableStateFlow(initial)
+    override val totals: StateFlow<UsageTotals> get() = _totals
+
+    /** Push a new value into the totals flow — used by live-emission tests. */
+    fun emit(value: UsageTotals) {
+        _totals.value = value
+    }
+}
