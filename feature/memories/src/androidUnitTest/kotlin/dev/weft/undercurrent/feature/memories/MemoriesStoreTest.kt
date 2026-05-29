@@ -3,7 +3,7 @@ package dev.weft.undercurrent.feature.memories
 import dev.weft.undercurrent.shared.gateway.MemoryEntry
 import dev.weft.undercurrent.shared.gateway.MemoryScope
 import dev.weft.undercurrent.shared.gateway.MemoryStoreGateway
-import io.kotest.core.spec.style.FunSpec
+import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -19,21 +19,18 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * Exercises [MemoriesStore] against a MockK-stubbed
- * [MemoryStoreGateway]. Memories are read-only here — writes happen
- * inside the agent loop — so the store has only two intents
- * (Delete + ClearAll).
+ * Exercises [MemoriesStore] in BDD style.
  *
- * The interesting behavior under test is the StateFlow projection:
- * the constructor reads `store.memories.value` synchronously to seed
- * the initial state, then the init block subscribes to the same
- * StateFlow for live updates. Both paths need to survive.
+ * Read-only screen — writes happen in the agent loop — so the store
+ * exposes only Delete + ClearAll. The interesting behavior is the
+ * dual projection: the constructor reads `store.memories.value`
+ * synchronously for initial state, and the init block subscribes for
+ * live updates.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class MemoriesStoreTest : FunSpec({
+class MemoriesStoreTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
-
     beforeTest { Dispatchers.setMain(mainDispatcher) }
     afterTest { Dispatchers.resetMain() }
 
@@ -58,123 +55,122 @@ class MemoriesStoreTest : FunSpec({
         return gateway
     }
 
-    // ── initial state ────────────────────────────────────────────────
-
-    test("initial state mirrors gateway.memories.value snapshot") {
+    Given("a gateway seeded with two memories") {
         val seed = listOf(memory("a"), memory("b"))
-        val gateway = fakeGateway(initial = seed)
+        val store = MemoriesStore(fakeGateway(initial = seed))
 
-        val store = MemoriesStore(gateway)
-
-        store.state.value shouldBe MemoriesState(memories = seed)
+        Then("the initial state mirrors the seed list") {
+            store.state.value shouldBe MemoriesState(memories = seed)
+        }
     }
 
-    test("initial state is empty when gateway snapshot is empty") {
+    Given("a gateway with no memories") {
         val store = MemoriesStore(fakeGateway())
 
-        store.state.value shouldBe MemoriesState(memories = emptyList())
+        Then("the initial state has an empty list") {
+            store.state.value shouldBe MemoriesState(memories = emptyList())
+        }
     }
 
-    // ── live flow ────────────────────────────────────────────────────
+    Given("a store subscribed to a mutable memories flow") {
+        val flow = MutableStateFlow<List<MemoryEntry>>(emptyList())
+        val gateway = mockk<MemoryStoreGateway>().apply {
+            every { memories } returns flow
+            coEvery { delete(any()) } returns Unit
+            coEvery { clear() } returns Unit
+        }
+        val store = MemoriesStore(gateway)
 
-    test("state updates when gateway.memories emits a new list") {
-        runTest {
-            val flow = MutableStateFlow<List<MemoryEntry>>(emptyList())
-            val gateway = mockk<MemoryStoreGateway>().apply {
-                every { memories } returns flow
-                coEvery { delete(any()) } returns Unit
-                coEvery { clear() } returns Unit
+        When("the gateway emits a new list") {
+            Then("the store reflects the new list") {
+                runTest {
+                    advanceUntilIdle()
+                    flow.value = listOf(memory("new"))
+                    advanceUntilIdle()
+
+                    store.state.value.memories shouldBe listOf(memory("new"))
+                }
             }
-
-            val store = MemoriesStore(gateway)
-            advanceUntilIdle()
-
-            flow.value = listOf(memory("new"))
-            advanceUntilIdle()
-
-            store.state.value.memories shouldBe listOf(memory("new"))
         }
-    }
 
-    test("subsequent emissions overwrite the memory list — not append") {
-        runTest {
-            val flow = MutableStateFlow(listOf(memory("one")))
-            val gateway = mockk<MemoryStoreGateway>().apply {
-                every { memories } returns flow
-                coEvery { delete(any()) } returns Unit
-                coEvery { clear() } returns Unit
+        When("two emissions arrive in sequence") {
+            Then("the second emission replaces — does not append to — the first") {
+                runTest {
+                    advanceUntilIdle()
+                    flow.value = listOf(memory("one"))
+                    advanceUntilIdle()
+                    flow.value = listOf(memory("two"), memory("three"))
+                    advanceUntilIdle()
+
+                    store.state.value.memories shouldBe listOf(memory("two"), memory("three"))
+                }
             }
-            val store = MemoriesStore(gateway)
-            advanceUntilIdle()
-
-            flow.value = listOf(memory("two"), memory("three"))
-            advanceUntilIdle()
-
-            store.state.value.memories shouldBe listOf(memory("two"), memory("three"))
         }
     }
 
-    // ── Delete ───────────────────────────────────────────────────────
+    Given("a fresh store with a stubbed gateway") {
+        When("Delete is dispatched for id 'mem-42'") {
+            Then("the gateway.delete('mem-42') is called once") {
+                runTest {
+                    val gateway = fakeGateway()
+                    val store = MemoriesStore(gateway)
 
-    test("Delete forwards id to gateway.delete") {
-        runTest {
-            val gateway = fakeGateway()
-            val store = MemoriesStore(gateway)
+                    store.dispatch(MemoriesIntent.Delete("mem-42"))
+                    advanceUntilIdle()
 
-            store.dispatch(MemoriesIntent.Delete("mem-42"))
-            advanceUntilIdle()
+                    coVerify(exactly = 1) { gateway.delete("mem-42") }
+                    coVerify(exactly = 0) { gateway.clear() }
+                }
+            }
+        }
 
-            coVerify(exactly = 1) { gateway.delete("mem-42") }
-            coVerify(exactly = 0) { gateway.clear() }
+        When("ClearAll is dispatched") {
+            Then("gateway.clear is called once and delete is not called") {
+                runTest {
+                    val gateway = fakeGateway()
+                    val store = MemoriesStore(gateway)
+
+                    store.dispatch(MemoriesIntent.ClearAll)
+                    advanceUntilIdle()
+
+                    coVerify(exactly = 1) { gateway.clear() }
+                    coVerify(exactly = 0) { gateway.delete(any()) }
+                }
+            }
+        }
+
+        When("ClearAll then Delete are dispatched in sequence") {
+            Then("each method fires exactly once") {
+                runTest {
+                    val gateway = fakeGateway()
+                    val store = MemoriesStore(gateway)
+
+                    store.dispatch(MemoriesIntent.ClearAll)
+                    store.dispatch(MemoriesIntent.Delete("solo"))
+                    advanceUntilIdle()
+
+                    coVerify(exactly = 1) { gateway.clear() }
+                    coVerify(exactly = 1) { gateway.delete("solo") }
+                }
+            }
         }
     }
 
-    test("Delete does not mutate local state — relies on gateway flow") {
-        // The store doesn't optimistically remove the entry; it waits for
-        // the gateway's StateFlow to re-emit. Documents that the screen
-        // sees the entry stay visible until the gateway confirms.
-        runTest {
-            val seed = listOf(memory("a"), memory("b"))
-            val gateway = fakeGateway(initial = seed)
-            val store = MemoriesStore(gateway)
-            advanceUntilIdle()
+    Given("a store seeded with two memories and a Delete dispatched") {
+        Then("local state stays unchanged — the store waits for the gateway flow to re-emit") {
+            runTest {
+                val seed = listOf(memory("a"), memory("b"))
+                val gateway = fakeGateway(initial = seed)
+                val store = MemoriesStore(gateway)
+                advanceUntilIdle()
 
-            store.dispatch(MemoriesIntent.Delete("a"))
-            advanceUntilIdle()
+                store.dispatch(MemoriesIntent.Delete("a"))
+                advanceUntilIdle()
 
-            // Without a gateway-side StateFlow update, the local list is
-            // unchanged. (A real impl would have the gateway tick the
-            // StateFlow as a consequence of delete().)
-            store.state.value.memories shouldBe seed
-        }
-    }
-
-    // ── ClearAll ─────────────────────────────────────────────────────
-
-    test("ClearAll forwards to gateway.clear") {
-        runTest {
-            val gateway = fakeGateway()
-            val store = MemoriesStore(gateway)
-
-            store.dispatch(MemoriesIntent.ClearAll)
-            advanceUntilIdle()
-
-            coVerify(exactly = 1) { gateway.clear() }
-            coVerify(exactly = 0) { gateway.delete(any()) }
-        }
-    }
-
-    test("ClearAll then Delete dispatch both methods in order") {
-        runTest {
-            val gateway = fakeGateway()
-            val store = MemoriesStore(gateway)
-
-            store.dispatch(MemoriesIntent.ClearAll)
-            store.dispatch(MemoriesIntent.Delete("solo"))
-            advanceUntilIdle()
-
-            coVerify(exactly = 1) { gateway.clear() }
-            coVerify(exactly = 1) { gateway.delete("solo") }
+                // No optimistic local-state mutation; the store doesn't
+                // assume the gateway succeeded.
+                store.state.value.memories shouldBe seed
+            }
         }
     }
 })

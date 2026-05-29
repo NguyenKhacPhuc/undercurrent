@@ -255,9 +255,18 @@ Unit-testing rules for feature stores. The harness is wired in
 are auto-added to every KMP library's `androidUnitTest` source set; no
 per-module build changes needed.
 
-**Stack.** MockK for collaborators, Kotest `FunSpec` for structure,
-Kotest matchers for assertions, Turbine for flow observation,
-`StandardTestDispatcher` for coroutine control.
+**Stack.** MockK for collaborators, Kotest `BehaviorSpec` (BDD
+`Given` / `When` / `Then`) for structure, Kotest matchers for
+assertions, Turbine for flow observation, `StandardTestDispatcher`
+for coroutine control.
+
+The BDD nesting reads as the spec sentence: outer `Given` describes
+the setup precondition (a fresh store, a seeded gateway, a specific
+flow shape), inner `When` describes the intent dispatched (or the
+event simulated), innermost `Then` describes the observable outcome.
+Use uppercase `Given` / `When` / `Then` to avoid the `when` keyword
+backtick collision. A `Given` block with no `When` is fine for pure
+initial-state projections (no action — just observe).
 
 **Source set.** Tests live under
 `<module>/src/androidUnitTest/kotlin/<package>/<Class>Test.kt`. The

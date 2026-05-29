@@ -1,7 +1,7 @@
 package dev.weft.undercurrent.shared.mvi
 
 import app.cash.turbine.test
-import io.kotest.core.spec.style.FunSpec
+import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.Dispatchers
@@ -12,171 +12,180 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * Exercises the generic [Store] base class.
+ * Exercises the generic [Store] base class — BDD-style.
  *
  * Uses a tiny [CounterStore] test double — counter, four intents, one
  * effect — to verify the base machinery (state flow, effects channel,
- * dispatch routing, update reducer atomicity).
- *
- * All assertions go through Kotest's matchers; flow observation uses
- * Turbine. MockK isn't needed here — [Store] has no collaborators to
- * stub. The per-feature store tests demonstrate the MockK pattern.
- *
- * `setMain` / `resetMain` wires a `StandardTestDispatcher` to
- * `Dispatchers.Main` because [Store] extends `androidx.lifecycle.ViewModel`
- * which uses `viewModelScope` — that scope dispatches on `Main` and
- * needs a test-time replacement.
+ * dispatch routing, update reducer atomicity). No collaborators to
+ * stub here; the per-feature store specs demonstrate the MockK
+ * pattern.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class StoreTest : FunSpec({
+class StoreTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
-
     beforeTest { Dispatchers.setMain(mainDispatcher) }
     afterTest { Dispatchers.resetMain() }
 
-    // ── state semantics ──────────────────────────────────────────────
+    // ── state shape ──────────────────────────────────────────────────
 
-    test("initial state is the constructor argument") {
+    Given("a CounterStore constructed with initialCount=7") {
         val store = CounterStore(initialCount = 7)
 
-        store.state.value shouldBe CounterState(count = 7)
+        Then("the initial state mirrors the constructor argument") {
+            store.state.value shouldBe CounterState(count = 7)
+        }
     }
 
-    test("state is exposed as an immutable StateFlow") {
+    Given("a CounterStore with default initialCount=0") {
         val store = CounterStore()
 
-        // The public surface is StateFlow, not MutableStateFlow.
-        // Compose call sites can collect but not mutate directly.
-        @Suppress("USELESS_IS_CHECK")
-        (store.state is kotlinx.coroutines.flow.StateFlow).shouldBe(true)
+        Then("the exposed state surface is StateFlow, not MutableStateFlow") {
+            // Compose call sites can collect but not mutate directly.
+            @Suppress("USELESS_IS_CHECK")
+            (store.state is kotlinx.coroutines.flow.StateFlow).shouldBe(true)
+        }
     }
 
     // ── update() reducer ─────────────────────────────────────────────
 
-    test("dispatch(Increment) increments the count") {
-        val store = CounterStore()
-
-        store.dispatch(CounterIntent.Increment)
-
-        store.state.value.count shouldBe 1
-    }
-
-    test("dispatch(Increment) is observable through the StateFlow") {
-        val store = CounterStore()
-
-        store.state.test {
-            awaitItem() shouldBe CounterState(count = 0)
+    Given("a fresh CounterStore") {
+        When("Increment is dispatched") {
+            val store = CounterStore()
             store.dispatch(CounterIntent.Increment)
-            awaitItem() shouldBe CounterState(count = 1)
-            store.dispatch(CounterIntent.Increment)
-            awaitItem() shouldBe CounterState(count = 2)
+
+            Then("the count is 1") {
+                store.state.value.count shouldBe 1
+            }
+        }
+
+        When("three Increments are dispatched on a store starting at 10") {
+            val store = CounterStore(initialCount = 10)
+            repeat(3) { store.dispatch(CounterIntent.Increment) }
+
+            Then("the count is 13 — reducer sees the latest state each time") {
+                // If `update {}` captured the initial state instead of
+                // reading `_state.value` each time, this would land on
+                // 11 instead of 13.
+                store.state.value.count shouldBe 13
+            }
+        }
+
+        When("Add(42) is dispatched") {
+            val store = CounterStore()
+            store.dispatch(CounterIntent.Add(value = 42))
+
+            Then("the count is 42") {
+                store.state.value.count shouldBe 42
+            }
         }
     }
 
-    test("dispatch(Add(n)) replaces the count with n") {
+    Given("an observer collecting state.test {}") {
         val store = CounterStore()
 
-        store.dispatch(CounterIntent.Add(value = 42))
-
-        store.state.value.count shouldBe 42
-    }
-
-    test("update reducer sees the current state, not a stale snapshot") {
-        val store = CounterStore(initialCount = 10)
-
-        // Three Increments in a row — each must see the previous result,
-        // not the initial value. If `update {}` captured the initial state
-        // instead of reading `_state.value` each time, this would land on
-        // 11 instead of 13.
-        repeat(3) { store.dispatch(CounterIntent.Increment) }
-
-        store.state.value.count shouldBe 13
+        Then("each Increment emits the next count exactly once") {
+            store.state.test {
+                awaitItem() shouldBe CounterState(count = 0)
+                store.dispatch(CounterIntent.Increment)
+                awaitItem() shouldBe CounterState(count = 1)
+                store.dispatch(CounterIntent.Increment)
+                awaitItem() shouldBe CounterState(count = 2)
+            }
+        }
     }
 
     // ── effects channel ──────────────────────────────────────────────
 
-    test("emit() delivers an effect to the effects flow") {
-        val store = CounterStore()
-
-        store.effects.test {
-            store.dispatch(CounterIntent.RaiseAlarm)
-            awaitItem() shouldBe CounterEffect.AlarmRaised
-        }
-    }
-
-    test("effects are buffered — multiple emits queue without dropping") {
-        val store = CounterStore()
-
-        store.dispatch(CounterIntent.RaiseAlarm)
-        store.dispatch(CounterIntent.RaiseAlarm)
-        store.dispatch(CounterIntent.RaiseAlarm)
-
-        store.effects.test {
-            awaitItem() shouldBe CounterEffect.AlarmRaised
-            awaitItem() shouldBe CounterEffect.AlarmRaised
-            awaitItem() shouldBe CounterEffect.AlarmRaised
-        }
-    }
-
-    test("intents that don't emit produce no effects") {
-        runTest {
+    Given("a fresh CounterStore with an effects subscriber") {
+        When("RaiseAlarm is dispatched") {
             val store = CounterStore()
 
-            store.dispatch(CounterIntent.Increment)
-            // Drain the dispatcher so any scheduled emits would have fired.
-            testScheduler.advanceUntilIdle()
+            Then("the effect arrives on the effects flow") {
+                store.effects.test {
+                    store.dispatch(CounterIntent.RaiseAlarm)
+                    awaitItem() shouldBe CounterEffect.AlarmRaised
+                }
+            }
+        }
 
-            store.effects.test {
-                expectNoEvents()
+        When("RaiseAlarm is dispatched three times before any subscriber drains") {
+            val store = CounterStore()
+            store.dispatch(CounterIntent.RaiseAlarm)
+            store.dispatch(CounterIntent.RaiseAlarm)
+            store.dispatch(CounterIntent.RaiseAlarm)
+
+            Then("all three effects buffer and arrive in order") {
+                store.effects.test {
+                    awaitItem() shouldBe CounterEffect.AlarmRaised
+                    awaitItem() shouldBe CounterEffect.AlarmRaised
+                    awaitItem() shouldBe CounterEffect.AlarmRaised
+                }
+            }
+        }
+
+        When("an Intent that doesn't emit (Increment) is dispatched") {
+            val store = CounterStore()
+            store.dispatch(CounterIntent.Increment)
+
+            Then("no effect arrives") {
+                runTest {
+                    testScheduler.advanceUntilIdle()
+                    store.effects.test {
+                        expectNoEvents()
+                    }
+                }
             }
         }
     }
 
     // ── dispatch routing ─────────────────────────────────────────────
 
-    test("subclass dispatch handles every Intent variant — exhaustive when") {
+    Given("a CounterStore receiving every Intent variant in sequence") {
         val store = CounterStore()
-
-        // Just verifies each intent branch lands on its handler without
-        // throwing. The state-change semantics are covered above; this
-        // test would catch the regression where a new sealed Intent
-        // variant is added but the subclass's `when` doesn't handle it.
         store.dispatch(CounterIntent.Increment)
         store.dispatch(CounterIntent.Add(5))
         store.dispatch(CounterIntent.RaiseAlarm)
         store.dispatch(CounterIntent.Reset)
 
-        store.state.value shouldBe CounterState(count = 0)
+        Then("dispatch routes each variant and Reset lands on the initial state") {
+            // This test would catch the regression where a new sealed
+            // Intent variant is added but the subclass's `when` doesn't
+            // handle it.
+            store.state.value shouldBe CounterState(count = 0)
+        }
     }
 
-    test("Reset returns to the initial state") {
+    Given("a CounterStore that has been mutated away from initial state") {
         val store = CounterStore(initialCount = 0)
-
         store.dispatch(CounterIntent.Add(value = 99))
-        store.state.value.count shouldBe 99
 
-        store.dispatch(CounterIntent.Reset)
-        store.state.value.count shouldBe 0
+        Then("count is 99 before Reset") {
+            store.state.value.count shouldBe 99
+        }
+
+        When("Reset is dispatched") {
+            store.dispatch(CounterIntent.Reset)
+
+            Then("the state returns to the initial value") {
+                store.state.value.count shouldBe 0
+            }
+        }
     }
 
     // ── ordering ─────────────────────────────────────────────────────
-    // The doc on update() says "safe from any thread." With a single
-    // test dispatcher we can't exhaustively verify true parallel
-    // safety, but we can verify the underlying primitive is
-    // `MutableStateFlow` (which IS atomic) and that the single-threaded
-    // ordering is preserved.
 
-    test("sequential dispatches preserve ordering") {
+    Given("100 sequential Increments") {
         val store = CounterStore()
         val seenCounts = mutableListOf<Int>()
-
         repeat(100) {
             store.dispatch(CounterIntent.Increment)
             seenCounts += store.state.value.count
         }
 
-        seenCounts shouldContainExactly (1..100).toList()
+        Then("each dispatch lands on the next integer 1..100") {
+            seenCounts shouldContainExactly (1..100).toList()
+        }
     }
 })
 

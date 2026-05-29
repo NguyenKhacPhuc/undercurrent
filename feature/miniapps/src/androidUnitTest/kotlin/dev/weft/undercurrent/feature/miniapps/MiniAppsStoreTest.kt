@@ -2,7 +2,7 @@ package dev.weft.undercurrent.feature.miniapps
 
 import dev.weft.undercurrent.core.model.MiniApp
 import dev.weft.undercurrent.data.datastore.MiniAppsRepository
-import io.kotest.core.spec.style.FunSpec
+import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -18,19 +18,16 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * Exercises [MiniAppsStore]. The repo is mocked via MockK; its
- * `miniApps` StateFlow is backed by a `MutableStateFlow` so the test
- * can both seed initial state and emit changes mid-test.
+ * Exercises [MiniAppsStore] in BDD style.
  *
  * Each intent (Add, Update, Delete) translates to a single suspend
  * call on the repo. The store doesn't optimistically update local
  * state — it waits for the repo's StateFlow to re-emit.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class MiniAppsStoreTest : FunSpec({
+class MiniAppsStoreTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
-
     beforeTest { Dispatchers.setMain(mainDispatcher) }
     afterTest { Dispatchers.resetMain() }
 
@@ -56,144 +53,144 @@ class MiniAppsStoreTest : FunSpec({
         return repo
     }
 
-    // ── initial state ────────────────────────────────────────────────
-
-    test("initial state mirrors repo.miniApps.value snapshot") {
+    Given("a repo seeded with two mini-apps") {
         val seed = listOf(miniApp("a"), miniApp("b"))
-        val repo = fakeRepo(initial = seed)
+        val store = MiniAppsStore(fakeRepo(initial = seed))
 
-        val store = MiniAppsStore(repo)
-
-        store.state.value shouldBe MiniAppsState(miniApps = seed)
+        Then("the initial state mirrors the seed list") {
+            store.state.value shouldBe MiniAppsState(miniApps = seed)
+        }
     }
 
-    test("initial state is empty when repo has no mini-apps") {
+    Given("a repo with no mini-apps") {
         val store = MiniAppsStore(fakeRepo())
 
-        store.state.value shouldBe MiniAppsState(miniApps = emptyList())
+        Then("the initial state has an empty list") {
+            store.state.value shouldBe MiniAppsState(miniApps = emptyList())
+        }
     }
 
-    // ── live flow ────────────────────────────────────────────────────
+    Given("a store subscribed to a mutable mini-apps flow") {
+        val flow = MutableStateFlow<List<MiniApp>>(emptyList())
+        val repo = mockk<MiniAppsRepository>().apply {
+            every { miniApps } returns flow
+            coEvery { add(any(), any(), any()) } returns miniApp("added")
+            coEvery { update(any(), any(), any(), any()) } returns Unit
+            coEvery { delete(any()) } returns Unit
+        }
+        val store = MiniAppsStore(repo)
 
-    test("state updates when repo.miniApps emits a new list") {
-        runTest {
-            val flow = MutableStateFlow<List<MiniApp>>(emptyList())
-            val repo = mockk<MiniAppsRepository>().apply {
-                every { miniApps } returns flow
-                coEvery { add(any(), any(), any()) } returns miniApp("added")
-                coEvery { update(any(), any(), any(), any()) } returns Unit
-                coEvery { delete(any()) } returns Unit
+        When("the repo emits a new list") {
+            Then("the store's state reflects the new list") {
+                runTest {
+                    advanceUntilIdle()
+                    flow.value = listOf(miniApp("after"))
+                    advanceUntilIdle()
+
+                    store.state.value.miniApps shouldBe listOf(miniApp("after"))
+                }
             }
-
-            val store = MiniAppsStore(repo)
-            advanceUntilIdle()
-
-            flow.value = listOf(miniApp("after"))
-            advanceUntilIdle()
-
-            store.state.value.miniApps shouldBe listOf(miniApp("after"))
         }
     }
 
-    // ── Add ──────────────────────────────────────────────────────────
+    Given("a fresh store with a stubbed repo") {
+        When("Add(name='Daily standup', emoji='📝', triggerPrompt='…') is dispatched") {
+            Then("repo.add is called with those exact arguments") {
+                runTest {
+                    val repo = fakeRepo()
+                    val store = MiniAppsStore(repo)
 
-    test("Add forwards (name, emoji, triggerPrompt) to repo.add") {
-        runTest {
-            val repo = fakeRepo()
-            val store = MiniAppsStore(repo)
+                    store.dispatch(
+                        MiniAppsIntent.Add(
+                            name = "Daily standup",
+                            emoji = "📝",
+                            triggerPrompt = "Generate today's standup notes",
+                        ),
+                    )
+                    advanceUntilIdle()
 
-            store.dispatch(
-                MiniAppsIntent.Add(
-                    name = "Daily standup",
-                    emoji = "📝",
-                    triggerPrompt = "Generate today's standup notes",
-                ),
-            )
-            advanceUntilIdle()
-
-            coVerify(exactly = 1) {
-                repo.add("Daily standup", "📝", "Generate today's standup notes")
+                    coVerify(exactly = 1) {
+                        repo.add("Daily standup", "📝", "Generate today's standup notes")
+                    }
+                    coVerify(exactly = 0) { repo.update(any(), any(), any(), any()) }
+                    coVerify(exactly = 0) { repo.delete(any()) }
+                }
             }
-            coVerify(exactly = 0) { repo.update(any(), any(), any(), any()) }
-            coVerify(exactly = 0) { repo.delete(any()) }
         }
-    }
 
-    // ── Update ───────────────────────────────────────────────────────
+        When("Update(id, name, emoji, triggerPrompt) is dispatched") {
+            Then("repo.update is called with the four fields verbatim") {
+                runTest {
+                    val repo = fakeRepo()
+                    val store = MiniAppsStore(repo)
 
-    test("Update forwards (id, name, emoji, triggerPrompt) to repo.update") {
-        runTest {
-            val repo = fakeRepo()
-            val store = MiniAppsStore(repo)
+                    store.dispatch(
+                        MiniAppsIntent.Update(
+                            id = "feature.legacy-id",
+                            name = "Renamed",
+                            emoji = "✏️",
+                            triggerPrompt = "Updated prompt",
+                        ),
+                    )
+                    advanceUntilIdle()
 
-            store.dispatch(
-                MiniAppsIntent.Update(
-                    id = "feature.legacy-id",
-                    name = "Renamed",
-                    emoji = "✏️",
-                    triggerPrompt = "Updated prompt",
-                ),
-            )
-            advanceUntilIdle()
-
-            coVerify(exactly = 1) {
-                repo.update("feature.legacy-id", "Renamed", "✏️", "Updated prompt")
+                    coVerify(exactly = 1) {
+                        repo.update("feature.legacy-id", "Renamed", "✏️", "Updated prompt")
+                    }
+                    coVerify(exactly = 0) { repo.add(any(), any(), any()) }
+                    coVerify(exactly = 0) { repo.delete(any()) }
+                }
             }
-            coVerify(exactly = 0) { repo.add(any(), any(), any()) }
-            coVerify(exactly = 0) { repo.delete(any()) }
+        }
+
+        When("Delete is dispatched for id 'miniapp-42'") {
+            Then("repo.delete is called once with that id") {
+                runTest {
+                    val repo = fakeRepo()
+                    val store = MiniAppsStore(repo)
+
+                    store.dispatch(MiniAppsIntent.Delete("miniapp-42"))
+                    advanceUntilIdle()
+
+                    coVerify(exactly = 1) { repo.delete("miniapp-42") }
+                    coVerify(exactly = 0) { repo.add(any(), any(), any()) }
+                    coVerify(exactly = 0) { repo.update(any(), any(), any(), any()) }
+                }
+            }
+        }
+
+        When("Add, Update, Delete are dispatched in sequence") {
+            Then("each method fires exactly once with its own arguments") {
+                runTest {
+                    val repo = fakeRepo()
+                    val store = MiniAppsStore(repo)
+
+                    store.dispatch(MiniAppsIntent.Add("Cat", "🐈", "do cat"))
+                    store.dispatch(MiniAppsIntent.Update("id1", "Dog", "🐕", "do dog"))
+                    store.dispatch(MiniAppsIntent.Delete("id2"))
+                    advanceUntilIdle()
+
+                    coVerify(exactly = 1) { repo.add("Cat", "🐈", "do cat") }
+                    coVerify(exactly = 1) { repo.update("id1", "Dog", "🐕", "do dog") }
+                    coVerify(exactly = 1) { repo.delete("id2") }
+                }
+            }
         }
     }
 
-    // ── Delete ───────────────────────────────────────────────────────
+    Given("a seeded store with an Update dispatched") {
+        Then("local state stays at the seed — the store waits for repo to re-emit") {
+            runTest {
+                val seed = listOf(miniApp("solo", name = "Original"))
+                val repo = fakeRepo(initial = seed)
+                val store = MiniAppsStore(repo)
+                advanceUntilIdle()
 
-    test("Delete forwards id to repo.delete") {
-        runTest {
-            val repo = fakeRepo()
-            val store = MiniAppsStore(repo)
+                store.dispatch(MiniAppsIntent.Update("solo", "Renamed", "✏️", "new prompt"))
+                advanceUntilIdle()
 
-            store.dispatch(MiniAppsIntent.Delete("miniapp-42"))
-            advanceUntilIdle()
-
-            coVerify(exactly = 1) { repo.delete("miniapp-42") }
-            coVerify(exactly = 0) { repo.add(any(), any(), any()) }
-            coVerify(exactly = 0) { repo.update(any(), any(), any(), any()) }
-        }
-    }
-
-    // ── interaction discipline ───────────────────────────────────────
-
-    test("mixing Add, Update, Delete fires each method exactly once") {
-        runTest {
-            val repo = fakeRepo()
-            val store = MiniAppsStore(repo)
-
-            store.dispatch(MiniAppsIntent.Add("Cat", "🐈", "do cat"))
-            store.dispatch(MiniAppsIntent.Update("id1", "Dog", "🐕", "do dog"))
-            store.dispatch(MiniAppsIntent.Delete("id2"))
-            advanceUntilIdle()
-
-            coVerify(exactly = 1) { repo.add("Cat", "🐈", "do cat") }
-            coVerify(exactly = 1) { repo.update("id1", "Dog", "🐕", "do dog") }
-            coVerify(exactly = 1) { repo.delete("id2") }
-        }
-    }
-
-    test("Update does not optimistically mutate local state") {
-        // The store doesn't apply the patch locally; it waits for repo
-        // to re-emit the new list. Without a gateway-side StateFlow
-        // tick, state remains the prior snapshot.
-        runTest {
-            val seed = listOf(miniApp("solo", name = "Original"))
-            val repo = fakeRepo(initial = seed)
-            val store = MiniAppsStore(repo)
-            advanceUntilIdle()
-
-            store.dispatch(
-                MiniAppsIntent.Update("solo", "Renamed", "✏️", "new prompt"),
-            )
-            advanceUntilIdle()
-
-            store.state.value.miniApps shouldBe seed
+                store.state.value.miniApps shouldBe seed
+            }
         }
     }
 })
