@@ -3,15 +3,11 @@ package dev.weft.undercurrent.core.ui.components
 import dev.weft.compose.components.WeftComponent
 
 /**
- * iOS contribution to the embed-style palette: empty for v1. The
- * substrate's `EmbedComponents` is `WebView`-backed (`android.webkit`)
- * and ships only in `:android-compose-defaults`. A `WKWebView`-backed
- * equivalent for iOS — `IosHtmlComponent` + `IosWebViewComponent` —
- * is the natural follow-up here, but isn't required for the rest of
- * the palette to render.
- *
- * Effect: the agent's `ui_render` palette on iOS doesn't include
- * `Html` / `WebView`, so interactive games (snake, breakout, etc.)
- * will fall back to a Text dump until the WKWebView wrapper lands.
+ * iOS contribution to the embed-style palette: `IosHtmlComponent` +
+ * `IosWebViewComponent`, both backed by `WKWebView` via Compose
+ * Multiplatform's `UIKitView` interop. Mirror the substrate's
+ * Android `EmbedComponents` registration shape (same `name`, same
+ * `description`, same prop schema) so the agent emits the same
+ * `{"type": "Html", …}` payload regardless of target.
  */
-actual val platformEmbedComponents: List<WeftComponent<*>> = emptyList()
+actual val platformEmbedComponents: List<WeftComponent<*>> = IosEmbedComponents

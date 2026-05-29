@@ -80,6 +80,13 @@ kotlin {
             // Napier — initialised in InitKoin.doInitKoin() so the
             // substrate's logger calls route to NSLog / Xcode console.
             implementation(libs.napier)
+
+            // Coil 3's KMP-friendly network fetcher. Pairs with the
+            // existing ktor-client-darwin engine to enable image
+            // loading inside iosMain WeftComponents (PhotoFrame /
+            // Avatar / hero-style). Wired in IosKoinModule via
+            // ImageLoader.Builder { components { add(...) } }.
+            implementation(libs.coil.network.ktor3)
         }
     }
 }

@@ -2,6 +2,11 @@ package dev.weft.undercurrent.app
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.network.ktor3.KtorNetworkFetcherFactory
+import dev.weft.compose.components.WeftComponentRegistry
+import dev.weft.undercurrent.core.ui.components.undercurrentComponents
 import dev.weft.undercurrent.data.datastore.IntegrationsRepository
 import dev.weft.undercurrent.data.datastore.MiniAppsRepository
 import dev.weft.undercurrent.data.datastore.ModelPrefsRepository
@@ -99,6 +104,33 @@ val iosAppModule = module {
 
     // ─── Creator-session tracker ────────────────────────────────────
     single { CreatorSession() }
+
+    // ─── Image loading + component palette ──────────────────────────
+    //
+    // Coil 3 ImageLoader for the WeftComponent palette's SubcomposeAsyncImage
+    // call sites (PhotoFrame / Avatar / hero-style components). Ktor 3
+    // network fetcher uses the default Darwin engine — same one
+    // AnthropicLlmClient + OpenAICompatLlmClient already pull in for the
+    // chat path, so no extra HTTP machinery is added.
+    single<ImageLoader> {
+        ImageLoader.Builder(PlatformContext.INSTANCE)
+            .components { add(KtorNetworkFetcherFactory()) }
+            .build()
+    }
+
+    // WeftComponentRegistry — the ui_render-side counterpart to the
+    // Android host's WeftUi.componentRegistry. The Android shell builds
+    // this via WeftUi (which is :android-compose-defaults, Android-only);
+    // on iOS we construct the registry directly since WeftComponentRegistry
+    // itself lives in :android-compose (KMP-published).
+    //
+    // No consumer wires this into a render path on iOS yet — a future
+    // AgentRenderedTreeScreen-equivalent driven by an iOS UiBridge can
+    // pick it up from Koin without further plumbing. Binding the palette
+    // proves the dependency chain works end-to-end.
+    single<WeftComponentRegistry> {
+        WeftComponentRegistry(undercurrentComponents(get()))
+    }
 
     // ─── Gateways (all stubs) ───────────────────────────────────────
     single<KeyVaultGateway> { KeychainKeyVaultGateway() }
