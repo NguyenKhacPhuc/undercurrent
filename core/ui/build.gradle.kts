@@ -7,18 +7,16 @@
 //     that pair with `:core:design-system`'s theme tokens.
 //
 //  2. The full WeftComponent palette + `AppDrawer` — also commonMain
-//     since the substrate's `:android-compose` is KMP-published
-//     (jvm + androidTarget + iosArm64 + iosSimulatorArm64). What WAS
-//     androidMain-only is now mostly KMP-clean; only the embed
-//     contribution (HtmlComponent / WebViewComponent, both backed by
-//     `android.webkit.WebView`) stays Android-only — surfaced via an
-//     `expect val platformEmbedComponents` so each target plugs in
-//     whatever embed-style components it can ship.
+//     since the substrate's `:compose` is KMP-published (jvm +
+//     androidTarget + iosArm64 + iosSimulatorArm64). The embed
+//     contribution (HtmlComponent / WebViewComponent) now ships on
+//     both targets via the substrate's `:compose-defaults` — Android
+//     wraps `android.webkit.WebView`, iOS wraps `WKWebView`. Each
+//     target plugs in via an `expect val platformEmbedComponents`.
 //
-// androidMain dependencies remaining: the substrate's
-// `:android-compose-defaults` (for the EmbedComponents `actual`) and
-// Coil's OkHttp network engine. iosMain is dep-free for now; the
-// `platformEmbedComponents.ios.kt` returns an empty list.
+// Per-target deps: `:compose-defaults` lands in both `androidMain`
+// and `iosMain` (the EmbedComponents `actual` on each side). Coil's
+// OkHttp network engine stays androidMain-only.
 
 plugins {
     alias(libs.plugins.undercurrent.kmp.library)
@@ -61,15 +59,19 @@ kotlin {
         }
         androidMain.dependencies {
             // EmbedComponents `actual` pulls HtmlComponent +
-            // WebViewComponent from the substrate's defaults module.
-            // Those wrap `android.webkit.WebView` so the dependency
-            // stays Android-only — commonMain references them via
-            // the `platformEmbedComponents` expect/actual.
+            // WebViewComponent from the substrate's defaults module
+            // (Android impls wrap `android.webkit.WebView`).
             implementation("dev.weft:weft-compose-defaults")
             // Coil 3's Android HTTP engine. SubcomposeAsyncImage loads
             // remote URLs the agent emits; without this the loader
             // can't fetch.
             implementation(libs.coil.network.okhttp)
+        }
+        iosMain.dependencies {
+            // Same substrate module on iOS — WKWebView-backed
+            // HtmlComponent + WebViewComponent feed the
+            // `platformEmbedComponents` actual.
+            implementation("dev.weft:weft-compose-defaults")
         }
     }
 }
