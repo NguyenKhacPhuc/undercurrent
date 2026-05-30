@@ -1,3 +1,15 @@
+// WeftAgentEngine wraps WeftAgent in undercurrent's own KMP-shared
+// AgentEngine interface so commonMain feature modules can consume the
+// agent without binding to Weft's exact API. After Weft Phase 1 added
+// state/dispatch/effects on WeftAgent itself, this wrapper duplicates
+// most of what WeftAgent already exposes — a future refactor will
+// decide whether AgentEngine still earns its keep or whether feature
+// modules should consume WeftAgent's state directly.
+//
+// Until that refactor, this file uses the @Deprecated WeftAgent
+// methods directly. Suppressed file-wide so review noise stays low.
+@file:Suppress("DEPRECATION")
+
 package dev.weft.undercurrent.data.weft
 
 import dev.weft.harness.agents.WeftAgent

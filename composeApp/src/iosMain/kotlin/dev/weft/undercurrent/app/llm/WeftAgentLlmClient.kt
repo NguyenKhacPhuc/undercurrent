@@ -1,3 +1,11 @@
+// Adapter that fits Weft's per-call `Flow<StreamChunk>` shape into the
+// iOS LlmClient interface. Same situation as WeftAgentEngine: a
+// future refactor will decide whether this adapter still earns its
+// keep now that WeftAgent has its own MVI surface, or whether
+// IosAppStore should consume state/dispatch directly. Until then,
+// suppress deprecation to keep the review noise low.
+@file:Suppress("DEPRECATION")
+
 package dev.weft.undercurrent.app.llm
 
 import dev.weft.harness.agents.WeftAgent

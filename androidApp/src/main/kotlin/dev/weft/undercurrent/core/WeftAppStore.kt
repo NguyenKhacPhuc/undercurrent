@@ -1,18 +1,3 @@
-// `a.newChat()`, `a.resume()`, `a.resetHistory()`, `a.sendEvent()` —
-// remaining @Deprecated WeftAgent methods used in this file. Each is
-// suspending and the call sites rely on the new state being visible
-// synchronously on the next line (e.g. `a.state.value.conversationId`
-// after `a.newChat()`). Migrating to fire-and-forget dispatch requires
-// either:
-//   - a substrate-side `dispatchAndAwait(intent)` that suspends until
-//     the intent's effects have landed in `state`, OR
-//   - restructuring each call site to be observer-driven (drop the
-//     immediate read; trust the conv-id observer to push the new id
-//     into AppState).
-// Tracked as the Phase 2c follow-up. File-level suppression here so
-// the remaining warnings don't drown out new code review.
-@file:Suppress("DEPRECATION")
-
 package dev.weft.undercurrent.core
 
 import androidx.compose.runtime.mutableStateListOf
@@ -30,8 +15,8 @@ import dev.weft.contracts.ShareContent
 import dev.weft.contracts.ShareTarget
 import dev.weft.contracts.UIUpdate
 import dev.weft.contracts.WeftCredentialProvider
+import dev.weft.harness.agents.AgentEffect
 import dev.weft.harness.agents.AgentIntent
-import dev.weft.harness.agents.ToolEvent
 import dev.weft.harness.agents.TurnStatus
 import dev.weft.harness.agents.WeftAgent
 import dev.weft.harness.agents.routing.ModelPool
@@ -228,23 +213,13 @@ internal class WeftAppStore(
     ) {
         displayMessages += DisplayMessage.event(action, sourceLabel, fieldValues)
         val a = agent ?: return
-        val result = runCatching {
-            withContext(Dispatchers.IO) { a.sendEvent(action, sourceLabel, fieldValues) }
-        }
-        result.fold(
-            onSuccess = { reply ->
-                displayMessages += DisplayMessage.assistant(
-                    text = reply,
-                    agentName = current.activeAgentName,
-                )
-            },
-            onFailure = { t ->
-                displayMessages += DisplayMessage.toolFail(
-                    "ui_event",
-                    t.message ?: t::class.simpleName.orEmpty(),
-                )
-            },
-        )
+        // Fire-and-forget — the substrate's SendEvent intent dispatches
+        // via sendStreaming, so the assistant reply projects into
+        // displayMessages through the long-lived pendingAssistantDelta
+        // observer. Failures land on `a.state.lastError` and surface
+        // via the lastError observer as a snackbar (was an inline
+        // toolFail bubble before — small UX change for the cleanup).
+        a.dispatch(AgentIntent.SendEvent(action, sourceLabel, fieldValues))
     }
 
     override suspend fun saveKey(key: String) {
@@ -269,7 +244,7 @@ internal class WeftAppStore(
     private suspend fun handleStartCreator(kind: CreatorKind) {
         val a = agent ?: return
         creatorSession.start(kind)
-        a.newChat()
+        a.dispatchAndAwait(AgentIntent.NewChat)
         displayMessages.clear()
         update { current ->
             current.copy(
@@ -323,7 +298,7 @@ internal class WeftAppStore(
             provider = activeProvider,
             apiKey = storedKey,
         )
-        a.resume()
+        a.dispatchAndAwait(AgentIntent.Resume())
         hydrateMessages(a.state.value.conversationId)
         setAgent(a, screen = Screen.Chat, availableAgents = agentSummaries)
     }
@@ -347,7 +322,7 @@ internal class WeftAppStore(
             runtime.keyVault.get(provider.keyAlias())
         } ?: return
         val a = buildAgentFor(agentName = name, provider = provider, apiKey = key)
-        a.resume()
+        a.dispatchAndAwait(AgentIntent.Resume())
         hydrateMessages(a.state.value.conversationId)
         setAgent(a, activeAgentName = name)
     }
@@ -397,7 +372,7 @@ internal class WeftAppStore(
                 provider = provider,
                 apiKey = key,
             )
-            a.resume()
+            a.dispatchAndAwait(AgentIntent.Resume())
             hydrateMessages(a.state.value.conversationId)
             setAgent(a)
         }
@@ -410,7 +385,7 @@ internal class WeftAppStore(
             provider = activeProvider,
             apiKey = key,
         )
-        a.resume()
+        a.dispatchAndAwait(AgentIntent.Resume())
         refreshProviderKeyStatus()
         setAgent(a, screen = Screen.Chat)
     }
@@ -426,7 +401,7 @@ internal class WeftAppStore(
                 provider = provider,
                 apiKey = key,
             )
-            a.resume()
+            a.dispatchAndAwait(AgentIntent.Resume())
             hydrateMessages(a.state.value.conversationId)
             setAgent(a)
         } else {
@@ -449,7 +424,7 @@ internal class WeftAppStore(
                 provider = provider,
                 apiKey = key,
             )
-            a.resume()
+            a.dispatchAndAwait(AgentIntent.Resume())
             hydrateMessages(a.state.value.conversationId)
             setAgent(a)
         }
@@ -475,7 +450,7 @@ internal class WeftAppStore(
 
     private suspend fun handleSelectConversation(id: String) {
         val a = agent ?: return
-        a.resume(id)
+        a.dispatchAndAwait(AgentIntent.Resume(id))
         hydrateMessages(id)
         update {
             it.copy(
@@ -487,7 +462,7 @@ internal class WeftAppStore(
 
     private suspend fun handleNewChat() {
         val a = agent ?: return
-        a.newChat()
+        a.dispatchAndAwait(AgentIntent.NewChat)
         displayMessages.clear()
         update {
             it.copy(
@@ -505,7 +480,7 @@ internal class WeftAppStore(
             runtime.conversationStore.deleteConversation(id)
         }
         if (wasActive) {
-            a.newChat()
+            a.dispatchAndAwait(AgentIntent.NewChat)
             displayMessages.clear()
             update {
                 it.copy(
@@ -590,15 +565,13 @@ internal class WeftAppStore(
      *      streaming message id.
      *   4. `a.state.lastError` → chat.lastError (mirrors substrate's
      *      Throwable as a string for the snackbar).
-     *   5. `a.events` (legacy ToolEvent SharedFlow — @Deprecated on
-     *      substrate but kept until tool-events make it onto
-     *      AgentEffect) → tool-start / tool-done / tool-fail bubbles.
+     *   5. `a.effects` (AgentEffect.ToolStarting/Completed/Failed) →
+     *      tool-start / tool-done / tool-fail bubbles.
      *
      * Every collector guards with `if (agent === a)` so stale
      * emissions from an agent that was replaced (provider switch,
      * agent swap) don't leak into the new agent's UI.
      */
-    @Suppress("DEPRECATION")
     private fun setupAgentStateObservers(a: WeftAgent) {
         // Local streaming-message tracking — kept in one collector so
         // the create-vs-update branch + the turn-end reset stay co-
@@ -664,31 +637,37 @@ internal class WeftAppStore(
         }
 
         viewModelScope.launch {
-            a.events.collect { ev ->
+            a.effects.collect { ef ->
                 if (agent !== a) return@collect
-                when (ev) {
-                    is ToolEvent.Starting ->
-                        displayMessages += DisplayMessage.toolStart(ev.toolName)
-                    is ToolEvent.Completed ->
-                        displayMessages += DisplayMessage.toolDone(ev.toolName)
-                    is ToolEvent.Failed -> {
-                        // "llm.retry" is the synthetic event the substrate
+                when (ef) {
+                    is AgentEffect.ToolStarting ->
+                        displayMessages += DisplayMessage.toolStart(ef.toolName)
+                    is AgentEffect.ToolCompleted ->
+                        displayMessages += DisplayMessage.toolDone(ef.toolName)
+                    is AgentEffect.ToolFailed -> {
+                        // "llm.retry" is the synthetic effect the substrate
                         // emits from onAttemptFailed inside its
                         // withRetry wrapper. Drop it from the chat scroll
                         // (the retry chatter would crowd the bubble view)
                         // — telemetry still has it via TraceStore.
-                        if (ev.toolName == "llm.retry") return@collect
-                        val dialog = parsePermissionFailure(ev.toolName, ev.message)
+                        if (ef.toolName == "llm.retry") return@collect
+                        val dialog = parsePermissionFailure(ef.toolName, ef.message)
                         if (dialog != null) {
                             displayMessages += DisplayMessage.toolFail(
-                                ev.toolName,
+                                ef.toolName,
                                 "Needs permission — see dialog.",
                             )
                             update { it.copy(pendingPermissionDialog = dialog) }
                         } else {
-                            displayMessages += DisplayMessage.toolFail(ev.toolName, ev.message)
+                            displayMessages += DisplayMessage.toolFail(ef.toolName, ef.message)
                         }
                     }
+                    // Notify / QuotaBlocked / BreakerOpened — handled
+                    // elsewhere (Notify is retry chatter, the others get
+                    // their own surfaces) or intentionally ignored here.
+                    is AgentEffect.Notify,
+                    is AgentEffect.QuotaBlocked,
+                    is AgentEffect.BreakerOpened -> Unit
                 }
             }
         }
