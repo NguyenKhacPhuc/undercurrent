@@ -148,6 +148,62 @@ Conventions:
   `org.koin.compose.viewmodel.koinViewModel` (the KMP one), not the
   Android-only `org.koin.androidx.compose.koinViewModel`.
 
+### Stateful / stateless screen split (Compose best-practice)
+
+Every screen has TWO overloads of its top-level Composable. Hosts
+call the stateful one; the stateless one is what `@Preview` (and
+future snapshot tests) render against.
+
+```kotlin
+// Stateful — thin wrapper that hoists state from the ViewModel.
+@Composable
+fun XxxScreen(
+    onBack: () -> Unit,
+    viewModel: XxxViewModel = koinViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    XxxScreen(
+        state = state,
+        onBack = onBack,
+        onAction = { viewModel.dispatch(XxxIntent.Action) },
+    )
+}
+
+// Stateless — state in, callbacks out. Previewable + testable.
+@Composable
+fun XxxScreen(
+    state: XxxState,
+    onBack: () -> Unit,
+    onAction: () -> Unit = {},
+) { /* UI body */ }
+
+@Preview
+@Composable
+private fun XxxScreenPreview() {
+    UndercurrentTheme {
+        XxxScreen(state = XxxState(/* realistic seed */), onBack = {})
+    }
+}
+```
+
+Rules:
+
+- **Local UI state stays in the stateless overload** — dialogs, expand
+  toggles, text-input scratch state. The `remember { mutableStateOf }`
+  for "which dialog is open" doesn't belong on the ViewModel.
+- **Default lambdas** on every callback param (`= {}`) so previews and
+  test harnesses don't have to wire every action.
+- **`@Preview` annotation** is `org.jetbrains.compose.ui.tooling.preview.Preview` —
+  the CMP-native one, usable from commonMain. The AndroidX
+  `androidx.compose.ui.tooling.preview.Preview` is Android-only and
+  forbidden in commonMain.
+- **One realistic Preview per screen** is the bar; add an "empty
+  state" variant when the empty-state UI is non-trivial. Don't
+  bloat the file with five-state matrices.
+
+Canonical examples already converted: `PersonasScreen`, `UsageScreen`,
+`AgentMemoriesScreen`.
+
 ### The orchestrator (root AppViewModel)
 
 The same pattern applies, just at a wider scope:

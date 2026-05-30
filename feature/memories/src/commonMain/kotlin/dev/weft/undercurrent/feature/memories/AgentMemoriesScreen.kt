@@ -36,6 +36,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -44,21 +45,35 @@ import org.koin.compose.viewmodel.koinViewModel
  * is the user's accountability gate on persistent state — anything not
  * visible here, the substrate isn't remembering.
  *
- * KMP — commonMain. Moved from
- * `app/.../features/memories/AgentMemoriesScreen.kt`. Adjustments:
- *   - Imports from `:core:ui` / `:core:design-system`.
- *   - `MemoryEntry` + `MemoryScope` mirrors from `:shared`.
- *   - `java.text.SimpleDateFormat` → manual kotlinx.datetime formatter
- *     for "MMM d · HH:mm" (locale-agnostic but consistent across
- *     platforms).
- *   - `org.koin.compose.viewmodel.koinViewModel`.
+ * Stateful entry point — hoists state from [MemoriesViewModel] and
+ * forwards to the stateless overload.
  */
 @Composable
 fun AgentMemoriesScreen(
     onBack: () -> Unit,
-    store: MemoriesViewModel = koinViewModel(),
+    viewModel: MemoriesViewModel = koinViewModel(),
 ) {
-    val s by store.state.collectAsState(); val memories = s.memories
+    val state by viewModel.state.collectAsState()
+    AgentMemoriesScreen(
+        state = state,
+        onBack = onBack,
+        onDelete = { viewModel.dispatch(MemoriesIntent.Delete(it)) },
+        onClearAll = { viewModel.dispatch(MemoriesIntent.ClearAll) },
+    )
+}
+
+/**
+ * Stateless variant — takes [state] and per-action callbacks. Used by
+ * the stateful overload above plus `@Preview` / snapshot harnesses.
+ */
+@Composable
+fun AgentMemoriesScreen(
+    state: MemoriesState,
+    onBack: () -> Unit,
+    onDelete: (id: String) -> Unit = {},
+    onClearAll: () -> Unit = {},
+) {
+    val memories = state.memories
     var confirmClear by remember { mutableStateOf(false) }
 
     val colors = UndercurrentTheme.colors
@@ -110,7 +125,7 @@ fun AgentMemoriesScreen(
                 items(memories, key = { it.id }) { entry ->
                     MemoryRow(
                         entry = entry,
-                        onDelete = { store.dispatch(MemoriesIntent.Delete(entry.id)) },
+                        onDelete = { onDelete(entry.id) },
                     )
                     TokenDivider()
                 }
@@ -126,7 +141,7 @@ fun AgentMemoriesScreen(
             confirmButton = {
                 TextButton(onClick = {
                     confirmClear = false
-                    store.dispatch(MemoriesIntent.ClearAll)
+                    onClearAll()
                 }) { Text("Forget all", color = colors.error) }
             },
             dismissButton = {
@@ -221,4 +236,43 @@ private fun Month.shortName(): String = when (this) {
     Month.OCTOBER -> "Oct"
     Month.NOVEMBER -> "Nov"
     Month.DECEMBER -> "Dec"
+}
+
+@Preview
+@Composable
+private fun AgentMemoriesScreenPreview() {
+    UndercurrentTheme {
+        AgentMemoriesScreen(
+            state = MemoriesState(
+                memories = listOf(
+                    MemoryEntry(
+                        id = "m1",
+                        content = "Prefers terse answers; expand only when asked.",
+                        tags = listOf("style"),
+                        scope = MemoryScope.PERMANENT,
+                        storedAtEpochMs = 1_716_900_000_000L,
+                    ),
+                    MemoryEntry(
+                        id = "m2",
+                        content = "Working on the Undercurrent KMP migration this week.",
+                        tags = listOf("project", "context"),
+                        scope = MemoryScope.PERMANENT,
+                        storedAtEpochMs = 1_717_000_000_000L,
+                    ),
+                ),
+            ),
+            onBack = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun AgentMemoriesScreenEmptyPreview() {
+    UndercurrentTheme {
+        AgentMemoriesScreen(
+            state = MemoriesState(memories = emptyList()),
+            onBack = {},
+        )
+    }
 }

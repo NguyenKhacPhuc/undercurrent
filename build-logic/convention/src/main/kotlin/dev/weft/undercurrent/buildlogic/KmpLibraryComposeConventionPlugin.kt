@@ -30,6 +30,14 @@ class KmpLibraryComposeConventionPlugin : Plugin<Project> {
                 implementation(libs.findLibrary("compose-multiplatform-material3").get())
                 implementation(libs.findLibrary("compose-multiplatform-ui").get())
                 implementation(libs.findLibrary("compose-multiplatform-resources").get())
+                // @Preview annotation usable from commonMain. The CMP
+                // preview panel (IntelliJ + Android Studio with the
+                // CMP plugin) discovers @Preview functions wherever
+                // they live; the AndroidX `androidx.compose.ui:
+                // ui-tooling-preview` artifact is the Android-only
+                // equivalent — we standardise on the CMP one for
+                // KMP-clean preview functions.
+                implementation(libs.findLibrary("compose-multiplatform-ui-tooling-preview").get())
             }
         }
     }

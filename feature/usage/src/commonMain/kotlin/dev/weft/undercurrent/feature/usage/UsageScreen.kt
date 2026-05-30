@@ -33,6 +33,7 @@ import kotlin.math.pow
 import kotlin.math.roundToLong
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -43,23 +44,30 @@ import org.koin.compose.viewmodel.koinViewModel
  * Layout: hero row with today's + lifetime totals, a token breakdown,
  * a cache-savings callout, then a by-day bar chart of recent spend.
  *
- * KMP — commonMain. Moved from
- * `app/.../features/usage/UsageScreen.kt`. Adjustments:
- *   - Imports from `:core:ui` / `:core:design-system`.
- *   - `UsageTotals` from `:shared` gateway (was Weft's harness type).
- *   - `java.time.LocalDate.now()` → `kotlinx.datetime` + system timezone.
- *   - `String.format("%.2f", ...)` → manual decimal helper (commonMain
- *     stdlib has no `String.format` for floats).
- *   - `Map.toSortedMap()` → `entries.sortedBy { it.key }`.
- *   - `org.koin.compose.viewmodel.koinViewModel`.
+ * Stateful entry point — hoists state from [UsageViewModel] and
+ * forwards to the stateless overload. The screen is read-only so
+ * there's no intent dispatch surface.
+ */
+@Composable
+fun UsageScreen(
+    onBack: () -> Unit,
+    viewModel: UsageViewModel = koinViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    UsageScreen(state = state, onBack = onBack)
+}
+
+/**
+ * Stateless variant — used by the stateful overload above plus
+ * `@Preview` / snapshot harnesses.
  */
 @OptIn(ExperimentalTime::class)
 @Composable
 fun UsageScreen(
+    state: UsageState,
     onBack: () -> Unit,
-    store: UsageViewModel = koinViewModel(),
 ) {
-    val s by store.state.collectAsState(); val totals = s.totals
+    val totals = state.totals
     val today = remember {
         Clock.System.now()
             .toLocalDateTime(TimeZone.currentSystemDefault())
@@ -289,6 +297,35 @@ private fun formatTokens(n: Int): String = when {
     n >= 1_000_000 -> "${formatDecimal(n / 1_000_000.0, 2)}M"
     n >= 1_000 -> "${formatDecimal(n / 1_000.0, 1)}k"
     else -> n.toString()
+}
+
+@Preview
+@Composable
+private fun UsageScreenPreview() {
+    UndercurrentTheme {
+        UsageScreen(
+            state = UsageState(
+                totals = UsageTotals(
+                    lifetimeUsd = 4.27,
+                    lifetimeInputTokens = 124_580,
+                    lifetimeOutputTokens = 38_910,
+                    lifetimeCacheReadTokens = 92_400,
+                    lifetimeCacheWriteTokens = 12_300,
+                    byDay = mapOf(
+                        "2026-05-24" to 0.45,
+                        "2026-05-25" to 0.32,
+                        "2026-05-26" to 0.18,
+                        "2026-05-27" to 0.71,
+                        "2026-05-28" to 0.22,
+                        "2026-05-29" to 0.91,
+                        "2026-05-30" to 0.14,
+                    ),
+                    lastCallModelId = "claude-sonnet-4-5",
+                ),
+            ),
+            onBack = {},
+        )
+    }
 }
 
 /**

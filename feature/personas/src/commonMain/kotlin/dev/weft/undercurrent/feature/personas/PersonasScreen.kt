@@ -42,6 +42,7 @@ import dev.weft.undercurrent.core.model.BuiltInPersonas
 import dev.weft.undercurrent.core.model.Persona
 import dev.weft.undercurrent.core.model.PersonaKind
 import dev.weft.undercurrent.core.ui.ScreenScaffold
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -50,25 +51,53 @@ import org.koin.compose.viewmodel.koinViewModel
  * sections (Voices, Roles); built-ins plus user-created customs in
  * each; a "+ New" affordance per section.
  *
- * KMP — commonMain. Moved from
- * `app/.../features/personas/PersonasScreen.kt`. Adjustments:
- *   - Imports from `:core:ui` / `:core:design-system` / `:core:model`.
- *   - `onStartCreator` parameter now takes a [PersonaKind] (was a
- *     `CreatorKind` enum from the not-yet-migrated `:feature:creator`).
- *     The host's nav glue translates the kind to whatever the creator
- *     screen consumes.
- *   - `org.koin.compose.viewmodel.koinViewModel`.
+ * Stateful entry point — hoists state from [PersonasViewModel] and
+ * forwards to the stateless overload. Host screens / routers
+ * typically call this one; the stateless variant exists for previews
+ * and tests.
  */
 @Composable
 fun PersonasScreen(
     onBack: () -> Unit,
     onStartCreator: (PersonaKind) -> Unit = {},
-    store: PersonasViewModel = koinViewModel(),
+    viewModel: PersonasViewModel = koinViewModel(),
 ) {
-    val s by store.state.collectAsState()
-    val activeVoice = s.activeVoice
-    val activeRole = s.activeRole
-    val customPersonas = s.customPersonas
+    val state by viewModel.state.collectAsState()
+    PersonasScreen(
+        state = state,
+        onBack = onBack,
+        onStartCreator = onStartCreator,
+        onTapPersona = { viewModel.dispatch(PersonasIntent.TapPersona(it)) },
+        onAddCustom = { name, tagline, text, kind ->
+            viewModel.dispatch(PersonasIntent.AddCustom(name, tagline, text, kind))
+        },
+        onUpdateCustom = { id, name, tagline, text ->
+            viewModel.dispatch(PersonasIntent.UpdateCustom(id, name, tagline, text))
+        },
+        onDeleteCustom = { id -> viewModel.dispatch(PersonasIntent.DeleteCustom(id)) },
+    )
+}
+
+/**
+ * Stateless variant — takes [state] and per-action callbacks. Used by
+ * the stateful overload above plus the `@Preview` and unit-snapshot
+ * harness. Local UI state (the open dialog) lives here as a
+ * `remember`-backed `mutableStateOf`; only the persistent persona
+ * data flows through [state].
+ */
+@Composable
+fun PersonasScreen(
+    state: PersonasState,
+    onBack: () -> Unit,
+    onStartCreator: (PersonaKind) -> Unit = {},
+    onTapPersona: (Persona) -> Unit = {},
+    onAddCustom: (name: String, tagline: String, text: String, kind: PersonaKind) -> Unit = { _, _, _, _ -> },
+    onUpdateCustom: (id: String, name: String, tagline: String, text: String) -> Unit = { _, _, _, _ -> },
+    onDeleteCustom: (id: String) -> Unit = {},
+) {
+    val activeVoice = state.activeVoice
+    val activeRole = state.activeRole
+    val customPersonas = state.customPersonas
 
     val activeVoiceId = activeVoice.id
     val activeRoleId = activeRole?.id
@@ -120,7 +149,7 @@ fun PersonasScreen(
                 PersonaCard(
                     persona = persona,
                     active = persona.id == activeVoiceId || persona.id == activeRoleId,
-                    onTap = { store.dispatch(PersonasIntent.TapPersona(persona)) },
+                    onTap = { onTapPersona(persona) },
                     onLongPress = null,
                 )
             }
@@ -128,7 +157,7 @@ fun PersonasScreen(
                 PersonaCard(
                     persona = persona,
                     active = persona.id == activeVoiceId || persona.id == activeRoleId,
-                    onTap = { store.dispatch(PersonasIntent.TapPersona(persona)) },
+                    onTap = { onTapPersona(persona) },
                     onLongPress = { editorMode = EditorMode.Edit(persona) },
                 )
             }
@@ -143,7 +172,7 @@ fun PersonasScreen(
                 PersonaCard(
                     persona = persona,
                     active = persona.id == activeVoiceId || persona.id == activeRoleId,
-                    onTap = { store.dispatch(PersonasIntent.TapPersona(persona)) },
+                    onTap = { onTapPersona(persona) },
                     onLongPress = null,
                 )
             }
@@ -151,7 +180,7 @@ fun PersonasScreen(
                 PersonaCard(
                     persona = persona,
                     active = persona.id == activeVoiceId || persona.id == activeRoleId,
-                    onTap = { store.dispatch(PersonasIntent.TapPersona(persona)) },
+                    onTap = { onTapPersona(persona) },
                     onLongPress = { editorMode = EditorMode.Edit(persona) },
                 )
             }
@@ -177,7 +206,7 @@ fun PersonasScreen(
             onDismiss = { editorMode = null },
             onSave = { name, tagline, text ->
                 editorMode = null
-                store.dispatch(PersonasIntent.AddCustom(name, tagline, text, mode.kind))
+                onAddCustom(name, tagline, text, mode.kind)
             },
             onDelete = null,
         )
@@ -187,14 +216,29 @@ fun PersonasScreen(
             onDismiss = { editorMode = null },
             onSave = { name, tagline, text ->
                 editorMode = null
-                store.dispatch(PersonasIntent.UpdateCustom(mode.persona.id, name, tagline, text))
+                onUpdateCustom(mode.persona.id, name, tagline, text)
             },
             onDelete = {
                 editorMode = null
-                store.dispatch(PersonasIntent.DeleteCustom(mode.persona.id))
+                onDeleteCustom(mode.persona.id)
             },
         )
         null -> Unit
+    }
+}
+
+@Preview
+@Composable
+private fun PersonasScreenPreview() {
+    UndercurrentTheme {
+        PersonasScreen(
+            state = PersonasState(
+                activeVoice = BuiltInPersonas.Default,
+                activeRole = null,
+                customPersonas = emptyList(),
+            ),
+            onBack = {},
+        )
     }
 }
 
