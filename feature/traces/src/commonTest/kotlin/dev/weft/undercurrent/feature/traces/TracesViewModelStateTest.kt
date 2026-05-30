@@ -17,16 +17,16 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * KMP-portable state-projection tests for [TracesStore]. Runs on
+ * KMP-portable state-projection tests for [TracesViewModel]. Runs on
  * Android + iOS.
  *
  * Uses a hand-rolled [FakeTraceStoreGateway] instead of MockK so the
  * spec can live in commonTest. Per-enum-variant SetFeedback
  * forwarding + ClearAll invocation verification live in
- * `TracesStoreTest` under androidUnitTest.
+ * `TracesMviViewModelTest` under androidUnitTest.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class TracesStoreStateTest : BehaviorSpec({
+class TracesViewModelStateTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
     beforeTest { Dispatchers.setMain(mainDispatcher) }
@@ -48,7 +48,7 @@ class TracesStoreStateTest : BehaviorSpec({
 
     Given("a gateway seeded with two traces") {
         val seed = listOf(trace("a"), trace("b"))
-        val store = TracesStore(FakeTraceStoreGateway(initial = seed))
+        val store = TracesViewModel(FakeTraceStoreGateway(initial = seed))
 
         Then("the initial state mirrors the seed list") {
             store.state.value shouldBe TracesState(traces = seed)
@@ -56,7 +56,7 @@ class TracesStoreStateTest : BehaviorSpec({
     }
 
     Given("a gateway with no traces") {
-        val store = TracesStore(FakeTraceStoreGateway())
+        val store = TracesViewModel(FakeTraceStoreGateway())
 
         Then("the initial state has an empty list") {
             store.state.value shouldBe TracesState(traces = emptyList())
@@ -65,7 +65,7 @@ class TracesStoreStateTest : BehaviorSpec({
 
     Given("a store subscribed to a mutable traces flow") {
         val gateway = FakeTraceStoreGateway()
-        val store = TracesStore(gateway)
+        val store = TracesViewModel(gateway)
 
         When("the gateway emits a new list") {
             Then("the store's state reflects it") {
@@ -98,7 +98,7 @@ class TracesStoreStateTest : BehaviorSpec({
 
 /**
  * KMP-portable [TraceStoreGateway] fake. Suspend methods are no-ops;
- * call-verification tests live in TracesStoreTest under
+ * call-verification tests live in TracesMviViewModelTest under
  * androidUnitTest.
  */
 private class FakeTraceStoreGateway(

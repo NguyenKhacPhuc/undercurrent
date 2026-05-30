@@ -57,7 +57,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun UsageScreen(
     onBack: () -> Unit,
-    store: UsageStore = koinViewModel(),
+    store: UsageViewModel = koinViewModel(),
 ) {
     val s by store.state.collectAsState(); val totals = s.totals
     val today = remember {

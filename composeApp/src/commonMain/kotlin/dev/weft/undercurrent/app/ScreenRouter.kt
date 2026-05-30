@@ -34,7 +34,7 @@ import org.koin.compose.koinInject
 @Composable
 internal fun ScreenRouter(
     state: AppState,
-    store: AppStore,
+    store: AppViewModel,
     platform: PlatformAdapter,
 ) {
     when (state.screen) {

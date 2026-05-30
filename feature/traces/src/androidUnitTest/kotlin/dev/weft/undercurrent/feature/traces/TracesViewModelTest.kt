@@ -19,15 +19,15 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * MockK-only interaction tests for [TracesStore].
+ * MockK-only interaction tests for [TracesViewModel].
  *
  * State-projection coverage (initial state, live flow updates,
  * feedback re-emission propagation) lives in commonTest at
- * `TracesStoreStateTest.kt`. The Thens here verify gateway forwarding
+ * `TracesViewModelStateTest.kt`. The Thens here verify gateway forwarding
  * for each `TraceFeedback` enum value and `ClearAll`.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class TracesStoreTest : BehaviorSpec({
+class TracesMviViewModelTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
     beforeTest { Dispatchers.setMain(mainDispatcher) }
@@ -57,7 +57,7 @@ class TracesStoreTest : BehaviorSpec({
             Then("gateway.setFeedback('trace-1', THUMBS_UP) is called once") {
                 runTest {
                     val gateway = fakeGateway()
-                    val store = TracesStore(gateway)
+                    val store = TracesViewModel(gateway)
 
                     store.dispatch(TracesIntent.SetFeedback("trace-1", TraceFeedback.THUMBS_UP))
                     advanceUntilIdle()
@@ -71,7 +71,7 @@ class TracesStoreTest : BehaviorSpec({
             Then("gateway.setFeedback('trace-2', THUMBS_DOWN) is called once") {
                 runTest {
                     val gateway = fakeGateway()
-                    val store = TracesStore(gateway)
+                    val store = TracesViewModel(gateway)
 
                     store.dispatch(TracesIntent.SetFeedback("trace-2", TraceFeedback.THUMBS_DOWN))
                     advanceUntilIdle()
@@ -85,7 +85,7 @@ class TracesStoreTest : BehaviorSpec({
             Then("the call is forwarded verbatim and clear is not invoked") {
                 runTest {
                     val gateway = fakeGateway()
-                    val store = TracesStore(gateway)
+                    val store = TracesViewModel(gateway)
 
                     store.dispatch(TracesIntent.SetFeedback("trace-3", TraceFeedback.NONE))
                     advanceUntilIdle()
@@ -100,7 +100,7 @@ class TracesStoreTest : BehaviorSpec({
             Then("each call lands with the right (id, feedback) pair") {
                 runTest {
                     val gateway = fakeGateway()
-                    val store = TracesStore(gateway)
+                    val store = TracesViewModel(gateway)
 
                     store.dispatch(TracesIntent.SetFeedback("a", TraceFeedback.THUMBS_UP))
                     store.dispatch(TracesIntent.SetFeedback("b", TraceFeedback.THUMBS_DOWN))
@@ -116,7 +116,7 @@ class TracesStoreTest : BehaviorSpec({
             Then("gateway.clear is called once and setFeedback is not") {
                 runTest {
                     val gateway = fakeGateway()
-                    val store = TracesStore(gateway)
+                    val store = TracesViewModel(gateway)
 
                     store.dispatch(TracesIntent.ClearAll)
                     advanceUntilIdle()
@@ -131,7 +131,7 @@ class TracesStoreTest : BehaviorSpec({
             Then("each method fires exactly once") {
                 runTest {
                     val gateway = fakeGateway()
-                    val store = TracesStore(gateway)
+                    val store = TracesViewModel(gateway)
 
                     store.dispatch(TracesIntent.ClearAll)
                     store.dispatch(TracesIntent.SetFeedback("solo", TraceFeedback.THUMBS_UP))

@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Root MVI surface consumed by the App composable. The Android impl
- * (`WeftAppStore` in `:androidApp`) closes over `WeftRuntime` directly;
- * the iOS impl (`StubAppStore` in `:composeApp/iosMain`) emits a fixed
+ * (`WeftAppViewModel` in `:androidApp`) closes over `WeftRuntime` directly;
+ * the iOS impl (`StubAppViewModel` in `:composeApp/iosMain`) emits a fixed
  * loading state until iOS gets a real agent runtime.
  *
  * KMP — commonMain. The interface deliberately exposes only mirror
@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
  * without rebuilding the immutable state. Same trade-off as the
  * pre-KMP shape.
  */
-interface AppStore {
+interface AppViewModel {
 
     val state: StateFlow<AppState>
 

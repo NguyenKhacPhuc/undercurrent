@@ -29,7 +29,7 @@ import dev.weft.harness.skills.withHelp
 import dev.weft.undercurrent.app.AgentSummary
 import dev.weft.undercurrent.app.AppIntent
 import dev.weft.undercurrent.app.AppState
-import dev.weft.undercurrent.app.AppStore
+import dev.weft.undercurrent.app.AppViewModel
 import dev.weft.undercurrent.app.ChatStatus
 import dev.weft.undercurrent.app.PermissionDialogState
 import dev.weft.undercurrent.core.model.AppEffect
@@ -48,7 +48,7 @@ import dev.weft.undercurrent.feature.chat.SkillSummary
 import dev.weft.undercurrent.feature.creator.CreatorKind
 import dev.weft.undercurrent.feature.creator.CreatorSession
 import dev.weft.undercurrent.shared.gateway.UiBridgeGateway
-import dev.weft.undercurrent.shared.mvi.Store
+import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -62,7 +62,7 @@ import dev.weft.contracts.ProviderKind as WeftProviderKind
 import dev.weft.harness.agents.routing.ModelTier as WeftModelTier
 
 /**
- * Android impl of [AppStore]. Closes over [WeftRuntime] directly — the
+ * Android impl of [AppViewModel]. Closes over [WeftRuntime] directly — the
  * full agent loop, credential providers, model-pool resolution, and
  * trace export live here.
  *
@@ -74,7 +74,7 @@ import dev.weft.harness.agents.routing.ModelTier as WeftModelTier
  * `state.agentReady` and `state.currentConversationId`, never the
  * agent itself.
  */
-internal class WeftAppStore(
+internal class WeftAppViewModel(
     private val runtime: WeftRuntime,
     private val themeRepo: ThemeRepository,
     private val onboardingRepo: OnboardingRepository,
@@ -84,9 +84,9 @@ internal class WeftAppStore(
     private val miniAppsRepo: MiniAppsRepository,
     private val creatorSession: CreatorSession,
     private val uiBridge: UiBridgeGateway,
-) : Store<AppState, AppIntent, AppEffect>(
+) : MviViewModel<AppState, AppIntent, AppEffect>(
     initialState = AppState.initial(),
-), AppStore {
+), AppViewModel {
 
     override val displayMessages: SnapshotStateList<DisplayMessage> = mutableStateListOf()
 
@@ -94,7 +94,7 @@ internal class WeftAppStore(
     override val skills: List<SkillSummary> =
         skillRegistry.all().map { SkillSummary(it.name, it.description) }
 
-    /** Internal — never exposed via the AppStore interface. */
+    /** Internal — never exposed via the AppViewModel interface. */
     private var agent: WeftAgent? = null
 
     @Volatile

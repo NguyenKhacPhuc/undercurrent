@@ -45,7 +45,7 @@ import dev.weft.undercurrent.core.ui.SectionLabel
  *   - `dev.weft.undercurrent.theme.*` → `:core:design-system` /
  *     `:core:model` mirrors.
  *   - Stateless screen — no VM, no gateway. Callers own selection
- *     state (today: the root AppStore via ThemeRepository).
+ *     state (today: the root AppViewModel via ThemeRepository).
  */
 @Composable
 fun AppearanceScreen(

@@ -3,7 +3,7 @@ package dev.weft.undercurrent.feature.conversations
 import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.shared.gateway.ConversationStoreGateway
 import dev.weft.undercurrent.shared.gateway.ConversationSummary
-import dev.weft.undercurrent.shared.mvi.Store
+import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -26,9 +26,9 @@ sealed interface ConversationsEffect
  * query lifetime, so the store holds a single subscription Job and
  * restarts it whenever [ConversationsIntent.SetQuery] arrives.
  */
-class ConversationsStore(
+class ConversationsViewModel(
     private val store: ConversationStoreGateway,
-) : Store<ConversationsState, ConversationsIntent, ConversationsEffect>(
+) : MviViewModel<ConversationsState, ConversationsIntent, ConversationsEffect>(
     initialState = ConversationsState(),
 ) {
     private var searchJob: Job? = null

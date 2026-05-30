@@ -6,11 +6,11 @@ import dev.weft.undercurrent.core.model.ThemePrefs
 import dev.weft.undercurrent.core.navigation.Screen
 
 /**
- * Root state for the App composable. Held in [AppStore]; observed via
+ * Root state for the App composable. Held in [AppViewModel]; observed via
  * [androidx.lifecycle.compose.collectAsStateWithLifecycle] in the
  * composable.
  *
- * `displayMessages` is intentionally *not* here — it lives on AppStore
+ * `displayMessages` is intentionally *not* here — it lives on AppViewModel
  * as a [androidx.compose.runtime.snapshots.SnapshotStateList] so the
  * chat surface can keep appending streaming chunks directly.
  *
@@ -29,8 +29,8 @@ data class AppState(
      */
     val previousScreen: Screen = Screen.Chat,
     /**
-     * Whether AppStore has a built agent ready. The full `WeftAgent`
-     * stays inside the Android-only AppStore impl; the UI only needs
+     * Whether AppViewModel has a built agent ready. The full `WeftAgent`
+     * stays inside the Android-only AppViewModel impl; the UI only needs
      * to know "can we send / are we still booting".
      */
     val agentReady: Boolean = false,
@@ -43,7 +43,7 @@ data class AppState(
     val currentConversationId: String? = null,
     val chat: ChatStatus = ChatStatus(),
     /**
-     * Theme prefs. Mirrors what's persisted in DataStore — AppStore
+     * Theme prefs. Mirrors what's persisted in DataStore — AppViewModel
      * collects from the repo flow and updates this slot.
      */
     val themePrefs: ThemePrefs = ThemePrefs.Default,
@@ -59,7 +59,7 @@ data class AppState(
     val defaultTier: ModelTier? = null,
     /**
      * Name of the active agent declaration. The full per-agent tool
-     * allowlist + system fragment + strategy live inside AppStore's
+     * allowlist + system fragment + strategy live inside AppViewModel's
      * runtime; the UI only renders the name in the selector.
      */
     val activeAgentName: String = DEFAULT_AGENT_NAME,

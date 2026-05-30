@@ -63,7 +63,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun PersonasScreen(
     onBack: () -> Unit,
     onStartCreator: (PersonaKind) -> Unit = {},
-    store: PersonasStore = koinViewModel(),
+    store: PersonasViewModel = koinViewModel(),
 ) {
     val s by store.state.collectAsState()
     val activeVoice = s.activeVoice

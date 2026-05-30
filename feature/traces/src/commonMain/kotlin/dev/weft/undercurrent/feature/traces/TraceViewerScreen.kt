@@ -70,7 +70,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun TraceViewerScreen(
     onBack: () -> Unit,
     onExportTrace: ((AgentTrace) -> Unit)? = null,
-    store: TracesStore = koinViewModel(),
+    store: TracesViewModel = koinViewModel(),
 ) {
     val s by store.state.collectAsState(); val traces = s.traces
     var selectedTraceId by remember { mutableStateOf<String?>(null) }

@@ -15,9 +15,9 @@ import dev.weft.oauth.OAuthClient
 import dev.weft.oauth.OAuthTokenStore
 import dev.weft.osbridge.keyvault.AndroidKeyVault
 import dev.weft.security.NetworkPolicy
-import dev.weft.undercurrent.app.AppStore
+import dev.weft.undercurrent.app.AppViewModel
 import dev.weft.undercurrent.core.ASSISTANT_APP_PREAMBLE
-import dev.weft.undercurrent.core.WeftAppStore
+import dev.weft.undercurrent.core.WeftAppViewModel
 import dev.weft.undercurrent.core.navigation.NavigationChannel
 import dev.weft.undercurrent.data.sqldelight.SqlDelightDataSource
 import dev.weft.undercurrent.core.domain.IntegrationsRepository
@@ -53,13 +53,13 @@ import dev.weft.undercurrent.feature.creator.CreatorKind
 import dev.weft.undercurrent.feature.creator.CreatorSession
 import dev.weft.undercurrent.feature.integrations.Integration
 import dev.weft.undercurrent.feature.integrations.Integrations
-import dev.weft.undercurrent.feature.integrations.IntegrationsStore
-import dev.weft.undercurrent.feature.conversations.ConversationsStore
-import dev.weft.undercurrent.feature.memories.MemoriesStore
-import dev.weft.undercurrent.feature.miniapps.MiniAppsStore
-import dev.weft.undercurrent.feature.personas.PersonasStore
-import dev.weft.undercurrent.feature.traces.TracesStore
-import dev.weft.undercurrent.feature.usage.UsageStore
+import dev.weft.undercurrent.feature.integrations.IntegrationsViewModel
+import dev.weft.undercurrent.feature.conversations.ConversationsViewModel
+import dev.weft.undercurrent.feature.memories.MemoriesViewModel
+import dev.weft.undercurrent.feature.miniapps.MiniAppsViewModel
+import dev.weft.undercurrent.feature.personas.PersonasViewModel
+import dev.weft.undercurrent.feature.traces.TracesViewModel
+import dev.weft.undercurrent.feature.usage.UsageViewModel
 import dev.weft.undercurrent.shared.gateway.ConversationStoreGateway
 import dev.weft.undercurrent.shared.gateway.KeyValidationGateway
 import dev.weft.undercurrent.shared.gateway.KeyVaultGateway
@@ -88,7 +88,7 @@ import org.koin.dsl.module
  *  4. **Database** — SQLDelight via `:data:sqldelight`.
  *  5. **UI singletons** — [WeftUi], [ComposeUiBridge].
  *  6. **Runtime** — [WeftRuntime.create] depends on bridge + weftUi + persona repo.
- *  7. **ViewModels** — root [AppStore] + per-screen VMs.
+ *  7. **ViewModels** — root [AppViewModel] + per-screen VMs.
  */
 val appModule = module {
 
@@ -128,7 +128,7 @@ val appModule = module {
     single { DatabaseDriverFactory(androidContext()) }
     single<UndercurrentDatabase> { createUndercurrentDatabase(get<DatabaseDriverFactory>().create()) }
 
-    // Navigation pipe — agent tools emit Screen values; AppStore collects.
+    // Navigation pipe — agent tools emit Screen values; AppViewModel collects.
     single { NavigationChannel() }
 
     // Creator-session tracker — set while a guided QnA flow is active.
@@ -290,8 +290,8 @@ val appModule = module {
     single<SpeechGateway> { AndroidSpeechGateway(androidContext()) }
     single<UiBridgeGateway> { WeftUiBridgeGateway(get<ComposeUiBridge>()) }
 
-    single<AppStore> {
-        WeftAppStore(
+    single<AppViewModel> {
+        WeftAppViewModel(
             runtime = get(),
             themeRepo = get(),
             onboardingRepo = get(),
@@ -303,15 +303,15 @@ val appModule = module {
             uiBridge = get(),
         )
     }
-    viewModel { PersonasStore(repo = get()) }
-    viewModel { MiniAppsStore(repo = get()) }
-    viewModel { UsageStore(gateway = get()) }
-    viewModel { MemoriesStore(store = get()) }
-    viewModel { TracesStore(store = get()) }
-    viewModel { ConversationsStore(store = get()) }
+    viewModel { PersonasViewModel(repo = get()) }
+    viewModel { MiniAppsViewModel(repo = get()) }
+    viewModel { UsageViewModel(gateway = get()) }
+    viewModel { MemoriesViewModel(store = get()) }
+    viewModel { TracesViewModel(store = get()) }
+    viewModel { ConversationsViewModel(store = get()) }
     viewModel {
         val integrationsRepo: IntegrationsRepository = get()
-        IntegrationsStore(
+        IntegrationsViewModel(
             repo = integrationsRepo,
             oauth = get(),
             initialEnabled = runBlocking { integrationsRepo.enabledIdsNow() },

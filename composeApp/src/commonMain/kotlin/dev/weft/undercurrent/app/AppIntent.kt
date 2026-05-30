@@ -9,8 +9,8 @@ import dev.weft.undercurrent.feature.creator.CreatorKind
 import dev.weft.undercurrent.shared.gateway.UiRenderEvent
 
 /**
- * Intents accepted by [AppStore.dispatch]. Fire-and-forget — code paths
- * that need to await a reply call the suspend helpers on AppStore.
+ * Intents accepted by [AppViewModel.dispatch]. Fire-and-forget — code paths
+ * that need to await a reply call the suspend helpers on AppViewModel.
  *
  * KMP — commonMain. Uses mirror types only ([ProviderKind] / [ModelTier] /
  * [UiRenderEvent]); the Android impl translates to Weft enums at the
@@ -47,7 +47,7 @@ sealed interface AppIntent {
     data object RegenerateLast : AppIntent
 
     /**
-     * Redact + save + share a trace JSON by id. AppStore re-resolves
+     * Redact + save + share a trace JSON by id. AppViewModel re-resolves
      * the full trace from the runtime trace store at write time.
      */
     data class ExportTrace(val traceId: String) : AppIntent

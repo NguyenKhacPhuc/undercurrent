@@ -16,18 +16,18 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * KMP-portable state-projection tests for [MemoriesStore]. Runs on
+ * KMP-portable state-projection tests for [MemoriesViewModel]. Runs on
  * Android + iOS.
  *
  * Uses a hand-rolled [FakeMemoryStoreGateway] instead of MockK so the
  * spec can live in commonTest. Tests that need to verify the gateway
  * was *called* (interaction tests for Delete / ClearAll forwarding)
- * live in `MemoriesStoreTest` under `androidUnitTest` — MockK's
+ * live in `MemoriesMviViewModelTest` under `androidUnitTest` — MockK's
  * `coVerify` is JVM-only and there's no clean way to assert "this
  * suspend method was invoked with these args" without it.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class MemoriesStoreStateTest : BehaviorSpec({
+class MemoriesViewModelStateTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
     beforeTest { Dispatchers.setMain(mainDispatcher) }
@@ -43,7 +43,7 @@ class MemoriesStoreStateTest : BehaviorSpec({
 
     Given("a gateway seeded with two memories") {
         val seed = listOf(memory("a"), memory("b"))
-        val store = MemoriesStore(FakeMemoryStoreGateway(initial = seed))
+        val store = MemoriesViewModel(FakeMemoryStoreGateway(initial = seed))
 
         Then("the initial state mirrors the seed list") {
             store.state.value shouldBe MemoriesState(memories = seed)
@@ -51,7 +51,7 @@ class MemoriesStoreStateTest : BehaviorSpec({
     }
 
     Given("a gateway with no memories") {
-        val store = MemoriesStore(FakeMemoryStoreGateway())
+        val store = MemoriesViewModel(FakeMemoryStoreGateway())
 
         Then("the initial state has an empty list") {
             store.state.value shouldBe MemoriesState(memories = emptyList())
@@ -60,7 +60,7 @@ class MemoriesStoreStateTest : BehaviorSpec({
 
     Given("a store subscribed to a mutable memories flow") {
         val gateway = FakeMemoryStoreGateway()
-        val store = MemoriesStore(gateway)
+        val store = MemoriesViewModel(gateway)
 
         When("the gateway emits a new list") {
             Then("the store reflects the new list") {
@@ -94,7 +94,7 @@ class MemoriesStoreStateTest : BehaviorSpec({
             runTest {
                 val seed = listOf(memory("a"), memory("b"))
                 val gateway = FakeMemoryStoreGateway(initial = seed)
-                val store = MemoriesStore(gateway)
+                val store = MemoriesViewModel(gateway)
                 advanceUntilIdle()
 
                 store.dispatch(MemoriesIntent.Delete("a"))
@@ -103,7 +103,7 @@ class MemoriesStoreStateTest : BehaviorSpec({
                 // No optimistic local-state mutation; the store doesn't
                 // assume the gateway succeeded. The interaction side
                 // (gateway.delete being CALLED) is verified in
-                // MemoriesStoreTest under androidUnitTest.
+                // MemoriesMviViewModelTest under androidUnitTest.
                 store.state.value.memories shouldBe seed
             }
         }
@@ -126,6 +126,6 @@ private class FakeMemoryStoreGateway(
         _memories.value = value
     }
 
-    override suspend fun delete(id: String) { /* no-op; see MemoriesStoreTest */ }
-    override suspend fun clear() { /* no-op; see MemoriesStoreTest */ }
+    override suspend fun delete(id: String) { /* no-op; see MemoriesMviViewModelTest */ }
+    override suspend fun clear() { /* no-op; see MemoriesMviViewModelTest */ }
 }

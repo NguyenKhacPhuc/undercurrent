@@ -28,14 +28,14 @@ import dev.weft.undercurrent.core.model.ThemeMode
  * Platform-specific bits (chat surface, agent-rendered tree, mini-app
  * tree preview, OS bridges) are injected through [PlatformAdapter].
  *
- * @param store the platform's [AppStore] implementation (Android wires
- *   `WeftAppStore`; iOS wires the stub).
+ * @param store the platform's [AppViewModel] implementation (Android wires
+ *   `WeftAppViewModel`; iOS wires the stub).
  * @param platform substrate-coupled routes + OS callbacks. iOS passes
  *   placeholder composables for the substrate-only screens.
  */
 @Composable
 fun App(
-    store: AppStore,
+    store: AppViewModel,
     platform: PlatformAdapter,
 ) {
     val state by store.state.collectAsState()

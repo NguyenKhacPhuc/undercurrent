@@ -19,11 +19,11 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * MockK-only interaction tests for [ConversationsStore].
+ * MockK-only interaction tests for [ConversationsViewModel].
  *
  * State-projection coverage (initial state, live flow updates, query
  * propagation into state) lives in commonTest at
- * `ConversationsStoreStateTest.kt` and runs on Android + iOS. The
+ * `ConversationsViewModelStateTest.kt` and runs on Android + iOS. The
  * Thens here are exclusively about:
  *
  *  - The resubscribe pattern: SetQuery cancels the old search() Flow
@@ -34,7 +34,7 @@ import kotlinx.coroutines.test.setMain
  *  - Delete + ClearAll forwarding to the gateway.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class ConversationsStoreTest : BehaviorSpec({
+class ConversationsMviViewModelTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
     beforeTest { Dispatchers.setMain(mainDispatcher) }
@@ -61,7 +61,7 @@ class ConversationsStoreTest : BehaviorSpec({
                     val results = MutableStateFlow(listOf(summary("a"), summary("b")))
                     val gateway = fakeGateway(results)
 
-                    ConversationsStore(gateway)
+                    ConversationsViewModel(gateway)
                     advanceUntilIdle()
 
                     coVerify(exactly = 1) { gateway.search("") }
@@ -79,7 +79,7 @@ class ConversationsStoreTest : BehaviorSpec({
                         coEvery { deleteConversation(any()) } returns Unit
                         coEvery { clearAll() } returns Unit
                     }
-                    val store = ConversationsStore(gateway)
+                    val store = ConversationsViewModel(gateway)
                     advanceUntilIdle()
 
                     store.dispatch(ConversationsIntent.SetQuery("dogs"))
@@ -103,7 +103,7 @@ class ConversationsStoreTest : BehaviorSpec({
                         coEvery { deleteConversation(any()) } returns Unit
                         coEvery { clearAll() } returns Unit
                     }
-                    val store = ConversationsStore(gateway)
+                    val store = ConversationsViewModel(gateway)
                     advanceUntilIdle()
                     store.state.value.conversations shouldBe listOf(summary("first"))
 
@@ -122,7 +122,7 @@ class ConversationsStoreTest : BehaviorSpec({
             Then("gateway.search('') is invoked again — there is no de-dupe") {
                 runTest {
                     val gateway = fakeGateway()
-                    val store = ConversationsStore(gateway)
+                    val store = ConversationsViewModel(gateway)
                     advanceUntilIdle()
 
                     store.dispatch(ConversationsIntent.SetQuery(""))
@@ -139,7 +139,7 @@ class ConversationsStoreTest : BehaviorSpec({
             Then("gateway.deleteConversation('conv-42') is called once") {
                 runTest {
                     val gateway = fakeGateway()
-                    val store = ConversationsStore(gateway)
+                    val store = ConversationsViewModel(gateway)
 
                     store.dispatch(ConversationsIntent.Delete("conv-42"))
                     advanceUntilIdle()
@@ -153,7 +153,7 @@ class ConversationsStoreTest : BehaviorSpec({
             Then("gateway.clearAll is called and deleteConversation is not") {
                 runTest {
                     val gateway = fakeGateway()
-                    val store = ConversationsStore(gateway)
+                    val store = ConversationsViewModel(gateway)
 
                     store.dispatch(ConversationsIntent.ClearAll)
                     advanceUntilIdle()

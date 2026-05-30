@@ -4,7 +4,7 @@ import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.core.domain.IntegrationsRepository
 import dev.weft.undercurrent.shared.gateway.OAuthGateway
 import dev.weft.undercurrent.shared.gateway.OAuthResult
-import dev.weft.undercurrent.shared.mvi.Store
+import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.launch
 
 data class IntegrationsState(
@@ -21,7 +21,7 @@ sealed interface IntegrationsIntent {
 
 sealed interface IntegrationsEffect
 
-class IntegrationsStore(
+class IntegrationsViewModel(
     private val repo: IntegrationsRepository,
     private val oauth: OAuthGateway,
     /**
@@ -30,7 +30,7 @@ class IntegrationsStore(
      * set tells us whether a restart is needed.
      */
     private val initialEnabled: Set<String>,
-) : Store<IntegrationsState, IntegrationsIntent, IntegrationsEffect>(
+) : MviViewModel<IntegrationsState, IntegrationsIntent, IntegrationsEffect>(
     initialState = IntegrationsState(enabledIds = initialEnabled),
 ) {
     init {

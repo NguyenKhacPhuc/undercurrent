@@ -46,7 +46,7 @@ import dev.weft.contracts.UIUpdate
 import dev.weft.oauth.OAuthCallbackChannel
 import dev.weft.undercurrent.app.App
 import dev.weft.undercurrent.app.AppIntent
-import dev.weft.undercurrent.app.AppStore
+import dev.weft.undercurrent.app.AppViewModel
 import dev.weft.undercurrent.app.PlatformAdapter
 import dev.weft.undercurrent.core.designsystem.colors
 import dev.weft.undercurrent.core.model.ThemeMode
@@ -101,7 +101,7 @@ class MainActivity : FragmentActivity() {
  */
 @Composable
 private fun AndroidApp() {
-    val store: AppStore = koinInject()
+    val store: AppViewModel = koinInject()
     val runtime: WeftRuntime = koinInject()
     val uiBridge: ComposeUiBridge = koinInject()
     val weftUi: WeftUi = koinInject()
@@ -282,7 +282,7 @@ private fun AndroidApp() {
  */
 @Composable
 private fun ChatRoute(
-    store: AppStore,
+    store: AppViewModel,
     runtime: WeftRuntime,
     onOpenUrl: (String) -> Unit,
     onCopyText: (String) -> Unit,

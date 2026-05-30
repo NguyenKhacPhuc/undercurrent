@@ -18,14 +18,14 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * Exercises [MiniAppsStore] in BDD style.
+ * Exercises [MiniAppsViewModel] in BDD style.
  *
  * Each intent (Add, Update, Delete) translates to a single suspend
  * call on the repo. The store doesn't optimistically update local
  * state — it waits for the repo's StateFlow to re-emit.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class MiniAppsStoreTest : BehaviorSpec({
+class MiniAppsMviViewModelTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
     beforeTest { Dispatchers.setMain(mainDispatcher) }
@@ -55,7 +55,7 @@ class MiniAppsStoreTest : BehaviorSpec({
 
     Given("a repo seeded with two mini-apps") {
         val seed = listOf(miniApp("a"), miniApp("b"))
-        val store = MiniAppsStore(fakeRepo(initial = seed))
+        val store = MiniAppsViewModel(fakeRepo(initial = seed))
 
         Then("the initial state mirrors the seed list") {
             store.state.value shouldBe MiniAppsState(miniApps = seed)
@@ -63,7 +63,7 @@ class MiniAppsStoreTest : BehaviorSpec({
     }
 
     Given("a repo with no mini-apps") {
-        val store = MiniAppsStore(fakeRepo())
+        val store = MiniAppsViewModel(fakeRepo())
 
         Then("the initial state has an empty list") {
             store.state.value shouldBe MiniAppsState(miniApps = emptyList())
@@ -78,7 +78,7 @@ class MiniAppsStoreTest : BehaviorSpec({
             coEvery { update(any(), any(), any(), any()) } returns Unit
             coEvery { delete(any()) } returns Unit
         }
-        val store = MiniAppsStore(repo)
+        val store = MiniAppsViewModel(repo)
 
         When("the repo emits a new list") {
             Then("the store's state reflects the new list") {
@@ -98,7 +98,7 @@ class MiniAppsStoreTest : BehaviorSpec({
             Then("repo.add is called with those exact arguments") {
                 runTest {
                     val repo = fakeRepo()
-                    val store = MiniAppsStore(repo)
+                    val store = MiniAppsViewModel(repo)
 
                     store.dispatch(
                         MiniAppsIntent.Add(
@@ -122,7 +122,7 @@ class MiniAppsStoreTest : BehaviorSpec({
             Then("repo.update is called with the four fields verbatim") {
                 runTest {
                     val repo = fakeRepo()
-                    val store = MiniAppsStore(repo)
+                    val store = MiniAppsViewModel(repo)
 
                     store.dispatch(
                         MiniAppsIntent.Update(
@@ -147,7 +147,7 @@ class MiniAppsStoreTest : BehaviorSpec({
             Then("repo.delete is called once with that id") {
                 runTest {
                     val repo = fakeRepo()
-                    val store = MiniAppsStore(repo)
+                    val store = MiniAppsViewModel(repo)
 
                     store.dispatch(MiniAppsIntent.Delete("miniapp-42"))
                     advanceUntilIdle()
@@ -163,7 +163,7 @@ class MiniAppsStoreTest : BehaviorSpec({
             Then("each method fires exactly once with its own arguments") {
                 runTest {
                     val repo = fakeRepo()
-                    val store = MiniAppsStore(repo)
+                    val store = MiniAppsViewModel(repo)
 
                     store.dispatch(MiniAppsIntent.Add("Cat", "🐈", "do cat"))
                     store.dispatch(MiniAppsIntent.Update("id1", "Dog", "🐕", "do dog"))
@@ -183,7 +183,7 @@ class MiniAppsStoreTest : BehaviorSpec({
             runTest {
                 val seed = listOf(miniApp("solo", name = "Original"))
                 val repo = fakeRepo(initial = seed)
-                val store = MiniAppsStore(repo)
+                val store = MiniAppsViewModel(repo)
                 advanceUntilIdle()
 
                 store.dispatch(MiniAppsIntent.Update("solo", "Renamed", "✏️", "new prompt"))

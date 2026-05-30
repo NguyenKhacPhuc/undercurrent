@@ -23,7 +23,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * Exercises [IntegrationsStore] in BDD style.
+ * Exercises [IntegrationsViewModel] in BDD style.
  *
  * Covers the OAuth happy path (Success → putTokens → setEnabled),
  * every [OAuthResult] failure variant mapping to [ActionStatus.Failure]
@@ -32,7 +32,7 @@ import kotlinx.coroutines.test.setMain
  * the boot-time snapshot, and the [statusFor] pure helper.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class IntegrationsStoreTest : BehaviorSpec({
+class IntegrationsMviViewModelTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
     beforeTest { Dispatchers.setMain(mainDispatcher) }
@@ -79,7 +79,7 @@ class IntegrationsStoreTest : BehaviorSpec({
 
     Given("a store built with initialEnabled={'linear'} and a repo that emits the same set") {
         val (repo, oauth, _) = fakes(initialEnabledFromFlow = setOf("linear"))
-        val store = IntegrationsStore(repo, oauth, initialEnabled = setOf("linear"))
+        val store = IntegrationsViewModel(repo, oauth, initialEnabled = setOf("linear"))
 
         Then("initial state has enabledIds={'linear'} and pendingRestart=false") {
             store.state.value shouldBe IntegrationsState(
@@ -94,7 +94,7 @@ class IntegrationsStoreTest : BehaviorSpec({
         Then("pendingRestart stays false after the init subscription drains") {
             runTest {
                 val (repo, oauth, _) = fakes(initialEnabledFromFlow = setOf("linear"))
-                val store = IntegrationsStore(repo, oauth, initialEnabled = setOf("linear"))
+                val store = IntegrationsViewModel(repo, oauth, initialEnabled = setOf("linear"))
                 advanceUntilIdle()
 
                 store.state.value.pendingRestart shouldBe false
@@ -107,7 +107,7 @@ class IntegrationsStoreTest : BehaviorSpec({
         Then("pendingRestart flips to true because the live set diverges from boot") {
             runTest {
                 val (repo, oauth, enabledFlow) = fakes(initialEnabledFromFlow = emptySet())
-                val store = IntegrationsStore(repo, oauth, initialEnabled = emptySet())
+                val store = IntegrationsViewModel(repo, oauth, initialEnabled = emptySet())
                 advanceUntilIdle()
 
                 enabledFlow.value = setOf("linear")
@@ -123,7 +123,7 @@ class IntegrationsStoreTest : BehaviorSpec({
         Then("pendingRestart flips back to false when the flow re-equals initialEnabled") {
             runTest {
                 val (repo, oauth, enabledFlow) = fakes(initialEnabledFromFlow = emptySet())
-                val store = IntegrationsStore(repo, oauth, initialEnabled = emptySet())
+                val store = IntegrationsViewModel(repo, oauth, initialEnabled = emptySet())
                 advanceUntilIdle()
 
                 enabledFlow.value = setOf("linear")
@@ -144,7 +144,7 @@ class IntegrationsStoreTest : BehaviorSpec({
             Then("authorize → putTokens → setEnabled fire in order and lastAction is Success") {
                 runTest {
                     val (repo, oauth, _) = fakes()
-                    val store = IntegrationsStore(repo, oauth, initialEnabled = emptySet())
+                    val store = IntegrationsViewModel(repo, oauth, initialEnabled = emptySet())
 
                     store.dispatch(IntegrationsIntent.Connect(testIntegration))
                     advanceUntilIdle()
@@ -171,7 +171,7 @@ class IntegrationsStoreTest : BehaviorSpec({
                 runTest {
                     val (repo, oauth, _) = fakes()
                     coEvery { oauth.authorize(any()) } returns OAuthResult.UserCancelled
-                    val store = IntegrationsStore(repo, oauth, initialEnabled = emptySet())
+                    val store = IntegrationsViewModel(repo, oauth, initialEnabled = emptySet())
 
                     store.dispatch(IntegrationsIntent.Connect(testIntegration))
                     advanceUntilIdle()
@@ -195,7 +195,7 @@ class IntegrationsStoreTest : BehaviorSpec({
                     val (repo, oauth, _) = fakes()
                     coEvery { oauth.authorize(any()) } returns
                         OAuthResult.ProviderError(code = "access_denied", description = null)
-                    val store = IntegrationsStore(repo, oauth, initialEnabled = emptySet())
+                    val store = IntegrationsViewModel(repo, oauth, initialEnabled = emptySet())
 
                     store.dispatch(IntegrationsIntent.Connect(testIntegration))
                     advanceUntilIdle()
@@ -215,7 +215,7 @@ class IntegrationsStoreTest : BehaviorSpec({
                     val (repo, oauth, _) = fakes()
                     coEvery { oauth.authorize(any()) } returns
                         OAuthResult.ProviderError(code = "invalid_scope", description = "Unknown scope X.")
-                    val store = IntegrationsStore(repo, oauth, initialEnabled = emptySet())
+                    val store = IntegrationsViewModel(repo, oauth, initialEnabled = emptySet())
 
                     store.dispatch(IntegrationsIntent.Connect(testIntegration))
                     advanceUntilIdle()
@@ -235,7 +235,7 @@ class IntegrationsStoreTest : BehaviorSpec({
                     val (repo, oauth, _) = fakes()
                     coEvery { oauth.authorize(any()) } returns
                         OAuthResult.TransportError(message = "Network timeout after 5s")
-                    val store = IntegrationsStore(repo, oauth, initialEnabled = emptySet())
+                    val store = IntegrationsViewModel(repo, oauth, initialEnabled = emptySet())
 
                     store.dispatch(IntegrationsIntent.Connect(testIntegration))
                     advanceUntilIdle()
@@ -254,7 +254,7 @@ class IntegrationsStoreTest : BehaviorSpec({
                 runTest {
                     val (repo, oauth, _) = fakes()
                     coEvery { oauth.authorize(any()) } returns OAuthResult.StateMismatch
-                    val store = IntegrationsStore(repo, oauth, initialEnabled = emptySet())
+                    val store = IntegrationsViewModel(repo, oauth, initialEnabled = emptySet())
 
                     store.dispatch(IntegrationsIntent.Connect(testIntegration))
                     advanceUntilIdle()
@@ -274,7 +274,7 @@ class IntegrationsStoreTest : BehaviorSpec({
             Then("removeTokens → setEnabled(false) fire in order, no authorize, lastAction=Success") {
                 runTest {
                     val (repo, oauth, _) = fakes(initialEnabledFromFlow = setOf("linear"))
-                    val store = IntegrationsStore(repo, oauth, initialEnabled = setOf("linear"))
+                    val store = IntegrationsViewModel(repo, oauth, initialEnabled = setOf("linear"))
                     advanceUntilIdle()
 
                     store.dispatch(IntegrationsIntent.Disconnect(testIntegration))
@@ -301,7 +301,7 @@ class IntegrationsStoreTest : BehaviorSpec({
             Then("lastAction returns to Idle") {
                 runTest {
                     val (repo, oauth, _) = fakes()
-                    val store = IntegrationsStore(repo, oauth, initialEnabled = emptySet())
+                    val store = IntegrationsViewModel(repo, oauth, initialEnabled = emptySet())
 
                     store.dispatch(IntegrationsIntent.Connect(testIntegration))
                     advanceUntilIdle()
@@ -320,7 +320,7 @@ class IntegrationsStoreTest : BehaviorSpec({
 
     Given("a store and an enabled set that contains the integration's id") {
         val (repo, oauth, _) = fakes()
-        val store = IntegrationsStore(repo, oauth, initialEnabled = emptySet())
+        val store = IntegrationsViewModel(repo, oauth, initialEnabled = emptySet())
 
         Then("statusFor returns Connected") {
             store.statusFor(testIntegration, setOf("linear", "notion")) shouldBe
@@ -330,7 +330,7 @@ class IntegrationsStoreTest : BehaviorSpec({
 
     Given("a store and an enabled set that does NOT contain the integration's id") {
         val (repo, oauth, _) = fakes()
-        val store = IntegrationsStore(repo, oauth, initialEnabled = emptySet())
+        val store = IntegrationsViewModel(repo, oauth, initialEnabled = emptySet())
 
         Then("statusFor returns Disconnected") {
             store.statusFor(testIntegration, setOf("notion")) shouldBe

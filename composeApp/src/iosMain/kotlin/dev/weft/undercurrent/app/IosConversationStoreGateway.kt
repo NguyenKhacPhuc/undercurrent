@@ -14,7 +14,7 @@ import kotlinx.coroutines.withContext
 /**
  * iOS impl of [ConversationStoreGateway] backed by the
  * `UndercurrentDatabase`'s `conversations` + `messages` tables.
- * Reactive — the conversations list re-emits whenever IosAppStore
+ * Reactive — the conversations list re-emits whenever IosAppViewModel
  * writes via `insertConversation` / `touchConversation` / etc.
  *
  * The `search(query)` filter is a case-insensitive substring match

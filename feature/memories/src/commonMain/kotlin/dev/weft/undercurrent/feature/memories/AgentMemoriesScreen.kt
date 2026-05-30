@@ -56,7 +56,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun AgentMemoriesScreen(
     onBack: () -> Unit,
-    store: MemoriesStore = koinViewModel(),
+    store: MemoriesViewModel = koinViewModel(),
 ) {
     val s by store.state.collectAsState(); val memories = s.memories
     var confirmClear by remember { mutableStateOf(false) }

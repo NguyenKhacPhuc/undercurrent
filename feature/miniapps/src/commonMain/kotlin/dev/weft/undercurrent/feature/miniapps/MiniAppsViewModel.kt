@@ -3,7 +3,7 @@ package dev.weft.undercurrent.feature.miniapps
 import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.core.model.MiniApp
 import dev.weft.undercurrent.core.domain.MiniAppsRepository
-import dev.weft.undercurrent.shared.mvi.Store
+import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.launch
 
 data class MiniAppsState(val miniApps: List<MiniApp> = emptyList())
@@ -25,9 +25,9 @@ sealed interface MiniAppsIntent {
 
 sealed interface MiniAppsEffect
 
-class MiniAppsStore(
+class MiniAppsViewModel(
     private val repo: MiniAppsRepository,
-) : Store<MiniAppsState, MiniAppsIntent, MiniAppsEffect>(
+) : MviViewModel<MiniAppsState, MiniAppsIntent, MiniAppsEffect>(
     initialState = MiniAppsState(miniApps = repo.miniApps.value),
 ) {
     init {

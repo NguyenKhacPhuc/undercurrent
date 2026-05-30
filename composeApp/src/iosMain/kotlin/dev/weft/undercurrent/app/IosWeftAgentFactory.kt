@@ -31,7 +31,7 @@ import dev.weft.harness.prompt.cache.AnthropicCacheBinder
  *     can plug in later via the same constructor surface.
  *   - Default behavior + retry + circuit breaker (no overrides).
  *
- * The agent is constructed per-conversation — `IosAppStore` rebuilds
+ * The agent is constructed per-conversation — `IosAppViewModel` rebuilds
  * it when the API key changes or the user switches providers.
  */
 object IosWeftAgentFactory {

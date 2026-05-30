@@ -59,7 +59,7 @@ fun ConversationsListScreen(
     onSelect: (String) -> Unit,
     onNewChat: () -> Unit,
     onBack: () -> Unit,
-    store: ConversationsStore = koinViewModel(),
+    store: ConversationsViewModel = koinViewModel(),
 ) {
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography

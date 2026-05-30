@@ -34,7 +34,7 @@ import org.koin.compose.viewmodel.koinViewModel
 /**
  * Settings → Integrations. Lists every supported third-party
  * integration in [Integrations.All] with a Connect / Disconnect
- * affordance driving [IntegrationsStore] through OAuth.
+ * affordance driving [IntegrationsViewModel] through OAuth.
  *
  * A persistent banner appears above the list whenever the live
  * enabled set differs from what the running runtime was built with
@@ -50,7 +50,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun IntegrationsScreen(
     onBack: () -> Unit,
     onRestart: () -> Unit,
-    store: IntegrationsStore = koinViewModel(),
+    store: IntegrationsViewModel = koinViewModel(),
 ) {
     val s by store.state.collectAsState(); val enabled = s.enabledIds
     val pendingRestart = s.pendingRestart

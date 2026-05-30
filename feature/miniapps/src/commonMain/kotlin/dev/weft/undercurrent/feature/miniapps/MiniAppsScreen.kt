@@ -73,7 +73,7 @@ fun MiniAppsScreen(
     onBack: () -> Unit,
     onOpenMiniApp: (MiniApp) -> Unit,
     onStartCreator: () -> Unit = {},
-    store: MiniAppsStore = koinViewModel(),
+    store: MiniAppsViewModel = koinViewModel(),
 ) {
     val s by store.state.collectAsState(); val miniApps = s.miniApps
     var editing by remember { mutableStateOf<MiniApp?>(null) }

@@ -18,16 +18,16 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * MockK-only interaction tests for [MemoriesStore].
+ * MockK-only interaction tests for [MemoriesViewModel].
  *
  * State-projection coverage (initial state, live flow updates,
  * no-optimistic-mutation) lives in commonTest at
- * `MemoriesStoreStateTest.kt` and runs on Android + iOS. The Thens
+ * `MemoriesViewModelStateTest.kt` and runs on Android + iOS. The Thens
  * here are exclusively about *did the gateway get called with the
  * right args* — that requires MockK's `coVerify`, which is JVM-only.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class MemoriesStoreTest : BehaviorSpec({
+class MemoriesMviViewModelTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
     beforeTest { Dispatchers.setMain(mainDispatcher) }
@@ -54,7 +54,7 @@ class MemoriesStoreTest : BehaviorSpec({
             Then("gateway.delete('mem-42') is called once and clear is not") {
                 runTest {
                     val gateway = fakeGateway()
-                    val store = MemoriesStore(gateway)
+                    val store = MemoriesViewModel(gateway)
 
                     store.dispatch(MemoriesIntent.Delete("mem-42"))
                     advanceUntilIdle()
@@ -69,7 +69,7 @@ class MemoriesStoreTest : BehaviorSpec({
             Then("gateway.clear is called once and delete is not") {
                 runTest {
                     val gateway = fakeGateway()
-                    val store = MemoriesStore(gateway)
+                    val store = MemoriesViewModel(gateway)
 
                     store.dispatch(MemoriesIntent.ClearAll)
                     advanceUntilIdle()
@@ -84,7 +84,7 @@ class MemoriesStoreTest : BehaviorSpec({
             Then("each method fires exactly once") {
                 runTest {
                     val gateway = fakeGateway()
-                    val store = MemoriesStore(gateway)
+                    val store = MemoriesViewModel(gateway)
 
                     store.dispatch(MemoriesIntent.ClearAll)
                     store.dispatch(MemoriesIntent.Delete("solo"))

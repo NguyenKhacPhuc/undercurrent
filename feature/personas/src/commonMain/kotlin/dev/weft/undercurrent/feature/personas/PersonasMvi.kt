@@ -16,7 +16,7 @@ data class PersonasState(
 )
 
 /**
- * Intents accepted by [PersonasStore.dispatch]. Fire-and-forget.
+ * Intents accepted by [PersonasViewModel.dispatch]. Fire-and-forget.
  */
 sealed interface PersonasIntent {
     /**

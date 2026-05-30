@@ -21,7 +21,7 @@ import kotlinx.coroutines.test.setMain
  * pattern.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class StoreTest : BehaviorSpec({
+class MviViewModelTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
     beforeTest { Dispatchers.setMain(mainDispatcher) }
@@ -205,7 +205,7 @@ private sealed interface CounterEffect {
 }
 
 private class CounterStore(initialCount: Int = 0) :
-    Store<CounterState, CounterIntent, CounterEffect>(CounterState(count = initialCount)) {
+    MviViewModel<CounterState, CounterIntent, CounterEffect>(CounterState(count = initialCount)) {
 
     private val initial = CounterState(count = initialCount)
 

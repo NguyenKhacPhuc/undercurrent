@@ -15,7 +15,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * Exercises [UsageStore]. KMP — runs on Android + iOS.
+ * Exercises [UsageViewModel]. KMP — runs on Android + iOS.
  *
  * Read-only screen (no intents) so every assertion is about state
  * projection from `gateway.totals`. Uses a hand-rolled
@@ -23,7 +23,7 @@ import kotlinx.coroutines.test.setMain
  * commonTest and run on every target.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class UsageStoreTest : BehaviorSpec({
+class UsageMviViewModelTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
     beforeTest { Dispatchers.setMain(mainDispatcher) }
@@ -36,7 +36,7 @@ class UsageStoreTest : BehaviorSpec({
             lifetimeOutputTokens = 500,
             lastCallModelId = "claude-sonnet-4-6",
         )
-        val store = UsageStore(FakeUsageGateway(initial = seed))
+        val store = UsageViewModel(FakeUsageGateway(initial = seed))
 
         Then("the initial state mirrors the snapshot exactly") {
             store.state.value.totals shouldBe seed
@@ -44,7 +44,7 @@ class UsageStoreTest : BehaviorSpec({
     }
 
     Given("a gateway with no usage recorded yet") {
-        val store = UsageStore(FakeUsageGateway())
+        val store = UsageViewModel(FakeUsageGateway())
 
         Then("the initial state defaults to zero-valued totals") {
             store.state.value.totals shouldBe UsageTotals()
@@ -53,7 +53,7 @@ class UsageStoreTest : BehaviorSpec({
 
     Given("a store subscribed to a mutable totals flow") {
         val gateway = FakeUsageGateway()
-        val store = UsageStore(gateway)
+        val store = UsageViewModel(gateway)
 
         When("the gateway emits a new totals snapshot") {
             Then("the store's state reflects the new snapshot") {
@@ -100,8 +100,8 @@ class UsageStoreTest : BehaviorSpec({
         }
     }
 
-    Given("a UsageStore with no intent variants defined yet") {
-        val store = UsageStore(FakeUsageGateway())
+    Given("a UsageViewModel with no intent variants defined yet") {
+        val store = UsageViewModel(FakeUsageGateway())
 
         Then("constructing the store doesn't throw and produces a default state") {
             // sealed UsageIntent has no implementations; documents the

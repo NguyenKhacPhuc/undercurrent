@@ -90,16 +90,23 @@ catalog.
 
 ## Architecture
 
-MVI everywhere — both the orchestrator (AppStore) and per-feature
+MVI everywhere — both the orchestrator (AppViewModel) and per-feature
 screens follow the same shape. Koin for DI.
+
+> **Naming note.** The MVI base class is called `MviViewModel<S, I, E>`
+> — NOT `Store`. The "Store" suffix is reserved for persistent data
+> stores (`MemoryStore`, `ConversationStore`, `TraceStore`, `UsageStore`
+> in the Weft substrate; `TokenStore` in `:data:network`). Feature
+> classes are `<Name>ViewModel` (e.g. `PersonasViewModel`,
+> `WeftAppViewModel`).
 
 ### MVI pattern (load-bearing — every new feature follows this)
 
 The generic base lives at
-`:shared/src/commonMain/kotlin/dev/weft/undercurrent/shared/mvi/Store.kt`:
+`:shared/src/commonMain/kotlin/dev/weft/undercurrent/shared/mvi/MviViewModel.kt`:
 
 ```kotlin
-abstract class Store<State, Intent, Effect>(initialState: State) : ViewModel() {
+abstract class MviViewModel<State, Intent, Effect>(initialState: State) : ViewModel() {
     val state: StateFlow<State>      // observable; Compose collectAsState
     val effects: Flow<Effect>        // one-shot; LaunchedEffect collect
     protected val current: State     // current snapshot inside handlers
@@ -113,9 +120,9 @@ Every feature has the same four files:
 
 ```
 :feature:<name>/src/commonMain/kotlin/.../feature/<name>/
-├─ <Name>Mvi.kt        ← State (data class) + Intent + Effect (sealed)
-├─ <Name>Store.kt      ← class <Name>Store(...) : Store<State, Intent, Effect>(...)
-├─ <Name>Screen.kt     ← @Composable; reads state.collectAsState(), dispatches intents
+├─ <Name>Mvi.kt           ← State (data class) + Intent + Effect (sealed)
+├─ <Name>ViewModel.kt     ← class <Name>ViewModel(...) : MviViewModel<S, I, E>(...)
+├─ <Name>Screen.kt        ← @Composable; reads state.collectAsState(), dispatches intents
 └─ (optional helpers)
 ```
 
@@ -129,31 +136,31 @@ Conventions:
   Reserve for things that genuinely shouldn't replay on configuration
   change (toasts, transient navigation hints). State is for everything
   else.
-- **Subscribe to repos / gateways in `init`.** The store is the
+- **Subscribe to repos / gateways in `init`.** The ViewModel is the
   projection point: collect repo flows and project into your state via
   `update { it.copy(foo = ...) }`. Don't expose repo flows directly.
 - **Plain helpers are OK for pure projections** — e.g.
-  `IntegrationsStore.statusFor(integration, enabled): IntegrationStatus`
+  `IntegrationsViewModel.statusFor(integration, enabled): IntegrationStatus`
   is a pure function, not a mutation, so it doesn't go through dispatch.
 - **Screens never call `viewModelScope` directly.** They dispatch;
-  the store launches coroutines.
-- **`koinViewModel<XxxStore>()`** — use
+  the ViewModel launches coroutines.
+- **`koinViewModel<XxxViewModel>()`** — use
   `org.koin.compose.viewmodel.koinViewModel` (the KMP one), not the
   Android-only `org.koin.androidx.compose.koinViewModel`.
 
-### The orchestrator (root AppStore)
+### The orchestrator (root AppViewModel)
 
 The same pattern applies, just at a wider scope:
 
-- **Interface** `dev.weft.undercurrent.app.AppStore` lives in
-  `:composeApp/commonMain/.../app/AppStore.kt`. Both platforms see
+- **Interface** `dev.weft.undercurrent.app.AppViewModel` lives in
+  `:composeApp/commonMain/.../app/AppViewModel.kt`. Both platforms see
   the same surface (`state` / `effects` / `displayMessages` /
   `skills` / `dispatch` / `sendUiEvent` / `saveKey`).
-- **Android impl** `WeftAppStore` in
-  `:androidApp/.../core/WeftAppStore.kt` —
-  `: Store<AppState, AppIntent, AppEffect>(AppState.initial()), AppStore`.
+- **Android impl** `WeftAppViewModel` in
+  `:androidApp/.../core/WeftAppViewModel.kt` —
+  `: MviViewModel<AppState, AppIntent, AppEffect>(AppState.initial()), AppViewModel`.
   Closes over `WeftRuntime` directly; full agent loop here.
-- **iOS impl** `IosAppStore` in `:composeApp/iosMain/.../app/IosAppStore.kt`
+- **iOS impl** `IosAppViewModel` in `:composeApp/iosMain/.../app/IosAppViewModel.kt`
   — same shape, backed by the Ktor `LlmClient` stack +
   `KeychainKeyVaultGateway` + DataStore-Preferences + SQLDelight.
 
@@ -248,9 +255,9 @@ verb-noun shape, shorten description.
   Keep it — without it, Claude sometimes describes tool calls in
   text without emitting the tool_use block.
 
-## Testing (MVI stores)
+## Testing (MVI ViewModels)
 
-Unit-testing rules for feature stores. The harness is wired in
+Unit-testing rules for feature ViewModels. The harness is wired in
 `KmpLibraryConventionPlugin` — MockK + Kotest + Turbine + coroutines-test
 are auto-added to every KMP library's `androidUnitTest` source set; no
 per-module build changes needed.
@@ -270,26 +277,32 @@ The convention plugin wires both source sets automatically. Per-feature
 `build.gradle.kts` files don't touch test deps.
 
 **BDD style.** Outer `Given` describes the setup precondition (a fresh
-store, a seeded gateway, a specific flow shape), inner `When`
+ViewModel, a seeded gateway, a specific flow shape), inner `When`
 describes the intent dispatched (or event simulated), innermost
 `Then` describes the observable outcome. Use uppercase
 `Given` / `When` / `Then` to avoid the `when` keyword backtick
 collision. A `Given` with no `When` is fine for pure initial-state
 projections (no action — just observe).
 
-**Per-spec split convention.** For each MVI store, prefer two specs
+**Naming convention.** MVI base class is `MviViewModel<S, I, E>` in
+`:shared/mvi/MviViewModel.kt` — extends `androidx.lifecycle.ViewModel`.
+Feature classes are `XyzViewModel`. Persistent stores (`MemoryStore`,
+`ConversationStore`, `TraceStore`, `UsageStore` in the Weft substrate;
+`TokenStore` in `:data:network`) keep the `Store` suffix unambiguously.
+
+**Per-spec split convention.** For each MVI ViewModel, prefer two specs
 with **NO overlap** between them:
 
-  - `<Name>StoreStateTest.kt` in **commonTest** — covers initial state,
-    live-flow propagation, "store didn't mutate optimistically" — any
-    assertion that only reads `store.state.value` or observes via
-    Turbine. Uses a hand-rolled `Fake<Gateway>` (KMP-portable). Runs
-    on Android + iOS.
-  - `<Name>StoreTest.kt` in **androidUnitTest** — **only** the Thens
-    that need MockK's `coVerify(exactly = N) { gateway.method(args) }`
+  - `<Name>ViewModelStateTest.kt` in **commonTest** — covers initial
+    state, live-flow propagation, "ViewModel didn't mutate
+    optimistically" — any assertion that only reads `vm.state.value`
+    or observes via Turbine. Uses a hand-rolled `Fake<Gateway>`
+    (KMP-portable). Runs on Android + iOS.
+  - `<Name>ViewModelTest.kt` in **androidUnitTest** — **only** the
+    Thens that need MockK's `coVerify(exactly = N) { gateway.method(args) }`
     to assert the right gateway method was called with the right
     arguments. State-shape assertions (`shouldBe …` on
-    `store.state.value`) live in the commonTest sibling — do not
+    `vm.state.value`) live in the commonTest sibling — do not
     duplicate them here.
 
 The split is by *what an assertion checks*, not by *what the test

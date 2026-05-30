@@ -1,8 +1,8 @@
 package dev.weft.undercurrent.core.model
 
 /**
- * One-shot side effects emitted by AppStore. Consumed in `App` via a
- * `LaunchedEffect` collecting `AppStore.effects`.
+ * One-shot side effects emitted by AppViewModel. Consumed in `App` via a
+ * `LaunchedEffect` collecting `AppViewModel.effects`.
  *
  * Kept minimal — most state is reduced into AppState instead. Effects
  * are reserved for things that genuinely shouldn't replay on

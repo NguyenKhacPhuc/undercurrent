@@ -13,13 +13,13 @@ import platform.UIKit.UIViewController
  * invocation. Swift wires it in `App.init` or via an `applicationDidFinishLaunching`
  * shim.
  *
- * Resolves [AppStore] from Koin so the same singleton is shared with
+ * Resolves [AppViewModel] from Koin so the same singleton is shared with
  * the rest of the iOS Koin module (gateways, repos). [iosPlatformAdapter]
  * is constructed locally — it's stateless.
  */
 fun MainViewController(): UIViewController = ComposeUIViewController {
     KoinContext {
-        val store = org.koin.mp.KoinPlatform.getKoin().get<AppStore>()
+        val store = org.koin.mp.KoinPlatform.getKoin().get<AppViewModel>()
         App(store = store, platform = iosPlatformAdapter())
     }
 }

@@ -15,13 +15,13 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * KMP-portable state-projection tests for [ConversationsStore]. Runs
+ * KMP-portable state-projection tests for [ConversationsViewModel]. Runs
  * on Android + iOS.
  *
  * Uses a hand-rolled [FakeConversationStoreGateway] instead of MockK
  * so the spec can live in commonTest. The dispatch + interaction
  * tests (SetQuery resubscribe verification, Delete / ClearAll
- * forwarding) live in `ConversationsStoreTest` under
+ * forwarding) live in `ConversationsMviViewModelTest` under
  * androidUnitTest — MockK's `coVerify` is JVM-only.
  *
  * What's NOT here: the stale-emission isolation test (verifying the
@@ -31,7 +31,7 @@ import kotlinx.coroutines.test.setMain
  * than with a hand-rolled fake.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class ConversationsStoreStateTest : BehaviorSpec({
+class ConversationsViewModelStateTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
     beforeTest { Dispatchers.setMain(mainDispatcher) }
@@ -40,8 +40,8 @@ class ConversationsStoreStateTest : BehaviorSpec({
     fun summary(id: String, title: String = id, ts: Long = 0L): ConversationSummary =
         ConversationSummary(id = id, title = title, createdAtMs = ts, lastMessageAtMs = ts)
 
-    Given("a fresh ConversationsStore") {
-        val store = ConversationsStore(FakeConversationStoreGateway())
+    Given("a fresh ConversationsViewModel") {
+        val store = ConversationsViewModel(FakeConversationStoreGateway())
 
         Then("the initial state has empty query and empty conversations") {
             store.state.value shouldBe ConversationsState()
@@ -54,7 +54,7 @@ class ConversationsStoreStateTest : BehaviorSpec({
                 val results = listOf(summary("a"), summary("b"))
                 val gateway = FakeConversationStoreGateway(initialResults = results)
 
-                val store = ConversationsStore(gateway)
+                val store = ConversationsViewModel(gateway)
                 advanceUntilIdle()
 
                 store.state.value.conversations shouldBe results
@@ -65,7 +65,7 @@ class ConversationsStoreStateTest : BehaviorSpec({
     Given("a store with an active subscription") {
         When("SetQuery('hello') is dispatched") {
             Then("the query slot updates immediately on the state flow") {
-                val store = ConversationsStore(FakeConversationStoreGateway())
+                val store = ConversationsViewModel(FakeConversationStoreGateway())
                 store.dispatch(ConversationsIntent.SetQuery("hello"))
 
                 store.state.value.query shouldBe "hello"
@@ -77,7 +77,7 @@ class ConversationsStoreStateTest : BehaviorSpec({
         Then("emissions update conversations live as they arrive") {
             runTest {
                 val gateway = FakeConversationStoreGateway()
-                val store = ConversationsStore(gateway)
+                val store = ConversationsViewModel(gateway)
                 advanceUntilIdle()
 
                 gateway.emit(listOf(summary("a")))
@@ -95,7 +95,7 @@ class ConversationsStoreStateTest : BehaviorSpec({
         Then("the query value is not touched by a Delete dispatch") {
             runTest {
                 val gateway = FakeConversationStoreGateway()
-                val store = ConversationsStore(gateway)
+                val store = ConversationsViewModel(gateway)
                 store.dispatch(ConversationsIntent.SetQuery("keeper"))
                 advanceUntilIdle()
 
@@ -113,7 +113,7 @@ class ConversationsStoreStateTest : BehaviorSpec({
  * implementation returns the same flow for every query — the
  * production behavior where different queries yield different results
  * isn't covered here (it's tested via MockK in
- * ConversationsStoreTest under androidUnitTest).
+ * ConversationsMviViewModelTest under androidUnitTest).
  */
 private class FakeConversationStoreGateway(
     initialResults: List<ConversationSummary> = emptyList(),

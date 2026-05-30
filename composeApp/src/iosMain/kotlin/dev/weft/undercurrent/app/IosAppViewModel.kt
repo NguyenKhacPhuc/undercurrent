@@ -23,7 +23,7 @@ import dev.weft.undercurrent.feature.chat.DisplayRole
 import dev.weft.undercurrent.feature.chat.SkillSummary
 import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.shared.gateway.KeyVaultGateway
-import dev.weft.undercurrent.shared.mvi.Store
+import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -34,7 +34,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
- * iOS [AppStore] impl. Persistence layers:
+ * iOS [AppViewModel] impl. Persistence layers:
  *  - DataStore-Preferences for theme / onboarding / provider prefs
  *  - iOS Keychain for API keys
  *  - SQLDelight (`UndercurrentDatabase`) for conversations + messages
@@ -47,16 +47,16 @@ import kotlin.uuid.Uuid
  * voice (waiting on cinterop fix).
  */
 @OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
-class IosAppStore(
+class IosAppViewModel(
     private val keyVault: KeyVaultGateway,
     private val onboardingRepo: OnboardingRepository,
     private val themeRepo: ThemeRepository,
     private val providerPrefsRepo: ProviderPrefsRepository,
     private val personaRepo: PersonaRepository,
     private val db: UndercurrentDatabase,
-) : Store<AppState, AppIntent, AppEffect>(
+) : MviViewModel<AppState, AppIntent, AppEffect>(
     initialState = AppState.initial(),
-), AppStore {
+), AppViewModel {
 
     override val displayMessages: SnapshotStateList<DisplayMessage> = mutableStateListOf()
     override val skills: List<SkillSummary> = emptyList()

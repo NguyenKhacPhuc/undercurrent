@@ -48,7 +48,7 @@ dependencies {
     implementation(projects.data.sqldelight)
     implementation(projects.data.weft)
 
-    // Feature modules — used by the App() router + AppStore wiring
+    // Feature modules — used by the App() router + AppViewModel wiring
     implementation(projects.feature.chat)
     implementation(projects.feature.conversations)
     implementation(projects.feature.memories)
@@ -82,7 +82,7 @@ dependencies {
     // log calls (e.g. WeftBindings traces) route to logcat in debug.
     implementation(libs.napier)
 
-    // Koog (LLModel + routing types referenced by AppStore's model-pool path)
+    // Koog (LLModel + routing types referenced by AppViewModel's model-pool path)
     implementation(libs.koog.agents)
 
     implementation(libs.androidx.core.ktx)

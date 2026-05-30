@@ -64,7 +64,7 @@ import dev.weft.undercurrent.shared.gateway.VoiceState
 /**
  * Undercurrent's chat surface — document-style. Pure-view: receives
  * [displayMessages] + [inFlight] / [lastError] as inputs, calls [onSend]
- * to submit. The store (host's AppStore) owns the agent and the
+ * to submit. The store (host's AppViewModel) owns the agent and the
  * streaming reduce loop; this screen only renders.
  *
  * Visual approach (the "AI-native minimal" direction):

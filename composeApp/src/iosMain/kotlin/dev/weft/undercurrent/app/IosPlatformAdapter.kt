@@ -27,7 +27,7 @@ import platform.UIKit.UIPasteboard
 /**
  * iOS [PlatformAdapter]. Wires:
  *  - **chatRoute** to the real commonMain `ChatScreen` against
- *    `IosAppStore.displayMessages` + the Anthropic client. Single-
+ *    `IosAppViewModel.displayMessages` + the Anthropic client. Single-
  *    conversation, no drawer (drawer + multi-thread is Phase 2).
  *  - **renderedTreeRoute / miniAppsRoute / creatorRoute** to
  *    "coming to iOS" placeholders — these need `ui_render` payloads
@@ -52,7 +52,7 @@ fun iosPlatformAdapter(): PlatformAdapter = PlatformAdapter(
 
 @Composable
 private fun IosChatRoute() {
-    val store: AppStore = koinInject()
+    val store: AppViewModel = koinInject()
     val speech: SpeechGateway = koinInject()
     val personaRepo: PersonaRepository = koinInject()
     val miniAppsRepo: MiniAppsRepository = koinInject()
@@ -162,7 +162,7 @@ private fun IosChatRoute() {
 
 @Composable
 private fun IosMiniAppsRoute() {
-    val store: AppStore = koinInject()
+    val store: AppViewModel = koinInject()
     dev.weft.undercurrent.feature.miniapps.MiniAppsScreen(
         // No ui_render preview on iOS — show a "(no preview)" label.
         // The user still sees the mini-app card (name + emoji +

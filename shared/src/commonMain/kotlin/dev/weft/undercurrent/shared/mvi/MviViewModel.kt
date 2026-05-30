@@ -50,7 +50,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
  * }
  *
  * class FoosStore(private val repo: FooRepo) :
- *     Store<FoosState, FoosIntent, FoosEffect>(FoosState()) {
+ *     MviViewModel<FoosState, FoosIntent, FoosEffect>(FoosState()) {
  *
  *     init {
  *         viewModelScope.launch {
@@ -70,7 +70,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
  * }
  * ```
  */
-abstract class Store<State, Intent, Effect>(
+abstract class MviViewModel<State, Intent, Effect>(
     initialState: State,
 ) : ViewModel() {
 

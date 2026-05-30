@@ -4,7 +4,7 @@ import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.shared.gateway.AgentTrace
 import dev.weft.undercurrent.shared.gateway.TraceFeedback
 import dev.weft.undercurrent.shared.gateway.TraceStoreGateway
-import dev.weft.undercurrent.shared.mvi.Store
+import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.launch
 
 data class TracesState(val traces: List<AgentTrace> = emptyList())
@@ -16,9 +16,9 @@ sealed interface TracesIntent {
 
 sealed interface TracesEffect
 
-class TracesStore(
+class TracesViewModel(
     private val store: TraceStoreGateway,
-) : Store<TracesState, TracesIntent, TracesEffect>(
+) : MviViewModel<TracesState, TracesIntent, TracesEffect>(
     initialState = TracesState(traces = store.traces.value),
 ) {
     init {

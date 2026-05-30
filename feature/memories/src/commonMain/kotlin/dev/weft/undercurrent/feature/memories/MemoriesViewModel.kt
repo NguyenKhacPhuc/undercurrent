@@ -3,7 +3,7 @@ package dev.weft.undercurrent.feature.memories
 import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.shared.gateway.MemoryEntry
 import dev.weft.undercurrent.shared.gateway.MemoryStoreGateway
-import dev.weft.undercurrent.shared.mvi.Store
+import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.launch
 
 data class MemoriesState(val memories: List<MemoryEntry> = emptyList())
@@ -15,9 +15,9 @@ sealed interface MemoriesIntent {
 
 sealed interface MemoriesEffect
 
-class MemoriesStore(
+class MemoriesViewModel(
     private val store: MemoryStoreGateway,
-) : Store<MemoriesState, MemoriesIntent, MemoriesEffect>(
+) : MviViewModel<MemoriesState, MemoriesIntent, MemoriesEffect>(
     initialState = MemoriesState(memories = store.memories.value),
 ) {
     init {

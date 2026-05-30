@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
  * substrate's [WeftAgent] instead of the parallel hand-rolled SSE
  * client in [AnthropicLlmClient].
  *
- * Drop-in compatible with the existing IosAppStore wiring — swap
+ * Drop-in compatible with the existing IosAppViewModel wiring — swap
  * `AnthropicLlmClient(...)` for `WeftAgentLlmClient(getApiKey)` in the
  * `clients` map and chat for the Anthropic provider goes through the
  * substrate agent loop (retry, circuit breaker, observability, model
@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
  *     and used for every conversation in the app — there's no
  *     per-thread `WeftAgent`. Without bridging to undercurrent's
  *     SQLDelight-backed conversation table, history won't track
- *     `IosAppStore`'s active thread. v1 is "single rolling history."
+ *     `IosAppViewModel`'s active thread. v1 is "single rolling history."
  *
  *  2. **Tools.** Empty tool registry by design — see
  *     [IosWeftAgentFactory]. Tool support is a follow-up.

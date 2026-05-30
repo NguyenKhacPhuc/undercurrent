@@ -21,7 +21,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 /**
- * Exercises [PersonasStore] in BDD style.
+ * Exercises [PersonasViewModel] in BDD style.
  *
  * The repo is mocked via MockK; the three flow properties
  * (`activeVoice`, `activeRole`, `customPersonas`) are backed by
@@ -29,7 +29,7 @@ import kotlinx.coroutines.test.setMain
  * changes mid-test.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class PersonasStoreTest : BehaviorSpec({
+class PersonasMviViewModelTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
     beforeTest { Dispatchers.setMain(mainDispatcher) }
@@ -69,7 +69,7 @@ class PersonasStoreTest : BehaviorSpec({
             systemPromptText = "Talk like a pirate.",
             kind = PersonaKind.Voice,
         )
-        val store = PersonasStore(
+        val store = PersonasViewModel(
             fakeRepo(
                 activeVoice = BuiltInPersonas.Editor,
                 activeRole = BuiltInPersonas.Doctor,
@@ -87,7 +87,7 @@ class PersonasStoreTest : BehaviorSpec({
     }
 
     Given("a repo with the default voice, no role, and no custom personas") {
-        val store = PersonasStore(fakeRepo())
+        val store = PersonasViewModel(fakeRepo())
 
         Then("the initial state has the BuiltInPersonas defaults") {
             store.state.value shouldBe PersonasState(
@@ -103,7 +103,7 @@ class PersonasStoreTest : BehaviorSpec({
             runTest {
                 val voiceFlow = MutableStateFlow<Persona>(BuiltInPersonas.Default)
                 val repo = fakeRepo().apply { every { activeVoice } returns voiceFlow }
-                val store = PersonasStore(repo)
+                val store = PersonasViewModel(repo)
                 advanceUntilIdle()
 
                 voiceFlow.value = BuiltInPersonas.FieldNotes
@@ -119,7 +119,7 @@ class PersonasStoreTest : BehaviorSpec({
             runTest {
                 val roleFlow = MutableStateFlow<Persona?>(null)
                 val repo = fakeRepo().apply { every { activeRole } returns roleFlow }
-                val store = PersonasStore(repo)
+                val store = PersonasViewModel(repo)
                 advanceUntilIdle()
 
                 roleFlow.value = BuiltInPersonas.Developer
@@ -138,7 +138,7 @@ class PersonasStoreTest : BehaviorSpec({
             runTest {
                 val customsFlow = MutableStateFlow<List<Persona>>(emptyList())
                 val repo = fakeRepo().apply { every { customPersonas } returns customsFlow }
-                val store = PersonasStore(repo)
+                val store = PersonasViewModel(repo)
                 advanceUntilIdle()
 
                 val newCustom = Persona(
@@ -161,7 +161,7 @@ class PersonasStoreTest : BehaviorSpec({
             Then("repo.setActiveVoice(editor.id) is called once and setActiveRole is not") {
                 runTest {
                     val repo = fakeRepo()
-                    val store = PersonasStore(repo)
+                    val store = PersonasViewModel(repo)
 
                     store.dispatch(PersonasIntent.TapPersona(BuiltInPersonas.Editor))
                     advanceUntilIdle()
@@ -183,7 +183,7 @@ class PersonasStoreTest : BehaviorSpec({
                         kind = PersonaKind.Custom,
                     )
                     val repo = fakeRepo()
-                    val store = PersonasStore(repo)
+                    val store = PersonasViewModel(repo)
 
                     store.dispatch(PersonasIntent.TapPersona(customVoice))
                     advanceUntilIdle()
@@ -198,7 +198,7 @@ class PersonasStoreTest : BehaviorSpec({
             Then("repo.setActiveRole(role.id) is called and setActiveVoice is not") {
                 runTest {
                     val repo = fakeRepo(activeRole = null)
-                    val store = PersonasStore(repo)
+                    val store = PersonasViewModel(repo)
 
                     store.dispatch(PersonasIntent.TapPersona(BuiltInPersonas.Doctor))
                     advanceUntilIdle()
@@ -215,7 +215,7 @@ class PersonasStoreTest : BehaviorSpec({
             Then("repo.setActiveRole(null) is called — toggle-off semantics") {
                 runTest {
                     val repo = fakeRepo(activeRole = BuiltInPersonas.Doctor)
-                    val store = PersonasStore(repo)
+                    val store = PersonasViewModel(repo)
 
                     store.dispatch(PersonasIntent.TapPersona(BuiltInPersonas.Doctor))
                     advanceUntilIdle()
@@ -229,7 +229,7 @@ class PersonasStoreTest : BehaviorSpec({
             Then("repo.setActiveRole(lawyer.id) is called") {
                 runTest {
                     val repo = fakeRepo(activeRole = BuiltInPersonas.Doctor)
-                    val store = PersonasStore(repo)
+                    val store = PersonasViewModel(repo)
 
                     store.dispatch(PersonasIntent.TapPersona(BuiltInPersonas.Lawyer))
                     advanceUntilIdle()
@@ -245,7 +245,7 @@ class PersonasStoreTest : BehaviorSpec({
             Then("addCustom runs, then setActiveVoice is set to the new id") {
                 runTest {
                     val repo = fakeRepo()
-                    val store = PersonasStore(repo)
+                    val store = PersonasViewModel(repo)
 
                     store.dispatch(
                         PersonasIntent.AddCustom(
@@ -270,7 +270,7 @@ class PersonasStoreTest : BehaviorSpec({
             Then("addCustom runs, then setActiveRole is set to the new id") {
                 runTest {
                     val repo = fakeRepo()
-                    val store = PersonasStore(repo)
+                    val store = PersonasViewModel(repo)
 
                     store.dispatch(
                         PersonasIntent.AddCustom(
@@ -295,7 +295,7 @@ class PersonasStoreTest : BehaviorSpec({
             Then("the new custom routes through the voice slot") {
                 runTest {
                     val repo = fakeRepo()
-                    val store = PersonasStore(repo)
+                    val store = PersonasViewModel(repo)
 
                     store.dispatch(
                         PersonasIntent.AddCustom(
@@ -319,7 +319,7 @@ class PersonasStoreTest : BehaviorSpec({
             Then("repo.updateCustom is called with the four fields and no slot change") {
                 runTest {
                     val repo = fakeRepo()
-                    val store = PersonasStore(repo)
+                    val store = PersonasViewModel(repo)
 
                     store.dispatch(
                         PersonasIntent.UpdateCustom(
@@ -351,7 +351,7 @@ class PersonasStoreTest : BehaviorSpec({
             Then("repo.deleteCustom is called with that id") {
                 runTest {
                     val repo = fakeRepo()
-                    val store = PersonasStore(repo)
+                    val store = PersonasViewModel(repo)
 
                     store.dispatch(PersonasIntent.DeleteCustom("custom.deleteme"))
                     advanceUntilIdle()
@@ -366,7 +366,7 @@ class PersonasStoreTest : BehaviorSpec({
         Then("only setActiveVoice fires — none of the other repo methods are touched") {
             runTest {
                 val repo = fakeRepo()
-                val store = PersonasStore(repo)
+                val store = PersonasViewModel(repo)
 
                 store.dispatch(PersonasIntent.TapPersona(BuiltInPersonas.Editor))
                 advanceUntilIdle()

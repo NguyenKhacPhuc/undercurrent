@@ -3,7 +3,7 @@ package dev.weft.undercurrent.feature.usage
 import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.shared.gateway.UsageGateway
 import dev.weft.undercurrent.shared.gateway.UsageTotals
-import dev.weft.undercurrent.shared.mvi.Store
+import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.launch
 
 /**
@@ -16,9 +16,9 @@ data class UsageState(val totals: UsageTotals = UsageTotals())
 sealed interface UsageIntent
 sealed interface UsageEffect
 
-class UsageStore(
+class UsageViewModel(
     gateway: UsageGateway,
-) : Store<UsageState, UsageIntent, UsageEffect>(
+) : MviViewModel<UsageState, UsageIntent, UsageEffect>(
     initialState = UsageState(totals = gateway.totals.value),
 ) {
     init {

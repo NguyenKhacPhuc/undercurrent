@@ -31,7 +31,7 @@ internal interface LlmClient {
      * success, or [LlmChunk.Error] on transport / auth / parse failure.
      *
      * [history] is the full conversation in alternating user/assistant
-     * roles; the caller (IosAppStore) appends the new user turn before
+     * roles; the caller (IosAppViewModel) appends the new user turn before
      * calling. [systemPrompt] is sent verbatim (or fielded provider-
      * specifically — OpenAI uses a "system" message; Anthropic uses a
      * top-level field).

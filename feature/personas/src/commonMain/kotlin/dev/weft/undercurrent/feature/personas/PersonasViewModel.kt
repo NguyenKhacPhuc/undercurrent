@@ -3,7 +3,7 @@ package dev.weft.undercurrent.feature.personas
 import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.core.model.PersonaKind
 import dev.weft.undercurrent.core.domain.PersonaRepository
-import dev.weft.undercurrent.shared.mvi.Store
+import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.launch
 
 /**
@@ -19,9 +19,9 @@ import kotlinx.coroutines.launch
  *
  * KMP — commonMain.
  */
-class PersonasStore(
+class PersonasViewModel(
     private val repo: PersonaRepository,
-) : Store<PersonasState, PersonasIntent, PersonasEffect>(
+) : MviViewModel<PersonasState, PersonasIntent, PersonasEffect>(
     initialState = PersonasState(
         activeVoice = repo.activeVoice.value,
         activeRole = repo.activeRole.value,
