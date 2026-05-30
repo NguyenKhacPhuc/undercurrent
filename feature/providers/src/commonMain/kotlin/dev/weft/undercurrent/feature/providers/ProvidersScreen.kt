@@ -53,8 +53,10 @@ import dev.weft.undercurrent.core.ui.TipBox
 import dev.weft.undercurrent.shared.gateway.KeyValidationGateway
 import dev.weft.undercurrent.shared.gateway.ModelCatalog
 import dev.weft.undercurrent.shared.gateway.ModelInfo
+import dev.weft.undercurrent.shared.gateway.ModelPool
 import dev.weft.undercurrent.shared.gateway.ValidationResult
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Provider & model settings sub-screen. Drill-down from Settings →
@@ -620,5 +622,57 @@ private fun TierSegmented(
                 label = { Text(label) },
             )
         }
+    }
+}
+
+@Preview
+@Composable
+private fun ProvidersScreenPreview() {
+    val stubCatalog = object : ModelCatalog {
+        override fun modelsForProvider(provider: ProviderKind): List<ModelInfo> = when (provider) {
+            ProviderKind.Anthropic -> listOf(
+                ModelInfo("claude-sonnet-4-5", "Sonnet 4.5", hasVision = true, hasTools = true),
+                ModelInfo("claude-haiku-4-5", "Haiku 4.5", hasVision = false, hasTools = true),
+            )
+            ProviderKind.OpenAI -> listOf(
+                ModelInfo("gpt-5", "GPT-5", hasVision = true, hasTools = true),
+                ModelInfo("gpt-5-mini", "GPT-5 Mini", hasVision = false, hasTools = true),
+            )
+            else -> emptyList()
+        }
+        override fun defaultPoolForProvider(provider: ProviderKind): ModelPool {
+            val models = modelsForProvider(provider)
+            val first = models.firstOrNull()
+                ?: ModelInfo("none", "None", hasVision = false, hasTools = false)
+            return ModelPool(
+                cheap = first,
+                standard = first,
+                heavy = first,
+                vision = models.firstOrNull { it.hasVision } ?: first,
+            )
+        }
+    }
+    val stubValidator = object : KeyValidationGateway {
+        override suspend fun validateKey(
+            provider: ProviderKind,
+            apiKey: String,
+        ): ValidationResult = ValidationResult.Ok
+    }
+    UndercurrentTheme {
+        ProvidersScreen(
+            activeProvider = ProviderKind.Anthropic,
+            defaultTier = null,
+            providerKeyStatus = mapOf(ProviderKind.Anthropic to "abcd"),
+            modelCatalog = stubCatalog,
+            keyValidator = stubValidator,
+            onProviderSelected = {},
+            onProviderKeySaved = { _, _ -> },
+            onProviderKeyRemoved = {},
+            onDefaultTierSelected = {},
+            getModelOverride = { _, _ -> null },
+            onModelOverrideSelected = { _, _, _ -> },
+            onOpenConsole = {},
+            onBack = {},
+        )
     }
 }

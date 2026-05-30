@@ -44,6 +44,7 @@ import dev.weft.undercurrent.core.model.signupHint
 import dev.weft.undercurrent.shared.gateway.KeyValidationGateway
 import dev.weft.undercurrent.shared.gateway.ValidationResult
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Key paste flow. Provider-aware — title, body, signup hint,
@@ -322,4 +323,23 @@ private sealed class Status {
     data object Validating : Status()
     data object Validated : Status()
     data class Failed(val message: String) : Status()
+}
+
+@Preview
+@Composable
+private fun KeyPasteScreenPreview() {
+    UndercurrentTheme {
+        KeyPasteScreen(
+            provider = ProviderKind.Anthropic,
+            validator = object : KeyValidationGateway {
+                override suspend fun validateKey(
+                    provider: ProviderKind,
+                    apiKey: String,
+                ): ValidationResult = ValidationResult.Ok
+            },
+            onKeyAccepted = {},
+            saveKey = {},
+            onOpenConsole = {},
+        )
+    }
 }

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.MiniApp
 import dev.weft.undercurrent.core.ui.ScreenScaffold
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -73,9 +74,37 @@ fun MiniAppsScreen(
     onBack: () -> Unit,
     onOpenMiniApp: (MiniApp) -> Unit,
     onStartCreator: () -> Unit = {},
-    store: MiniAppsViewModel = koinViewModel(),
+    viewModel: MiniAppsViewModel = koinViewModel(),
 ) {
-    val s by store.state.collectAsState(); val miniApps = s.miniApps
+    val state by viewModel.state.collectAsState()
+    MiniAppsScreen(
+        state = state,
+        treePreview = treePreview,
+        onBack = onBack,
+        onOpenMiniApp = onOpenMiniApp,
+        onStartCreator = onStartCreator,
+        onUpdate = { id, name, emoji, prompt ->
+            viewModel.dispatch(MiniAppsIntent.Update(id, name, emoji, prompt))
+        },
+        onDelete = { viewModel.dispatch(MiniAppsIntent.Delete(it)) },
+    )
+}
+
+/**
+ * Stateless variant — takes [state] and per-action callbacks. Used by
+ * the stateful overload above plus `@Preview` / snapshot harnesses.
+ */
+@Composable
+fun MiniAppsScreen(
+    state: MiniAppsState,
+    treePreview: @Composable (treeJson: String, onTap: () -> Unit) -> Unit,
+    onBack: () -> Unit,
+    onOpenMiniApp: (MiniApp) -> Unit,
+    onStartCreator: () -> Unit = {},
+    onUpdate: (id: String, name: String, emoji: String, prompt: String) -> Unit = { _, _, _, _ -> },
+    onDelete: (id: String) -> Unit = {},
+) {
+    val miniApps = state.miniApps
     var editing by remember { mutableStateOf<MiniApp?>(null) }
 
     val colors = UndercurrentTheme.colors
@@ -134,11 +163,11 @@ fun MiniAppsScreen(
             onDismiss = { editing = null },
             onSave = { name, emoji, prompt ->
                 editing = null
-                store.dispatch(MiniAppsIntent.Update(miniApp.id, name, emoji, prompt))
+                onUpdate(miniApp.id, name, emoji, prompt)
             },
             onDelete = {
                 editing = null
-                store.dispatch(MiniAppsIntent.Delete(miniApp.id))
+                onDelete(miniApp.id)
             },
         )
     }
@@ -387,3 +416,68 @@ private fun EmojiTile(emoji: String) {
 }
 
 private const val PREVIEW_MAX_HEIGHT_DP = 280
+
+@Preview
+@Composable
+private fun MiniAppsScreenPreview() {
+    UndercurrentTheme {
+        MiniAppsScreen(
+            state = MiniAppsState(
+                miniApps = listOf(
+                    MiniApp(
+                        id = "ma-1",
+                        name = "Tip calculator",
+                        emoji = "💰",
+                        triggerPrompt = "Help me split a bill three ways with 18% tip.",
+                        createdAtEpochMs = 1_716_000_000_000L,
+                        usageCount = 12,
+                    ),
+                    MiniApp(
+                        id = "ma-2",
+                        name = "Standup notes",
+                        emoji = "📝",
+                        triggerPrompt = "Format my standup as yesterday / today / blockers.",
+                        createdAtEpochMs = 1_716_500_000_000L,
+                        usageCount = 3,
+                    ),
+                ),
+            ),
+            // Preview can't render the real Compose tree from JSON
+            // (TreeRenderer is androidMain-only); fall back to a
+            // placeholder box so the rest of the row layout is
+            // still inspectable.
+            treePreview = { _, onTap ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .background(UndercurrentTheme.colors.surfaceMuted)
+                        .clickable(onClick = onTap),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "Preview unavailable in @Preview",
+                        style = UndercurrentTheme.typography.sansSmall.copy(
+                            color = UndercurrentTheme.colors.inkSubtle,
+                        ),
+                    )
+                }
+            },
+            onBack = {},
+            onOpenMiniApp = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun MiniAppsScreenEmptyPreview() {
+    UndercurrentTheme {
+        MiniAppsScreen(
+            state = MiniAppsState(miniApps = emptyList()),
+            treePreview = { _, _ -> },
+            onBack = {},
+            onOpenMiniApp = {},
+        )
+    }
+}

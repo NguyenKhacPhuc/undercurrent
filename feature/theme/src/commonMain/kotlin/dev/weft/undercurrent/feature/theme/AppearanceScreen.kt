@@ -33,6 +33,7 @@ import dev.weft.undercurrent.core.model.AppPalette
 import dev.weft.undercurrent.core.model.ThemeMode
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.SectionLabel
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Appearance sub-screen — palette + light/dark mode. Drill-down from
@@ -170,5 +171,19 @@ private fun ModeSegmented(
                 label = { Text(mode.displayName) },
             )
         }
+    }
+}
+
+@Preview
+@Composable
+private fun AppearanceScreenPreview() {
+    UndercurrentTheme {
+        AppearanceScreen(
+            selectedPalette = AppPalette.Default,
+            selectedMode = ThemeMode.Default,
+            onPaletteSelected = {},
+            onModeSelected = {},
+            onBack = {},
+        )
     }
 }

@@ -41,6 +41,7 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.BuiltInPersonas
 import dev.weft.undercurrent.core.model.Persona
 import dev.weft.undercurrent.core.model.ProviderKind
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * First-launch onboarding. Four pages in a "calm, document-feel"
@@ -532,3 +533,20 @@ private fun onboardingPages(): List<OnboardingPage> = listOf(
         ),
     ),
 )
+
+@Preview
+@Composable
+private fun OnboardingScreenPreview() {
+    UndercurrentTheme {
+        OnboardingScreen(
+            modelCountFor = { provider ->
+                when (provider) {
+                    ProviderKind.Anthropic -> 3
+                    ProviderKind.OpenAI -> 5
+                    else -> 0
+                }
+            },
+            onComplete = { _, _ -> },
+        )
+    }
+}

@@ -38,6 +38,7 @@ import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.SectionLabel
 import dev.weft.undercurrent.core.ui.TokenDivider
 import dev.weft.undercurrent.shared.gateway.ConversationSummary
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -45,13 +46,8 @@ import org.koin.compose.viewmodel.koinViewModel
  * (Today / Yesterday / Earlier this week / Older). Tap a row to resume;
  * each row has an inline Delete action that opens a confirm dialog.
  *
- * KMP — commonMain. Moved from
- * `app/.../features/conversations/ConversationsListScreen.kt`.
- * Adjustments:
- *   - Imports from `:core:ui` (was `dev.weft.undercurrent.ui.*`).
- *   - Uses `ConversationSummary` from `:shared` (was Weft's harness type).
- *   - `koin-compose-viewmodel`'s `koinViewModel` (was Android-only
- *     `koin-androidx-compose` variant).
+ * Stateful entry point — hoists state from [ConversationsViewModel]
+ * and forwards to the stateless overload.
  */
 @Composable
 fun ConversationsListScreen(
@@ -59,7 +55,38 @@ fun ConversationsListScreen(
     onSelect: (String) -> Unit,
     onNewChat: () -> Unit,
     onBack: () -> Unit,
-    store: ConversationsViewModel = koinViewModel(),
+    viewModel: ConversationsViewModel = koinViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    ConversationsListScreen(
+        state = state,
+        activeConversationId = activeConversationId,
+        onSelect = onSelect,
+        onNewChat = onNewChat,
+        onBack = onBack,
+        onQueryChange = { viewModel.dispatch(ConversationsIntent.SetQuery(it)) },
+        onDelete = { viewModel.dispatch(ConversationsIntent.Delete(it)) },
+        onClearAll = { viewModel.dispatch(ConversationsIntent.ClearAll) },
+    )
+}
+
+/**
+ * Stateless variant — takes [state] and per-action callbacks. Used by
+ * the stateful overload above plus `@Preview` / snapshot harnesses.
+ * The two confirm-dialogs (per-row delete + clear-all) keep their
+ * local `remember`-backed `mutableStateOf` here — they're transient
+ * UI state, not persistent.
+ */
+@Composable
+fun ConversationsListScreen(
+    state: ConversationsState,
+    activeConversationId: String?,
+    onSelect: (String) -> Unit,
+    onNewChat: () -> Unit,
+    onBack: () -> Unit,
+    onQueryChange: (String) -> Unit = {},
+    onDelete: (id: String) -> Unit = {},
+    onClearAll: () -> Unit = {},
 ) {
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
@@ -67,9 +94,8 @@ fun ConversationsListScreen(
 
     var pendingDelete by remember { mutableStateOf<ConversationSummary?>(null) }
     var confirmingClearAll by remember { mutableStateOf(false) }
-    val s by store.state.collectAsState()
-    val searchQuery = s.query
-    val conversations = s.conversations
+    val searchQuery = state.query
+    val conversations = state.conversations
 
     ScreenScaffold(
         title = "Conversations",
@@ -89,7 +115,7 @@ fun ConversationsListScreen(
         ) {
             BasicTextField(
                 value = searchQuery,
-                onValueChange = { store.dispatch(ConversationsIntent.SetQuery(it)) },
+                onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = typography.serifBody.copy(color = colors.ink),
                 cursorBrush = SolidColor(colors.accent),
@@ -155,7 +181,7 @@ fun ConversationsListScreen(
                 TextButton(onClick = {
                     val id = target.id
                     pendingDelete = null
-                    store.dispatch(ConversationsIntent.Delete(id))
+                    onDelete(id)
                 }) { Text("Delete", color = colors.error) }
             },
             dismissButton = {
@@ -172,7 +198,7 @@ fun ConversationsListScreen(
             confirmButton = {
                 TextButton(onClick = {
                     confirmingClearAll = false
-                    store.dispatch(ConversationsIntent.ClearAll)
+                    onClearAll()
                 }) { Text("Clear all", color = colors.error) }
             },
             dismissButton = {
@@ -246,6 +272,42 @@ private fun EmptyState(title: String, body: String) {
         Text(
             text = body,
             style = typography.sansSmall.copy(color = colors.inkMuted),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun ConversationsListScreenPreview() {
+    UndercurrentTheme {
+        ConversationsListScreen(
+            state = ConversationsState(
+                query = "",
+                conversations = listOf(
+                    ConversationSummary(
+                        id = "c1",
+                        title = "Migrating to KMP",
+                        createdAtMs = 1_717_000_000_000L,
+                        lastMessageAtMs = 1_717_100_000_000L,
+                    ),
+                    ConversationSummary(
+                        id = "c2",
+                        title = "Design tokens question",
+                        createdAtMs = 1_716_900_000_000L,
+                        lastMessageAtMs = 1_716_950_000_000L,
+                    ),
+                    ConversationSummary(
+                        id = "c3",
+                        title = "",
+                        createdAtMs = 1_716_000_000_000L,
+                        lastMessageAtMs = 1_716_100_000_000L,
+                    ),
+                ),
+            ),
+            activeConversationId = "c1",
+            onSelect = {},
+            onNewChat = {},
+            onBack = {},
         )
     }
 }

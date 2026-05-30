@@ -48,6 +48,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -56,23 +57,42 @@ import org.koin.compose.viewmodel.koinViewModel
  * the surface that turns into a debug bundle the user can paste into a
  * chat with the SDK author when something misbehaves.
  *
- * KMP — commonMain. Moved from
- * `app/.../features/traces/TraceViewerScreen.kt`. Adjustments:
- *   - Imports from `:core:ui` / `:core:design-system`.
- *   - Trace/LlmCall/ToolCall mirrors from `:shared`.
- *   - `java.text.SimpleDateFormat` → manual kotlinx.datetime "HH:mm:ss.SSS"
- *     formatter.
- *   - `"%.1fs".format(...)` → manual one-decimal helper (no `String.format`
- *     in commonMain stdlib).
- *   - `org.koin.compose.viewmodel.koinViewModel`.
+ * Stateful entry point — hoists state from [TracesViewModel] and
+ * forwards to the stateless overload.
  */
 @Composable
 fun TraceViewerScreen(
     onBack: () -> Unit,
     onExportTrace: ((AgentTrace) -> Unit)? = null,
-    store: TracesViewModel = koinViewModel(),
+    viewModel: TracesViewModel = koinViewModel(),
 ) {
-    val s by store.state.collectAsState(); val traces = s.traces
+    val state by viewModel.state.collectAsState()
+    TraceViewerScreen(
+        state = state,
+        onBack = onBack,
+        onExportTrace = onExportTrace,
+        onSetFeedback = { traceId, fb ->
+            viewModel.dispatch(TracesIntent.SetFeedback(traceId, fb))
+        },
+        onClearAll = { viewModel.dispatch(TracesIntent.ClearAll) },
+    )
+}
+
+/**
+ * Stateless variant — takes [state] and per-action callbacks. Used by
+ * the stateful overload above plus `@Preview` / snapshot harnesses.
+ * Local UI state (which trace row is selected) stays here because
+ * it's transient navigation within the screen, not persisted state.
+ */
+@Composable
+fun TraceViewerScreen(
+    state: TracesState,
+    onBack: () -> Unit,
+    onExportTrace: ((AgentTrace) -> Unit)? = null,
+    onSetFeedback: (traceId: String, feedback: TraceFeedback) -> Unit = { _, _ -> },
+    onClearAll: () -> Unit = {},
+) {
+    val traces = state.traces
     var selectedTraceId by remember { mutableStateOf<String?>(null) }
     val selected = selectedTraceId?.let { id -> traces.firstOrNull { it.id == id } }
 
@@ -80,7 +100,7 @@ fun TraceViewerScreen(
         TraceDetail(
             t = selected,
             onBack = { selectedTraceId = null },
-            onSetFeedback = { fb -> store.dispatch(TracesIntent.SetFeedback(selected.id, fb)) },
+            onSetFeedback = { fb -> onSetFeedback(selected.id, fb) },
             onExport = onExportTrace?.let { exporter -> { exporter(selected) } },
         )
         return
@@ -95,7 +115,7 @@ fun TraceViewerScreen(
         trailing = {
             ScaffoldTextAction(
                 label = "Clear",
-                onClick = { store.dispatch(TracesIntent.ClearAll) },
+                onClick = onClearAll,
                 enabled = traces.isNotEmpty(),
                 isDestructive = true,
             )
@@ -646,3 +666,46 @@ private val TraceStatus.label: String
         TraceStatus.COMPLETED -> "OK"
         TraceStatus.FAILED -> "FAIL"
     }
+
+@Preview
+@Composable
+private fun TraceViewerScreenPreview() {
+    UndercurrentTheme {
+        TraceViewerScreen(
+            state = TracesState(
+                traces = listOf(
+                    AgentTrace(
+                        id = "t-1",
+                        conversationId = "c-1",
+                        startEpochMs = 1_716_000_000_000L,
+                        endEpochMs = 1_716_000_001_842L,
+                        userMessage = "Summarize this conversation in three bullets.",
+                        finalAssistantMessage = "Here's the gist:\n• Migration plan…",
+                        status = TraceStatus.COMPLETED,
+                        feedback = TraceFeedback.THUMBS_UP,
+                    ),
+                    AgentTrace(
+                        id = "t-2",
+                        conversationId = "c-1",
+                        startEpochMs = 1_716_000_002_000L,
+                        endEpochMs = 1_716_000_003_120L,
+                        userMessage = "Open the closest pharmacy in Maps.",
+                        finalAssistantMessage = "Opening the map app.",
+                        status = TraceStatus.COMPLETED,
+                        feedback = TraceFeedback.NONE,
+                    ),
+                    AgentTrace(
+                        id = "t-3",
+                        conversationId = "c-1",
+                        startEpochMs = 1_716_000_004_000L,
+                        endEpochMs = 1_716_000_005_500L,
+                        userMessage = "What's the weather like?",
+                        status = TraceStatus.FAILED,
+                        errorMessage = "Network error",
+                    ),
+                ),
+            ),
+            onBack = {},
+        )
+    }
+}

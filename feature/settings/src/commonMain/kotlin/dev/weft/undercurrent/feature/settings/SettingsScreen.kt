@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.ProviderKind
 import dev.weft.undercurrent.core.ui.ScreenScaffold
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Settings index. Each row drills into a dedicated sub-screen —
@@ -120,6 +121,20 @@ private fun SettingsLinkRow(
         Text(
             text = "→",
             style = typography.sansHeader.copy(color = colors.inkSubtle),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun SettingsScreenPreview() {
+    UndercurrentTheme {
+        SettingsScreen(
+            activeProvider = ProviderKind.Anthropic,
+            onShowProvider = {},
+            onShowUsage = {},
+            onShowIntegrations = {},
+            onBack = {},
         )
     }
 }

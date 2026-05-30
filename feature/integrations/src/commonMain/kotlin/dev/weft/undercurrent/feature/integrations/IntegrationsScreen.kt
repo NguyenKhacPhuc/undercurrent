@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.ui.ScreenScaffold
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -41,20 +42,40 @@ import org.koin.compose.viewmodel.koinViewModel
  * — the agent's tool registry is fixed at runtime construction time,
  * so newly-toggled integrations only become available after restart.
  *
- * KMP — commonMain. Moved from
- * `app/.../features/integrations/IntegrationsScreen.kt`. Imports
- * from `:core:ui` / `:core:design-system`; VM dependencies are now
- * commonMain.
+ * Stateful entry point — hoists state from [IntegrationsViewModel]
+ * and forwards to the stateless overload.
  */
 @Composable
 fun IntegrationsScreen(
     onBack: () -> Unit,
     onRestart: () -> Unit,
-    store: IntegrationsViewModel = koinViewModel(),
+    viewModel: IntegrationsViewModel = koinViewModel(),
 ) {
-    val s by store.state.collectAsState(); val enabled = s.enabledIds
-    val pendingRestart = s.pendingRestart
-    val lastAction = s.lastAction
+    val state by viewModel.state.collectAsState()
+    IntegrationsScreen(
+        state = state,
+        onBack = onBack,
+        onRestart = onRestart,
+        onConnect = { viewModel.dispatch(IntegrationsIntent.Connect(it)) },
+        onDisconnect = { viewModel.dispatch(IntegrationsIntent.Disconnect(it)) },
+    )
+}
+
+/**
+ * Stateless variant — takes [state] and per-action callbacks. Used by
+ * the stateful overload above plus `@Preview` / snapshot harnesses.
+ */
+@Composable
+fun IntegrationsScreen(
+    state: IntegrationsState,
+    onBack: () -> Unit,
+    onRestart: () -> Unit,
+    onConnect: (Integration) -> Unit = {},
+    onDisconnect: (Integration) -> Unit = {},
+) {
+    val enabled = state.enabledIds
+    val pendingRestart = state.pendingRestart
+    val lastAction = state.lastAction
 
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
@@ -86,13 +107,17 @@ fun IntegrationsScreen(
                 }
 
                 items(Integrations.All, key = { it.id }) { integration ->
-                    val status = store.statusFor(integration, enabled)
+                    val status = if (integration.id in enabled) {
+                        IntegrationStatus.Connected
+                    } else {
+                        IntegrationStatus.Disconnected
+                    }
                     IntegrationCard(
                         integration = integration,
                         status = status,
                         action = lastAction.takeIf { it !is ActionStatus.Idle && actionTargets(it, integration.id) },
-                        onConnect = { store.dispatch(IntegrationsIntent.Connect(integration)) },
-                        onDisconnect = { store.dispatch(IntegrationsIntent.Disconnect(integration)) },
+                        onConnect = { onConnect(integration) },
+                        onDisconnect = { onDisconnect(integration) },
                     )
                 }
 
@@ -208,6 +233,25 @@ private fun ActionButton(label: String, primary: Boolean, onClick: () -> Unit) {
                 color = if (primary) colors.background else colors.ink,
                 fontWeight = FontWeight.SemiBold,
             ),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun IntegrationsScreenPreview() {
+    UndercurrentTheme {
+        IntegrationsScreen(
+            state = IntegrationsState(
+                enabledIds = setOf(Integrations.All.first().id),
+                pendingRestart = true,
+                lastAction = ActionStatus.Success(
+                    integrationId = Integrations.All.first().id,
+                    message = "Connected",
+                ),
+            ),
+            onBack = {},
+            onRestart = {},
         )
     }
 }
