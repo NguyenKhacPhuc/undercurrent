@@ -14,9 +14,15 @@ kotlin {
         commonMain.dependencies {
             // ModelCatalog + KeyValidationGateway + ValidationResult.
             implementation(projects.shared)
+            // ProviderPrefsRepository + ModelPrefsRepository.
+            implementation(projects.core.domain)
         }
         androidMain.dependencies {
-            // androidMain-only deps (e.g. :data:weft, ML Kit)
+            // Substrate — WeftProviderViewModel rebuilds the WeftAgent
+            // via AgentSession + WeftAgentFactory on provider/key swap.
+            implementation("dev.weft:weft-runtime")
+            implementation("dev.weft:weft-harness-agents")
+            implementation(projects.feature.chat)
         }
     }
 }

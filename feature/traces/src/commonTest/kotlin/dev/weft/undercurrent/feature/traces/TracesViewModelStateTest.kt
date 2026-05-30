@@ -1,9 +1,9 @@
 package dev.weft.undercurrent.feature.traces
 
-import dev.weft.undercurrent.shared.gateway.AgentTrace
-import dev.weft.undercurrent.shared.gateway.TraceFeedback
-import dev.weft.undercurrent.shared.gateway.TraceStatus
-import dev.weft.undercurrent.shared.gateway.TraceStoreGateway
+import dev.weft.undercurrent.core.domain.AgentTrace
+import dev.weft.undercurrent.core.domain.TraceFeedback
+import dev.weft.undercurrent.core.domain.TraceStatus
+import dev.weft.undercurrent.core.domain.TraceStoreRepository
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +20,7 @@ import kotlinx.coroutines.test.setMain
  * KMP-portable state-projection tests for [TracesViewModel]. Runs on
  * Android + iOS.
  *
- * Uses a hand-rolled [FakeTraceStoreGateway] instead of MockK so the
+ * Uses a hand-rolled [FakeTraceStoreRepository] instead of MockK so the
  * spec can live in commonTest. Per-enum-variant SetFeedback
  * forwarding + ClearAll invocation verification live in
  * `TracesMviViewModelTest` under androidUnitTest.
@@ -48,7 +48,7 @@ class TracesViewModelStateTest : BehaviorSpec({
 
     Given("a gateway seeded with two traces") {
         val seed = listOf(trace("a"), trace("b"))
-        val store = TracesViewModel(FakeTraceStoreGateway(initial = seed))
+        val store = TracesViewModel(FakeTraceStoreRepository(initial = seed))
 
         Then("the initial state mirrors the seed list") {
             store.state.value shouldBe TracesState(traces = seed)
@@ -56,7 +56,7 @@ class TracesViewModelStateTest : BehaviorSpec({
     }
 
     Given("a gateway with no traces") {
-        val store = TracesViewModel(FakeTraceStoreGateway())
+        val store = TracesViewModel(FakeTraceStoreRepository())
 
         Then("the initial state has an empty list") {
             store.state.value shouldBe TracesState(traces = emptyList())
@@ -64,7 +64,7 @@ class TracesViewModelStateTest : BehaviorSpec({
     }
 
     Given("a store subscribed to a mutable traces flow") {
-        val gateway = FakeTraceStoreGateway()
+        val gateway = FakeTraceStoreRepository()
         val store = TracesViewModel(gateway)
 
         When("the gateway emits a new list") {
@@ -97,13 +97,13 @@ class TracesViewModelStateTest : BehaviorSpec({
 })
 
 /**
- * KMP-portable [TraceStoreGateway] fake. Suspend methods are no-ops;
+ * KMP-portable [TraceStoreRepository] fake. Suspend methods are no-ops;
  * call-verification tests live in TracesMviViewModelTest under
  * androidUnitTest.
  */
-private class FakeTraceStoreGateway(
+private class FakeTraceStoreRepository(
     initial: List<AgentTrace> = emptyList(),
-) : TraceStoreGateway {
+) : TraceStoreRepository {
     private val _traces = MutableStateFlow(initial)
     override val traces: StateFlow<List<AgentTrace>> get() = _traces
 

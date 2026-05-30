@@ -26,9 +26,19 @@ kotlin {
             implementation(libs.okio)
         }
         androidMain.dependencies {
-            // Android Context delegate for `Context.preferencesDataStore`
-            // — convenient but optional. We use the path-based factory
-            // from commonMain for portability.
+            // koin-android (gives androidContext()) + :core:domain for
+            // the Repository FILE_NAME constants the DI module
+            // references. We add Koin manually instead of via the
+            // `undercurrent.kmp.koin` convention plugin because that
+            // plugin also brings koin-compose into commonMain, which
+            // triggers a pre-existing okio metadata-resolution issue
+            // (FileSystem.SYSTEM unresolved).
+            implementation(libs.koin.android)
+            implementation(projects.core.domain)
+        }
+        iosMain.dependencies {
+            implementation(libs.koin.core)
+            implementation(projects.core.domain)
         }
     }
 }

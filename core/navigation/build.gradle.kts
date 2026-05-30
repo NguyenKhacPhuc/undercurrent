@@ -5,12 +5,19 @@
 plugins {
     alias(libs.plugins.undercurrent.kmp.library)
     alias(libs.plugins.undercurrent.kmp.library.compose)
+    alias(libs.plugins.undercurrent.kmp.koin)
 }
+
+// No external nav deps — NavKey + NavBackStack are KMP-clean
+// equivalents living in commonMain. See NavBackStack.kt for the
+// rationale (CMP/AndroidX saveable IR conflict on K/N).
 
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // module-specific deps go here
+            // No external deps — NavigationIntent dropped its `AppIntent`
+            // parent in the central-dispatch removal; NavBackStack +
+            // NavigationViewModel are KMP-clean.
         }
     }
 }

@@ -24,20 +24,6 @@ import dev.weft.undercurrent.core.model.ProviderKind
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-/**
- * Settings index. Each row drills into a dedicated sub-screen —
- * Provider (accounts + models + default tier), Usage (cost + token
- * totals), Integrations (connect third-party services). Top-level
- * surface stays scannable; heavy controls live inside their
- * respective sub-screens.
- *
- * Subtitles show the current value at a glance — saves a tap when
- * the user is just checking, not changing.
- *
- * KMP — commonMain. Moved from
- * `app/.../features/settings/SettingsScreen.kt`. Now consumes
- * [ProviderKind] from :core:model (was Weft's contracts package).
- */
 @Composable
 fun SettingsScreen(
     activeProvider: ProviderKind,

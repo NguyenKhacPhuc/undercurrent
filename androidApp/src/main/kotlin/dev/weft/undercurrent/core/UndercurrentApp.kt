@@ -1,7 +1,7 @@
 package dev.weft.undercurrent.core
 
 import android.app.Application
-import dev.weft.undercurrent.di.appModule
+import dev.weft.undercurrent.di.allModules
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import org.koin.android.ext.koin.androidContext
@@ -27,7 +27,7 @@ class UndercurrentApp : Application() {
         startKoin {
             androidLogger(Level.INFO)
             androidContext(this@UndercurrentApp)
-            modules(appModule)
+            modules(allModules)
         }
     }
 }

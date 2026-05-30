@@ -1,33 +1,22 @@
 package dev.weft.undercurrent.feature.usage
 
-import androidx.lifecycle.viewModelScope
-import dev.weft.undercurrent.shared.gateway.UsageGateway
-import dev.weft.undercurrent.shared.gateway.UsageTotals
+import dev.weft.undercurrent.core.domain.UsageRepository
+import dev.weft.undercurrent.core.domain.UsageTotals
 import dev.weft.undercurrent.shared.mvi.MviViewModel
-import kotlinx.coroutines.launch
 
-/**
- * Read-only screen — no actions today. The MVI shape is kept for
- * consistency across features (and future quota-editing work fits
- * cleanly: add `SetQuota(usd)` to [UsageIntent], handle it here).
- */
 data class UsageState(val totals: UsageTotals = UsageTotals())
 
 sealed interface UsageIntent
 sealed interface UsageEffect
 
 class UsageViewModel(
-    gateway: UsageGateway,
+    gateway: UsageRepository,
 ) : MviViewModel<UsageState, UsageIntent, UsageEffect>(
     initialState = UsageState(totals = gateway.totals.value),
 ) {
     init {
-        viewModelScope.launch {
-            gateway.totals.collect { t -> update { it.copy(totals = t) } }
-        }
+        gateway.totals.collectInto { copy(totals = it) }
     }
 
-    override fun dispatch(intent: UsageIntent) {
-        // No-op — no intents defined yet.
-    }
+    override fun dispatch(intent: UsageIntent) = launch { }
 }

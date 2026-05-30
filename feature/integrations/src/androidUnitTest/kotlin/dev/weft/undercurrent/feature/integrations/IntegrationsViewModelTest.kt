@@ -1,10 +1,10 @@
 package dev.weft.undercurrent.feature.integrations
 
 import dev.weft.undercurrent.core.domain.IntegrationsRepository
-import dev.weft.undercurrent.shared.gateway.OAuthConfig
-import dev.weft.undercurrent.shared.gateway.OAuthGateway
-import dev.weft.undercurrent.shared.gateway.OAuthResult
-import dev.weft.undercurrent.shared.gateway.OAuthTokens
+import dev.weft.undercurrent.core.domain.OAuthConfig
+import dev.weft.undercurrent.core.domain.OAuthRepository
+import dev.weft.undercurrent.core.domain.OAuthResult
+import dev.weft.undercurrent.core.domain.OAuthTokens
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -61,13 +61,13 @@ class IntegrationsMviViewModelTest : BehaviorSpec({
 
     fun fakes(
         initialEnabledFromFlow: Set<String> = emptySet(),
-    ): Triple<IntegrationsRepository, OAuthGateway, MutableStateFlow<Set<String>>> {
+    ): Triple<IntegrationsRepository, OAuthRepository, MutableStateFlow<Set<String>>> {
         val enabledFlow = MutableStateFlow(initialEnabledFromFlow)
         val repo = mockk<IntegrationsRepository>()
         every { repo.enabledIdsFlow } returns enabledFlow
         coEvery { repo.setEnabled(any(), any()) } returns Unit
 
-        val oauth = mockk<OAuthGateway>()
+        val oauth = mockk<OAuthRepository>()
         coEvery { oauth.authorize(any()) } returns OAuthResult.Success(testTokens)
         coEvery { oauth.putTokens(any(), any()) } returns Unit
         coEvery { oauth.removeTokens(any()) } returns Unit

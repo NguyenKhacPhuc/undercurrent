@@ -1,8 +1,8 @@
 package dev.weft.undercurrent.feature.memories
 
-import dev.weft.undercurrent.shared.gateway.MemoryEntry
-import dev.weft.undercurrent.shared.gateway.MemoryScope
-import dev.weft.undercurrent.shared.gateway.MemoryStoreGateway
+import dev.weft.undercurrent.core.domain.MemoryEntry
+import dev.weft.undercurrent.core.domain.MemoryScope
+import dev.weft.undercurrent.core.domain.MemoryStoreRepository
 import io.kotest.core.spec.style.BehaviorSpec
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -41,8 +41,8 @@ class MemoriesMviViewModelTest : BehaviorSpec({
         storedAtEpochMs = 0L,
     )
 
-    fun fakeGateway(initial: List<MemoryEntry> = emptyList()): MemoryStoreGateway {
-        val gateway = mockk<MemoryStoreGateway>()
+    fun fakeGateway(initial: List<MemoryEntry> = emptyList()): MemoryStoreRepository {
+        val gateway = mockk<MemoryStoreRepository>()
         every { gateway.memories } returns MutableStateFlow(initial)
         coEvery { gateway.delete(any()) } returns Unit
         coEvery { gateway.clear() } returns Unit

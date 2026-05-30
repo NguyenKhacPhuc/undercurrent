@@ -15,25 +15,6 @@ import kotlinx.coroutines.sync.withLock
 // of the in-flight calls would 401 with a token that was JUST issued.
 private val refreshTokenMutex = Mutex()
 
-/**
- * Installs a [HttpSend] interceptor that:
- *
- *   1. Checks if the access token is expired (locally, monotonic-clock-
- *      based) and refreshes it before sending the request. The refresh
- *      itself is the consumer-supplied [refreshTokenCall] — this module
- *      doesn't know which endpoint to hit.
- *   2. After the response arrives, on 401 retries once with the latest
- *      token. If the local clock said the token was still valid but the
- *      server disagreed, we treat that as an emulator-clock-skew
- *      symptom and force a session clear instead of an infinite refresh
- *      loop.
- *   3. On 403, surfaces the response unchanged — the response validator
- *      decides whether to clear the session.
- *
- * The set of endpoints that should NOT trigger the auth-attach + retry
- * dance (refresh itself, public endpoints) is supplied via
- * [skipAuthForPaths] — exact match on `encodedPath`.
- */
 fun HttpClient.addTokenInterceptor(
     tokenManager: TokenManager,
     refreshTokenCall: RefreshTokenCall,
@@ -45,14 +26,8 @@ fun HttpClient.addTokenInterceptor(
             return@intercept execute(request)
         }
 
-        // Pre-flight: refresh if our local check thinks the token is
-        // dead. `wasLocallyValid` captures the pre-call state so we can
-        // distinguish "server rejected a token we thought was fresh"
-        // from "server rejected a token we knew was stale".
         val wasLocallyValid = ensureFreshToken(tokenManager, refreshTokenCall)
 
-        // Always re-attach the latest token — another coroutine may have
-        // refreshed it while we were waiting on the mutex above.
         tokenManager.getAccessToken()?.let {
             request.headers[CustomHeader.ACCESS_TOKEN] = it
         }
@@ -62,15 +37,9 @@ fun HttpClient.addTokenInterceptor(
         when (originalCall.response.status.value) {
             HttpStatusCode.Unauthorized.value -> {
                 if (wasLocallyValid) {
-                    // We sent a token the server rejected even though our
-                    // expiry check said it was fine. That usually means
-                    // the monotonic clock is wrong (emulator quick-boot).
-                    // Force the user to log in again rather than burn
-                    // through refresh tokens.
                     tokenManager.clearSession()
                     originalCall
                 } else {
-                    // Refresh and retry once.
                     if (ensureFreshToken(tokenManager, refreshTokenCall)) {
                         tokenManager.getAccessToken()?.let {
                             request.headers[CustomHeader.ACCESS_TOKEN] = it
@@ -110,9 +79,6 @@ private suspend fun ensureFreshToken(
         tokenManager.setUserToken(refreshed)
         return true
     } catch (e: Exception) {
-        // Network error during refresh — leave the session alone; the
-        // user will see a "no connection" error and can retry. Don't
-        // force-logout on a transient failure.
         e.printStackTrace()
         return false
     }

@@ -1,10 +1,8 @@
 package dev.weft.undercurrent.feature.miniapps
 
-import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.core.model.MiniApp
 import dev.weft.undercurrent.core.domain.MiniAppsRepository
 import dev.weft.undercurrent.shared.mvi.MviViewModel
-import kotlinx.coroutines.launch
 
 data class MiniAppsState(val miniApps: List<MiniApp> = emptyList())
 
@@ -31,20 +29,16 @@ class MiniAppsViewModel(
     initialState = MiniAppsState(miniApps = repo.miniApps.value),
 ) {
     init {
-        viewModelScope.launch {
-            repo.miniApps.collect { m -> update { it.copy(miniApps = m) } }
-        }
+        repo.miniApps.collectInto { copy(miniApps = it) }
     }
 
-    override fun dispatch(intent: MiniAppsIntent) {
+    override fun dispatch(intent: MiniAppsIntent) = launch {
         when (intent) {
-            is MiniAppsIntent.Add -> viewModelScope.launch {
-                repo.add(intent.name, intent.emoji, intent.triggerPrompt)
-            }
-            is MiniAppsIntent.Update -> viewModelScope.launch {
-                repo.update(intent.id, intent.name, intent.emoji, intent.triggerPrompt)
-            }
-            is MiniAppsIntent.Delete -> viewModelScope.launch { repo.delete(intent.id) }
+            is MiniAppsIntent.Add -> repo.add(intent.name, intent.emoji, intent.triggerPrompt)
+            is MiniAppsIntent.Update -> repo.update(
+                intent.id, intent.name, intent.emoji, intent.triggerPrompt,
+            )
+            is MiniAppsIntent.Delete -> repo.delete(intent.id)
         }
     }
 }

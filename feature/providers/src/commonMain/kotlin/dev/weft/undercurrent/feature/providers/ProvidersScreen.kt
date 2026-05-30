@@ -50,11 +50,11 @@ import dev.weft.undercurrent.core.model.keyPlaceholder
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.SectionLabel
 import dev.weft.undercurrent.core.ui.TipBox
-import dev.weft.undercurrent.shared.gateway.KeyValidationGateway
-import dev.weft.undercurrent.shared.gateway.ModelCatalog
-import dev.weft.undercurrent.shared.gateway.ModelInfo
-import dev.weft.undercurrent.shared.gateway.ModelPool
-import dev.weft.undercurrent.shared.gateway.ValidationResult
+import dev.weft.undercurrent.core.domain.KeyValidationRepository
+import dev.weft.undercurrent.core.domain.ModelCatalogRepository
+import dev.weft.undercurrent.core.domain.ModelInfo
+import dev.weft.undercurrent.core.domain.ModelPool
+import dev.weft.undercurrent.core.domain.ValidationResult
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -68,8 +68,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * `app/.../features/providers/ProvidersScreen.kt`. Adjustments:
  *   - `ai.koog.prompt.llm.LLModel` → [ModelInfo] mirror.
  *   - `dev.weft.android.routing.{catalogFor, defaultPoolFor}` →
- *     [ModelCatalog] gateway.
- *   - `validateKey` (Koog-backed, Android-only) → [KeyValidationGateway].
+ *     [ModelCatalogRepository] gateway.
+ *   - `validateKey` (Koog-backed, Android-only) → [KeyValidationRepository].
  *   - `openInBrowser` (CCT) lifted to [onOpenConsole] lambda.
  *   - Material icons-extended (Visibility, ArrowDropDown,
  *     KeyboardArrowRight) → Unicode glyphs + "Show"/"Hide" labels.
@@ -87,8 +87,8 @@ fun ProvidersScreen(
      * the real secret never reaches this screen).
      */
     providerKeyStatus: Map<ProviderKind, String>,
-    modelCatalog: ModelCatalog,
-    keyValidator: KeyValidationGateway,
+    modelCatalog: ModelCatalogRepository,
+    keyValidator: KeyValidationRepository,
     onProviderSelected: (ProviderKind) -> Unit,
     onProviderKeySaved: (ProviderKind, String) -> Unit,
     onProviderKeyRemoved: (ProviderKind) -> Unit,
@@ -149,8 +149,8 @@ private fun ProviderCard(
     provider: ProviderKind,
     active: Boolean,
     storedKeyLast4: String?,
-    modelCatalog: ModelCatalog,
-    keyValidator: KeyValidationGateway,
+    modelCatalog: ModelCatalogRepository,
+    keyValidator: KeyValidationRepository,
     onTap: () -> Unit,
     onKeySaved: (String) -> Unit,
     onKeyRemoved: () -> Unit,
@@ -238,8 +238,8 @@ private fun subtitleFor(active: Boolean, last4: String?): String = when {
 private fun ExpandedBody(
     provider: ProviderKind,
     storedKeyLast4: String?,
-    modelCatalog: ModelCatalog,
-    keyValidator: KeyValidationGateway,
+    modelCatalog: ModelCatalogRepository,
+    keyValidator: KeyValidationRepository,
     onKeySaved: (String) -> Unit,
     onKeyRemoved: () -> Unit,
     getModelOverride: (ModelTier) -> String?,
@@ -477,7 +477,7 @@ private fun HorizontalThinDivider() {
 @Composable
 private fun ModelCustomizationGrid(
     provider: ProviderKind,
-    modelCatalog: ModelCatalog,
+    modelCatalog: ModelCatalogRepository,
     getModelOverride: (ModelTier) -> String?,
     onModelOverrideSelected: (ModelTier, String?) -> Unit,
 ) {
@@ -628,7 +628,7 @@ private fun TierSegmented(
 @Preview
 @Composable
 private fun ProvidersScreenPreview() {
-    val stubCatalog = object : ModelCatalog {
+    val stubCatalog = object : ModelCatalogRepository {
         override fun modelsForProvider(provider: ProviderKind): List<ModelInfo> = when (provider) {
             ProviderKind.Anthropic -> listOf(
                 ModelInfo("claude-sonnet-4-5", "Sonnet 4.5", hasVision = true, hasTools = true),
@@ -652,7 +652,7 @@ private fun ProvidersScreenPreview() {
             )
         }
     }
-    val stubValidator = object : KeyValidationGateway {
+    val stubValidator = object : KeyValidationRepository {
         override suspend fun validateKey(
             provider: ProviderKind,
             apiKey: String,

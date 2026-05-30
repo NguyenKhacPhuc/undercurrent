@@ -1,11 +1,9 @@
 package dev.weft.undercurrent.feature.integrations
 
-import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.core.domain.IntegrationsRepository
-import dev.weft.undercurrent.shared.gateway.OAuthGateway
-import dev.weft.undercurrent.shared.gateway.OAuthResult
+import dev.weft.undercurrent.core.domain.OAuthRepository
+import dev.weft.undercurrent.core.domain.OAuthResult
 import dev.weft.undercurrent.shared.mvi.MviViewModel
-import kotlinx.coroutines.launch
 
 data class IntegrationsState(
     val enabledIds: Set<String> = emptySet(),
@@ -23,26 +21,17 @@ sealed interface IntegrationsEffect
 
 class IntegrationsViewModel(
     private val repo: IntegrationsRepository,
-    private val oauth: OAuthGateway,
-    /**
-     * The set of integration ids the *currently running* WeftRuntime was
-     * built with. Captured at boot — comparing against the live enabled
-     * set tells us whether a restart is needed.
-     */
+    private val oauth: OAuthRepository,
     private val initialEnabled: Set<String>,
 ) : MviViewModel<IntegrationsState, IntegrationsIntent, IntegrationsEffect>(
     initialState = IntegrationsState(enabledIds = initialEnabled),
 ) {
     init {
-        viewModelScope.launch {
-            repo.enabledIdsFlow.collect { ids ->
-                update {
-                    it.copy(
-                        enabledIds = ids,
-                        pendingRestart = ids != initialEnabled,
-                    )
-                }
-            }
+        repo.enabledIdsFlow.collectInto { ids ->
+            copy(
+                enabledIds = ids,
+                pendingRestart = ids != initialEnabled,
+            )
         }
     }
 
@@ -50,10 +39,17 @@ class IntegrationsViewModel(
         if (integration.id in enabled) IntegrationStatus.Connected
         else IntegrationStatus.Disconnected
 
-    override fun dispatch(intent: IntegrationsIntent) {
+    override fun dispatch(intent: IntegrationsIntent) = launch {
         when (intent) {
-            is IntegrationsIntent.Connect -> viewModelScope.launch {
-                update { it.copy(lastAction = ActionStatus.InProgress(intent.integration.id, "Connecting…")) }
+            is IntegrationsIntent.Connect -> {
+                update {
+                    it.copy(
+                        lastAction = ActionStatus.InProgress(
+                            intent.integration.id,
+                            "Connecting…",
+                        ),
+                    )
+                }
                 val next = when (val result = oauth.authorize(intent.integration.oauth)) {
                     is OAuthResult.Success -> {
                         oauth.putTokens(intent.integration.id, result.tokens)
@@ -74,15 +70,28 @@ class IntegrationsViewModel(
                 }
                 update { it.copy(lastAction = next) }
             }
-            is IntegrationsIntent.Disconnect -> viewModelScope.launch {
-                update { it.copy(lastAction = ActionStatus.InProgress(intent.integration.id, "Disconnecting…")) }
+            is IntegrationsIntent.Disconnect -> {
+                update {
+                    it.copy(
+                        lastAction = ActionStatus.InProgress(
+                            intent.integration.id,
+                            "Disconnecting…",
+                        ),
+                    )
+                }
                 oauth.removeTokens(intent.integration.id)
                 repo.setEnabled(intent.integration.id, enabled = false)
-                update { it.copy(lastAction = ActionStatus.Success(intent.integration.id, "Disconnected")) }
+                update {
+                    it.copy(
+                        lastAction = ActionStatus.Success(
+                            intent.integration.id,
+                            "Disconnected",
+                        ),
+                    )
+                }
             }
-            IntegrationsIntent.ClearLastAction -> {
+            IntegrationsIntent.ClearLastAction ->
                 update { it.copy(lastAction = ActionStatus.Idle) }
-            }
         }
     }
 }

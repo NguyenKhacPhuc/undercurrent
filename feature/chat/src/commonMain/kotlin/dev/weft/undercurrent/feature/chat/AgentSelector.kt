@@ -16,6 +16,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Compact agent picker — AssistChip + dropdown of every user-addressable
@@ -66,5 +68,20 @@ fun AgentSelector(
                 )
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun AgentSelectorPreview() {
+    UndercurrentTheme {
+        AgentSelector(
+            options = listOf(
+                AgentOption(name = "default", displayName = "Assistant"),
+                AgentOption(name = "writer", displayName = "Writer"),
+            ),
+            selectedName = "default",
+            onSelect = { },
+        )
     }
 }

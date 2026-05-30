@@ -13,6 +13,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // Gateway interfaces (MemoryStoreGateway + MemoryEntry/Scope mirrors).
+            implementation(projects.core.domain)
             implementation(projects.shared)
             // Memory-row "MMM d · HH:mm" timestamps.
             implementation(libs.kotlinx.datetime)

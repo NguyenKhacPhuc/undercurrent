@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
  * arrive from [rms]. Each bar animates between values for smooth
  * motion.
  *
- * Tuned for `SpeechGateway.rmsdB` output: speech typically lands in
+ * Tuned for `SpeechRepository.rmsdB` output: speech typically lands in
  * `-2.0 .. +10.0` dB, so we map that band to `0..1` with a minimum
  * visible height so silent bars don't disappear entirely.
  *
@@ -36,7 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
  * `app/.../features/voice/WaveformBars.kt`. No behavioral changes;
  * imports `UndercurrentTheme` from `:core:design-system`. The
  * underlying [StateFlow] is now sourced from
- * [dev.weft.undercurrent.shared.gateway.SpeechGateway.rmsdB] on
+ * [dev.weft.undercurrent.core.domain.SpeechRepository.rmsdB] on
  * Android; the iOS stub always emits 0f.
  */
 @Composable

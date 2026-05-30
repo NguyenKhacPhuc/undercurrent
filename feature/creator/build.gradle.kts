@@ -12,10 +12,15 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // feature-specific common deps (e.g. :core:domain, :data:datastore)
+            // `AppIntent` parent marker — CreatorIntent extends it.
+            implementation(projects.core.domain)
+            implementation(projects.shared)
         }
         androidMain.dependencies {
-            // androidMain-only deps (e.g. :data:weft, ML Kit)
+            // Substrate — WeftCreatorViewModel drives WeftAgent via
+            // AgentSession + ChatViewModel.send.
+            implementation("dev.weft:weft-harness-agents")
+            implementation(projects.feature.chat)
         }
     }
 }

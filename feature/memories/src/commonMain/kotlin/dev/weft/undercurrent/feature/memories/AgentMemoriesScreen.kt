@@ -29,8 +29,8 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.ui.ScaffoldTextAction
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.TokenDivider
-import dev.weft.undercurrent.shared.gateway.MemoryEntry
-import dev.weft.undercurrent.shared.gateway.MemoryScope
+import dev.weft.undercurrent.core.domain.MemoryEntry
+import dev.weft.undercurrent.core.domain.MemoryScope
 import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime

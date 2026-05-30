@@ -1,7 +1,7 @@
 package dev.weft.undercurrent.feature.usage
 
-import dev.weft.undercurrent.shared.gateway.UsageGateway
-import dev.weft.undercurrent.shared.gateway.UsageTotals
+import dev.weft.undercurrent.core.domain.UsageRepository
+import dev.weft.undercurrent.core.domain.UsageTotals
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.Dispatchers
@@ -114,13 +114,13 @@ class UsageMviViewModelTest : BehaviorSpec({
 })
 
 /**
- * KMP-portable [UsageGateway] double. The MockK-using JVM tests reach
+ * KMP-portable [UsageRepository] double. The MockK-using JVM tests reach
  * for `every { gateway.totals } returns MutableStateFlow(seed)`; here
  * the same shape is a regular class.
  */
 private class FakeUsageGateway(
     initial: UsageTotals = UsageTotals(),
-) : UsageGateway {
+) : UsageRepository {
     private val _totals = MutableStateFlow(initial)
     override val totals: StateFlow<UsageTotals> get() = _totals
 

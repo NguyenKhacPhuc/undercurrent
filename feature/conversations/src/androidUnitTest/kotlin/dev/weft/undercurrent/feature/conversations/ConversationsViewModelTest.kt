@@ -1,7 +1,7 @@
 package dev.weft.undercurrent.feature.conversations
 
-import dev.weft.undercurrent.shared.gateway.ConversationStoreGateway
-import dev.weft.undercurrent.shared.gateway.ConversationSummary
+import dev.weft.undercurrent.core.domain.ConversationStoreRepository
+import dev.weft.undercurrent.core.domain.ConversationSummary
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
@@ -46,8 +46,8 @@ class ConversationsMviViewModelTest : BehaviorSpec({
     fun fakeGateway(
         initialSearchResults: MutableStateFlow<List<ConversationSummary>> =
             MutableStateFlow(emptyList()),
-    ): ConversationStoreGateway {
-        val gateway = mockk<ConversationStoreGateway>()
+    ): ConversationStoreRepository {
+        val gateway = mockk<ConversationStoreRepository>()
         every { gateway.search(any()) } returns initialSearchResults
         coEvery { gateway.deleteConversation(any()) } returns Unit
         coEvery { gateway.clearAll() } returns Unit
@@ -73,7 +73,7 @@ class ConversationsMviViewModelTest : BehaviorSpec({
             Then("the store resubscribes to gateway.search('dogs') and shows the new results") {
                 runTest {
                     val initialResults = MutableStateFlow(listOf(summary("old")))
-                    val gateway = mockk<ConversationStoreGateway>().apply {
+                    val gateway = mockk<ConversationStoreRepository>().apply {
                         every { search("") } returns initialResults
                         every { search("dogs") } returns flowOf(listOf(summary("rex")))
                         coEvery { deleteConversation(any()) } returns Unit
@@ -97,7 +97,7 @@ class ConversationsMviViewModelTest : BehaviorSpec({
                 runTest {
                     val initialFlow = MutableStateFlow(listOf(summary("first")))
                     val newFlow = MutableStateFlow(listOf(summary("new")))
-                    val gateway = mockk<ConversationStoreGateway>().apply {
+                    val gateway = mockk<ConversationStoreRepository>().apply {
                         every { search("") } returns initialFlow
                         every { search("rebuild") } returns newFlow
                         coEvery { deleteConversation(any()) } returns Unit

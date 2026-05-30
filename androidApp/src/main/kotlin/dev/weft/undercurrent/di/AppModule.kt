@@ -1,7 +1,5 @@
 package dev.weft.undercurrent.di
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import dev.weft.android.WeftRuntime
 import dev.weft.android.create
 import dev.weft.compose.ComposeUiBridge
@@ -18,28 +16,24 @@ import dev.weft.security.NetworkPolicy
 import dev.weft.undercurrent.app.AppViewModel
 import dev.weft.undercurrent.core.ASSISTANT_APP_PREAMBLE
 import dev.weft.undercurrent.core.WeftAppViewModel
-import dev.weft.undercurrent.core.navigation.NavigationChannel
-import dev.weft.undercurrent.data.sqldelight.SqlDelightDataSource
 import dev.weft.undercurrent.core.domain.IntegrationsRepository
 import dev.weft.undercurrent.core.domain.MiniAppsRepository
-import dev.weft.undercurrent.core.domain.ModelPrefsRepository
 import dev.weft.undercurrent.core.domain.OnboardingRepository
 import dev.weft.undercurrent.core.domain.PersonaRepository
 import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.domain.ThemeRepository
-import dev.weft.undercurrent.data.datastore.createPreferencesDataStore
-import dev.weft.undercurrent.data.sqldelight.DatabaseDriverFactory
-import dev.weft.undercurrent.data.sqldelight.createUndercurrentDatabase
-import dev.weft.undercurrent.data.weft.AndroidSpeechGateway
-import dev.weft.undercurrent.data.weft.WeftConversationStoreGateway
-import dev.weft.undercurrent.data.weft.WeftKeyValidationGateway
-import dev.weft.undercurrent.data.weft.WeftKeyVaultGateway
-import dev.weft.undercurrent.data.weft.WeftMemoryStoreGateway
-import dev.weft.undercurrent.data.weft.WeftModelCatalog
-import dev.weft.undercurrent.data.weft.WeftOAuthGateway
-import dev.weft.undercurrent.data.weft.WeftTraceStoreGateway
-import dev.weft.undercurrent.data.weft.WeftUiBridgeGateway
-import dev.weft.undercurrent.data.weft.WeftUsageGateway
+import dev.weft.undercurrent.core.domain.repositoryModule
+import dev.weft.undercurrent.core.domain.usecase.chat.chatUseCasesModule
+import dev.weft.undercurrent.core.domain.usecase.onboarding.onboardingUseCasesModule
+import dev.weft.undercurrent.core.domain.usecase.theme.themeUseCasesModule
+import dev.weft.undercurrent.core.model.AppEffect
+import dev.weft.undercurrent.core.model.AppState
+import dev.weft.undercurrent.core.navigation.NavigationChannel
+import dev.weft.undercurrent.core.navigation.navigationModule
+import dev.weft.undercurrent.data.datastore.datastoreAndroidModule
+import dev.weft.undercurrent.data.sqldelight.SqlDelightDataSource
+import dev.weft.undercurrent.data.sqldelight.databaseAndroidModule
+import dev.weft.undercurrent.core.domain.repositoryAndroidModule
 import dev.weft.undercurrent.data.weft.tools.CreateMiniAppTool
 import dev.weft.undercurrent.data.weft.tools.CreatePersonaTool
 import dev.weft.undercurrent.data.weft.tools.OpenConversationsTool
@@ -48,28 +42,28 @@ import dev.weft.undercurrent.data.weft.tools.OpenMemoriesTool
 import dev.weft.undercurrent.data.weft.tools.OpenPersonasTool
 import dev.weft.undercurrent.data.weft.tools.OpenUsageTool
 import dev.weft.undercurrent.data.weft.tools.ShowLocationOnMapTool
-import dev.weft.undercurrent.db.UndercurrentDatabase
+import dev.weft.undercurrent.feature.chat.chatAndroidModule
+import dev.weft.undercurrent.feature.chat.chatModule
+import dev.weft.undercurrent.feature.chat.agent.AgentSession
+import dev.weft.undercurrent.feature.conversations.conversationsModule
 import dev.weft.undercurrent.feature.creator.CreatorKind
-import dev.weft.undercurrent.feature.creator.CreatorSession
+import dev.weft.undercurrent.feature.creator.creatorAndroidModule
 import dev.weft.undercurrent.feature.integrations.Integration
 import dev.weft.undercurrent.feature.integrations.Integrations
 import dev.weft.undercurrent.feature.integrations.IntegrationsViewModel
-import dev.weft.undercurrent.feature.conversations.ConversationsViewModel
-import dev.weft.undercurrent.feature.memories.MemoriesViewModel
-import dev.weft.undercurrent.feature.miniapps.MiniAppsViewModel
-import dev.weft.undercurrent.feature.personas.PersonasViewModel
-import dev.weft.undercurrent.feature.traces.TracesViewModel
-import dev.weft.undercurrent.feature.usage.UsageViewModel
-import dev.weft.undercurrent.shared.gateway.ConversationStoreGateway
-import dev.weft.undercurrent.shared.gateway.KeyValidationGateway
-import dev.weft.undercurrent.shared.gateway.KeyVaultGateway
-import dev.weft.undercurrent.shared.gateway.MemoryStoreGateway
-import dev.weft.undercurrent.shared.gateway.ModelCatalog
-import dev.weft.undercurrent.shared.gateway.OAuthGateway
-import dev.weft.undercurrent.shared.gateway.SpeechGateway
-import dev.weft.undercurrent.shared.gateway.TraceStoreGateway
-import dev.weft.undercurrent.shared.gateway.UiBridgeGateway
-import dev.weft.undercurrent.shared.gateway.UsageGateway
+import dev.weft.undercurrent.feature.memories.memoriesModule
+import dev.weft.undercurrent.feature.chat.ChatViewModel
+import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
+import dev.weft.undercurrent.feature.miniapps.internal.WeftMiniAppViewModel
+import dev.weft.undercurrent.feature.miniapps.miniAppsModule
+import dev.weft.undercurrent.feature.onboarding.onboardingModule
+import dev.weft.undercurrent.feature.personas.personasModule
+import dev.weft.undercurrent.feature.providers.providerAndroidModule
+import dev.weft.undercurrent.feature.theme.themeModule
+import dev.weft.undercurrent.feature.traces.traceExportAndroidModule
+import dev.weft.undercurrent.feature.traces.tracesModule
+import dev.weft.undercurrent.feature.usage.usageModule
+import dev.weft.undercurrent.shared.mvi.MviContext
 import dev.weft.undercurrent.tools.SetThemeModeTool
 import dev.weft.undercurrent.tools.SetThemePaletteTool
 import kotlinx.coroutines.runBlocking
@@ -78,70 +72,9 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
-/**
- * Root Koin module wiring every long-lived dependency.
- *
- * Layering:
- *  1. **DataStores** — one per repo, named by file. Cheap to construct.
- *  2. **Repos** — DataStore-backed; constructor takes `DataStore<Preferences>`.
- *  3. **Gateways** — KMP interfaces in `:shared`; Android impls in `:data:weft`.
- *  4. **Database** — SQLDelight via `:data:sqldelight`.
- *  5. **UI singletons** — [WeftUi], [ComposeUiBridge].
- *  6. **Runtime** — [WeftRuntime.create] depends on bridge + weftUi + persona repo.
- *  7. **ViewModels** — root [AppViewModel] + per-screen VMs.
- */
 val appModule = module {
 
-    // ─── DataStores ───────────────────────────────────────────────────
-    single<DataStore<Preferences>>(named(ThemeRepository.FILE_NAME)) {
-        createPreferencesDataStore(androidContext(), ThemeRepository.FILE_NAME)
-    }
-    single<DataStore<Preferences>>(named(OnboardingRepository.FILE_NAME)) {
-        createPreferencesDataStore(androidContext(), OnboardingRepository.FILE_NAME)
-    }
-    single<DataStore<Preferences>>(named(PersonaRepository.FILE_NAME)) {
-        createPreferencesDataStore(androidContext(), PersonaRepository.FILE_NAME)
-    }
-    single<DataStore<Preferences>>(named(ProviderPrefsRepository.FILE_NAME)) {
-        createPreferencesDataStore(androidContext(), ProviderPrefsRepository.FILE_NAME)
-    }
-    single<DataStore<Preferences>>(named(ModelPrefsRepository.FILE_NAME)) {
-        createPreferencesDataStore(androidContext(), ModelPrefsRepository.FILE_NAME)
-    }
-    single<DataStore<Preferences>>(named(IntegrationsRepository.FILE_NAME)) {
-        createPreferencesDataStore(androidContext(), IntegrationsRepository.FILE_NAME)
-    }
-    single<DataStore<Preferences>>(named(MiniAppsRepository.FILE_NAME)) {
-        createPreferencesDataStore(androidContext(), MiniAppsRepository.FILE_NAME)
-    }
-
-    // ─── Repos ────────────────────────────────────────────────────────
-    single { ThemeRepository(get(named(ThemeRepository.FILE_NAME))) }
-    single { OnboardingRepository(get(named(OnboardingRepository.FILE_NAME))) }
-    single { PersonaRepository(get(named(PersonaRepository.FILE_NAME))) }
-    single { ProviderPrefsRepository(get(named(ProviderPrefsRepository.FILE_NAME))) }
-    single { ModelPrefsRepository(get(named(ModelPrefsRepository.FILE_NAME))) }
-    single { IntegrationsRepository(get(named(IntegrationsRepository.FILE_NAME))) }
-    single { MiniAppsRepository(get(named(MiniAppsRepository.FILE_NAME))) }
-
-    // ─── Database ─────────────────────────────────────────────────────
-    single { DatabaseDriverFactory(androidContext()) }
-    single<UndercurrentDatabase> { createUndercurrentDatabase(get<DatabaseDriverFactory>().create()) }
-
-    // Navigation pipe — agent tools emit Screen values; AppViewModel collects.
-    single { NavigationChannel() }
-
-    // Creator-session tracker — set while a guided QnA flow is active.
-    single { CreatorSession() }
-
-    // ─── UI singletons ────────────────────────────────────────────────
     single {
-        // Build the Coil 3 ImageLoader directly rather than going through
-        // the substrate's `buildWeftImageLoader` — that one returns a
-        // Coil 2 ImageLoader, and undercurrent's components migrated to
-        // Coil 3 for the eventual commonMain move. The substrate setup
-        // is just `ImageLoader.Builder(ctx).build()` anyway; no cache /
-        // interceptor config is lost.
         val imageLoader = coil3.ImageLoader.Builder(androidContext()).build()
         WeftUi(
             context = androidContext(),
@@ -149,9 +82,7 @@ val appModule = module {
             includeDefaults = false,
         )
     }
-    single { ComposeUiBridge(componentRegistry = get<WeftUi>().componentRegistry) }
 
-    // ─── OAuth ────────────────────────────────────────────────────────
     single { OAuthCallbackChannel() }
     single<KeyVault>(named(OAUTH_KEY_VAULT)) {
         AndroidKeyVault.create(androidContext(), fileName = "oauth_tokens")
@@ -169,7 +100,6 @@ val appModule = module {
         )
     }
 
-    // ─── Runtime ──────────────────────────────────────────────────────
     single<WeftRuntime> {
         val personaRepo: PersonaRepository = get()
         val themeRepo: ThemeRepository = get()
@@ -177,7 +107,7 @@ val appModule = module {
         val tokenStore: OAuthTokenStore = get()
         val navigation: NavigationChannel = get()
         val miniAppsRepo: MiniAppsRepository = get()
-        val creatorSession: CreatorSession = get()
+        val creatorSession = get<dev.weft.undercurrent.feature.creator.CreatorSession>()
 
         val mcpServers = mcpServersFor(integrationsRepo, tokenStore)
 
@@ -279,36 +209,38 @@ val appModule = module {
         )
     }
 
-    single<KeyVaultGateway> { WeftKeyVaultGateway(get<WeftRuntime>().keyVault) }
-    single<KeyValidationGateway> { WeftKeyValidationGateway() }
-    single<OAuthGateway> { WeftOAuthGateway(get<OAuthClient>(), get<OAuthTokenStore>()) }
-    single<ConversationStoreGateway> { WeftConversationStoreGateway(get<WeftRuntime>().conversationStore) }
-    single<MemoryStoreGateway> { WeftMemoryStoreGateway(get<WeftRuntime>().memoryStore) }
-    single<TraceStoreGateway> { WeftTraceStoreGateway(get<WeftRuntime>().traceStore) }
-    single<UsageGateway> { WeftUsageGateway(get<WeftRuntime>().usageStore) }
-    single<ModelCatalog> { WeftModelCatalog() }
-    single<SpeechGateway> { AndroidSpeechGateway(androidContext()) }
-    single<UiBridgeGateway> { WeftUiBridgeGateway(get<ComposeUiBridge>()) }
-
     single<AppViewModel> {
         WeftAppViewModel(
             runtime = get(),
             themeRepo = get(),
             onboardingRepo = get(),
             providerPrefsRepo = get(),
-            modelPrefsRepo = get(),
             navigationChannel = get(),
-            miniAppsRepo = get(),
-            creatorSession = get(),
-            uiBridge = get(),
+            navigationVm = get(),
+            agentSlot = get(),
+            agentFactory = get(),
+            chatVm = get(),
         )
     }
-    viewModel { PersonasViewModel(repo = get()) }
-    viewModel { MiniAppsViewModel(repo = get()) }
-    viewModel { UsageViewModel(gateway = get()) }
-    viewModel { MemoriesViewModel(store = get()) }
-    viewModel { TracesViewModel(store = get()) }
-    viewModel { ConversationsViewModel(store = get()) }
+
+    single<MviContext<AppState, AppEffect>> {
+        (get<AppViewModel>() as WeftAppViewModel).mviContext
+    }
+    single<AgentSession> {
+        (get<AppViewModel>() as WeftAppViewModel).agentSession
+    }
+
+    single<MiniAppViewModel> {
+        val chatVm = get<ChatViewModel>()
+        WeftMiniAppViewModel(
+            context = get(),
+            runtime = get(),
+            miniAppsRepo = get(),
+            navigationVm = get(),
+            sendChat = { text -> chatVm.send(text) },
+        )
+    }
+
     viewModel {
         val integrationsRepo: IntegrationsRepository = get()
         IntegrationsViewModel(
@@ -319,7 +251,32 @@ val appModule = module {
     }
 }
 
-/** Compose [McpServerConfig]s for every currently-enabled integration. */
+
+val allModules = listOf(
+    appModule,
+    navigationModule,
+    repositoryModule,
+    chatUseCasesModule,
+    themeUseCasesModule,
+    onboardingUseCasesModule,
+    datastoreAndroidModule,
+    databaseAndroidModule,
+    repositoryAndroidModule,
+    chatModule,
+    chatAndroidModule,
+    themeModule,
+    onboardingModule,
+    personasModule,
+    miniAppsModule,
+    conversationsModule,
+    memoriesModule,
+    tracesModule,
+    traceExportAndroidModule,
+    creatorAndroidModule,
+    providerAndroidModule,
+    usageModule,
+)
+
 private fun mcpServersFor(
     integrationsRepo: IntegrationsRepository,
     tokenStore: OAuthTokenStore,
@@ -339,16 +296,9 @@ private fun mcpServersFor(
     }
 }
 
-/** Qualifier for the OAuth-only KeyVault. */
 private const val OAUTH_KEY_VAULT: String = "oauth_key_vault"
 
-/**
- * Convert the commonMain OAuthConfig mirror back to Weft's OAuthConfig.
- * The mirror was introduced so :feature:integrations could compile
- * against iOS without dragging the substrate in; here at the runtime
- * boundary we feed Weft's type to the OAuthTokenStore.
- */
-private fun dev.weft.undercurrent.shared.gateway.OAuthConfig.toWeft(): dev.weft.oauth.OAuthConfig =
+private fun dev.weft.undercurrent.core.domain.OAuthConfig.toWeft(): dev.weft.oauth.OAuthConfig =
     dev.weft.oauth.OAuthConfig(
         clientId = clientId,
         authorizationEndpoint = authorizationEndpoint,
@@ -358,70 +308,17 @@ private fun dev.weft.undercurrent.shared.gateway.OAuthConfig.toWeft(): dev.weft.
         extraAuthParams = extraAuthParams,
     )
 
-/**
- * Creator-mode preamble injected via `extraVolatilePrefix` while a
- * [CreatorSession] is active.
- */
-private fun creatorPreambleFor(kind: CreatorKind): String {
-    val sharedRules = """
-        |[Creator mode is active — ${kind.humanLabel}.]
-        |
-        |You are guiding the user through a guided QnA flow on a
-        |dedicated creator screen. There is NO free-form chat input —
-        |the user can ONLY interact with widgets you render via the
-        |`ui_render` tool.
-        |
-        |Behaviour:
-        | 1. Ask exactly ONE focused question per turn. Render it as a
-        |    `ui_render` payload using Stack + Heading + (Field /
-        |    Choice / SegmentedToggle / MoodScale / Composer / Toggle)
-        |    + a Button (label "Next" or "Save", onTap "next").
-        | 2. Keep prompts short and concrete. Show progress with the
-        |    `Steps` component when helpful.
-        | 3. After each user answer (delivered to you as a synthetic
-        |    [UI event] message with field values), ask the NEXT
-        |    question — or finalize when you have enough.
-        | 4. Do NOT call any write tool other than the finalize tool
-        |    below. Do not narrate; render.
-        | 5. Aim for 3-6 questions total. Quality over quantity.
-    """.trimMargin()
-
-    val specifics = when (kind) {
-        CreatorKind.PersonaVoice -> """
-            |
-            |Cover, roughly in this order:
-            | - Name (short, e.g. "Editor", "Botanist")
-            | - What kind of writing should this voice produce?
-            | - Tone preferences
-            | - Any specific constraints
-            | - One-line tagline for the picker
-            |
-            |When ready, call `create_persona` with:
-            |  name, tagline, systemPrompt (3-6 sentences), kind: "voice".
-        """.trimMargin()
-        CreatorKind.PersonaRole -> """
-            |
-            |Cover, roughly in this order:
-            | - Name (short, e.g. "Pediatrician", "Tax attorney")
-            | - Domain / expertise area
-            | - Constraints / disclaimers
-            | - Communication style
-            | - One-line tagline for the picker
-            |
-            |When ready, call `create_persona` with:
-            |  name, tagline, systemPrompt (3-6 sentences), kind: "role".
-        """.trimMargin()
-        CreatorKind.MiniApp -> """
-            |
-            |A mini-app is a saved shortcut — name + emoji + trigger
-            |prompt that re-runs a task on tap. Cover:
-            | - What does the mini-app do?
-            | - Name (short, e.g. "Log water", "Daily review")
-            | - Emoji (single grapheme)
-            | - Trigger prompt
-            |
-            |When ready, call `create_mini_app` with name, emoji, triggerPrompt.
-        """.trimMargin()
-    }
-    return sharedRules + specifics
+private fun creatorPreambleFor(kind: CreatorKind): String = when (kind) {
+    CreatorKind.PersonaVoice ->
+        "You are guiding the user through creating a persona (voice). " +
+            "Use the ui_render tool to ask one question at a time. " +
+            "Keep it short. End with the create_persona tool when done."
+    CreatorKind.PersonaRole ->
+        "You are guiding the user through creating a persona (role). " +
+            "Use the ui_render tool to ask one question at a time. " +
+            "Keep it short. End with the create_persona tool when done."
+    CreatorKind.MiniApp ->
+        "You are guiding the user through creating a mini-app. " +
+            "Use the ui_render tool to ask one question at a time. " +
+            "Keep it short. End with the create_mini_app tool when done."
 }

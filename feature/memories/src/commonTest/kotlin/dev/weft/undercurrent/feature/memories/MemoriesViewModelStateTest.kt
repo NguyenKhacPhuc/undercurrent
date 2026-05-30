@@ -1,8 +1,8 @@
 package dev.weft.undercurrent.feature.memories
 
-import dev.weft.undercurrent.shared.gateway.MemoryEntry
-import dev.weft.undercurrent.shared.gateway.MemoryScope
-import dev.weft.undercurrent.shared.gateway.MemoryStoreGateway
+import dev.weft.undercurrent.core.domain.MemoryEntry
+import dev.weft.undercurrent.core.domain.MemoryScope
+import dev.weft.undercurrent.core.domain.MemoryStoreRepository
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.Dispatchers
@@ -111,13 +111,13 @@ class MemoriesViewModelStateTest : BehaviorSpec({
 })
 
 /**
- * KMP-portable [MemoryStoreGateway] fake. Suspend methods are no-ops —
+ * KMP-portable [MemoryStoreRepository] fake. Suspend methods are no-ops —
  * tests that need to assert *that they were called* live in the
  * androidUnitTest spec with MockK.
  */
 private class FakeMemoryStoreGateway(
     initial: List<MemoryEntry> = emptyList(),
-) : MemoryStoreGateway {
+) : MemoryStoreRepository {
     private val _memories = MutableStateFlow(initial)
     override val memories: StateFlow<List<MemoryEntry>> get() = _memories
 

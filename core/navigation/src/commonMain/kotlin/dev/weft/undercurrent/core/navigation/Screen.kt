@@ -1,13 +1,20 @@
 package dev.weft.undercurrent.core.navigation
 
 /**
- * Every top-level destination the host can navigate to. Sealed so the
- * router's `when` is exhaustive — adding a new screen requires touching
- * the dispatcher.
+ * Every top-level destination the host can navigate to. Each variant
+ * is a [NavKey] so it can sit on the [NavBackStack] that backs the
+ * host's router.
  *
- * KMP — commonMain. Moved from `app/.../core/Screen.kt`.
+ * Sealed so the router's `when` is exhaustive — adding a new screen
+ * requires touching the dispatcher.
+ *
+ * Convention so far: every destination is a `data object` with no
+ * params (e.g. the active conversation id lives in `AppState`, not on
+ * the Screen entry). When a screen genuinely benefits from typed
+ * params (e.g. `TraceDetail(traceId)`), convert that one to a data
+ * class — the rest stay objects.
  */
-sealed interface Screen {
+sealed interface Screen : NavKey {
     data object Loading : Screen
     data object Onboarding : Screen
     data object KeyPaste : Screen

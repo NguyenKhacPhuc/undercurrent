@@ -12,7 +12,10 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // feature-specific common deps (e.g. :core:domain, :data:datastore)
+            // `AppIntent` parent marker — OnboardingIntent extends it.
+            implementation(projects.shared)
+            // CompleteOnboardingUseCase + OnboardingRepository.
+            implementation(projects.core.domain)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

@@ -6,6 +6,7 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -209,12 +210,13 @@ private class CounterStore(initialCount: Int = 0) :
 
     private val initial = CounterState(count = initialCount)
 
-    override fun dispatch(intent: CounterIntent) {
+    override fun dispatch(intent: CounterIntent): Job {
         when (intent) {
             CounterIntent.Increment -> update { it.copy(count = it.count + 1) }
             is CounterIntent.Add -> update { it.copy(count = intent.value) }
             CounterIntent.RaiseAlarm -> emit(CounterEffect.AlarmRaised)
             CounterIntent.Reset -> update { initial }
         }
+        return Job().apply { complete() }
     }
 }

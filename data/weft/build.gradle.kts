@@ -1,15 +1,3 @@
-// :data:weft — Android-only bridge to the Weft SDK.
-//
-// Weft is Android-only (per the KMP migration decision). To keep
-// feature modules KMP-friendly, all Weft access goes through this
-// module. Common API: a `WeftEngine` interface in :shared that
-// feature modules use; the Android implementation lives here and
-// wraps WeftRuntime/WeftAgent. The iOS app ships without agent
-// capabilities for v1.
-//
-// Apply the stock `com.android.library` plugin (not KMP) because
-// Weft itself is JVM/Android-only — there's no iosMain to populate.
-
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
@@ -36,20 +24,11 @@ kotlin {
 }
 
 dependencies {
-    // KMP-shared business contracts (engine interface, model types).
-    implementation(projects.shared)
     implementation(projects.core.model)
-    // Screen + NavigationChannel — consumed by the navigation tools
-    // (open_personas, open_memories, …) and by CreatorTools' nav-back.
     implementation(projects.core.navigation)
-    // PersonaRepository + MiniAppsRepository — consumed by CreatorTools.
     implementation(projects.core.domain)
-    // CreatorSession — consumed by CreatorTools to clear the active
-    // creation kind after the finalize tool fires.
     implementation(projects.feature.creator)
 
-    // The Weft SDK itself — wired via the `includeBuild("../weft")`
-    // composite + dependencySubstitution in settings.gradle.kts.
     api("dev.weft:weft-runtime")
     api("dev.weft:weft-compose")
     api("dev.weft:weft-compose-defaults")
@@ -57,5 +36,4 @@ dependencies {
     debugImplementation("dev.weft.devtools:weft-devtools")
 
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.koin.android)
 }

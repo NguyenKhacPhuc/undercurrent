@@ -1,26 +1,16 @@
 package dev.weft.undercurrent.core
 
-import android.Manifest
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -32,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import dev.weft.android.WeftRuntime
 import dev.weft.compose.ComposeUiBridge
@@ -45,38 +34,29 @@ import dev.weft.contracts.ComponentNode
 import dev.weft.contracts.UIUpdate
 import dev.weft.oauth.OAuthCallbackChannel
 import dev.weft.undercurrent.app.App
-import dev.weft.undercurrent.app.AppIntent
 import dev.weft.undercurrent.app.AppViewModel
 import dev.weft.undercurrent.app.PlatformAdapter
 import dev.weft.undercurrent.core.designsystem.colors
-import dev.weft.undercurrent.core.model.ThemeMode
-import dev.weft.undercurrent.core.navigation.Screen
-import dev.weft.undercurrent.core.domain.IntegrationsRepository
 import dev.weft.undercurrent.core.domain.MiniAppsRepository
-import dev.weft.undercurrent.core.domain.PersonaRepository
-import dev.weft.undercurrent.feature.chat.AddToChatConfig
-import dev.weft.undercurrent.feature.chat.AgentOption
-import dev.weft.undercurrent.feature.chat.ChatScreen
-import dev.weft.undercurrent.feature.chat.DisplayRole
-import dev.weft.undercurrent.feature.chat.NotificationsPermissionBanner
+import dev.weft.undercurrent.core.ext.openInBrowser
+import dev.weft.undercurrent.core.model.ThemeMode
+import dev.weft.undercurrent.core.navigation.NavigationIntent
+import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Screen
+import dev.weft.undercurrent.feature.chat.ChatRoute
+import dev.weft.undercurrent.feature.chat.components.DisplayRole
+import dev.weft.undercurrent.feature.creator.CreatorIntent
 import dev.weft.undercurrent.feature.creator.CreatorScreen
+import dev.weft.undercurrent.feature.creator.CreatorViewModel
+import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
+import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
 import dev.weft.undercurrent.feature.miniapps.MiniAppsScreen
 import dev.weft.undercurrent.feature.miniapps.SaveAsMiniAppDialog
-import dev.weft.undercurrent.shared.gateway.SpeechGateway
-import dev.weft.undercurrent.core.ext.openInBrowser
-import dev.weft.undercurrent.core.ui.components.AppDrawer
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.android.get
 import org.koin.compose.koinInject
 
-/**
- * Single Android activity. FragmentActivity (not ComponentActivity) so
- * the substrate's biometric prompt can attach. All actual UI lives in
- * the commonMain [App] composable; this class just boots Koin, plumbs
- * OAuth deep links, and wires the [PlatformAdapter] with Android-only
- * screens.
- */
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,17 +71,12 @@ class MainActivity : FragmentActivity() {
     }
 }
 
-/**
- * Android-side wrapper around the commonMain [App] composable. Owns:
- *  - Save-as-mini-app dialog (at the App root so it persists across
- *    screen transitions).
- *  - System back routing.
- *  - The [PlatformAdapter] holding all substrate-coupled screen
- *    composables.
- */
 @Composable
 private fun AndroidApp() {
     val store: AppViewModel = koinInject()
+    val navigationVm: NavigationViewModel = koinInject()
+    val miniAppVm: MiniAppViewModel = koinInject()
+    val creatorVm: CreatorViewModel = koinInject()
     val runtime: WeftRuntime = koinInject()
     val uiBridge: ComposeUiBridge = koinInject()
     val weftUi: WeftUi = koinInject()
@@ -119,8 +94,8 @@ private fun AndroidApp() {
     val accentArgb = state.themePrefs.palette.colors(darkMode).accent.toArgb()
     val onOpenUrl: (String) -> Unit = { url -> openInBrowser(context, url, accentArgb) }
     val onCopyText: (String) -> Unit = { text ->
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-        clipboard?.setPrimaryClip(ClipData.newPlainText("message", text))
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("message", text))
     }
 
     var saveFromRenderDraft by remember { mutableStateOf<String?>(null) }
@@ -129,10 +104,8 @@ private fun AndroidApp() {
         PlatformAdapter(
             chatRoute = {
                 ChatRoute(
-                    store = store,
-                    runtime = runtime,
                     onOpenUrl = onOpenUrl,
-                    onCopyText = onCopyText
+                    onCopyText = onCopyText,
                 )
             },
             renderedTreeRoute = {
@@ -146,7 +119,7 @@ private fun AndroidApp() {
                     },
                     onBack = {
                         uiBridge.clearLastUpdate()
-                        store.dispatch(AppIntent.Navigate(Screen.Chat))
+                        navigationVm.dispatch(NavigationIntent.Navigate(Screen.Chat))
                     },
                     dataSources = runtime.dataSources,
                     onSaveAsFeature = onSaveAsFeature@{
@@ -184,17 +157,17 @@ private fun AndroidApp() {
                             }
                         }
                     },
-                    onBack = { store.dispatch(AppIntent.Navigate(Screen.Chat)) },
+                    onBack = { navigationVm.dispatch(NavigationIntent.Navigate(Screen.Chat)) },
                     onStartCreator = {
-                        store.dispatch(
-                            AppIntent.StartCreator(
+                        creatorVm.dispatch(
+                            CreatorIntent.StartCreator(
                                 dev.weft.undercurrent.feature.creator.CreatorKind.MiniApp,
                             ),
                         )
                     },
                     onOpenMiniApp = { miniApp ->
-                        store.dispatch(
-                            AppIntent.InvokeMiniApp(
+                        miniAppVm.dispatch(
+                            MiniAppIntent.InvokeMiniApp(
                                 miniAppId = miniApp.id,
                                 triggerPrompt = miniApp.triggerPrompt,
                                 cachedRenderTreeJson = miniApp.lastRenderTreeJson,
@@ -210,7 +183,7 @@ private fun AndroidApp() {
                     inFlight = state.chat.inFlight,
                     hasTree = (uiBridge.lastUpdate is UIUpdate.RenderTree),
                     lastError = state.chat.lastError,
-                    onCancel = { store.dispatch(AppIntent.CancelCreator) },
+                    onCancel = { creatorVm.dispatch(CreatorIntent.CancelCreator) },
                     body = {
                         AgentRenderedTreeScreen(
                             uiBridge = uiBridge,
@@ -220,17 +193,15 @@ private fun AndroidApp() {
                                     store.sendUiEvent(action, label, fields)
                                 }
                             },
-                            onBack = { store.dispatch(AppIntent.CancelCreator) },
+                            onBack = { creatorVm.dispatch(CreatorIntent.CancelCreator) },
                             dataSources = runtime.dataSources,
                         )
                     },
                 )
             },
             onOpenUrl = onOpenUrl,
-            onCopyText = onCopyText,
             onRestartProcess = { restartProcess(context) },
             onOpenAppDetailsSettings = { openAppDetailsSettings(context) },
-            onOpenSaveDialog = { suggestedPrompt -> saveFromRenderDraft = suggestedPrompt },
         )
     }
 
@@ -238,7 +209,7 @@ private fun AndroidApp() {
         if (state.screen is Screen.RenderedTree) {
             uiBridge.clearLastUpdate()
         }
-        store.dispatch(AppIntent.Navigate(Screen.Chat))
+        navigationVm.dispatch(NavigationIntent.Back)
     }
 
     Box(
@@ -268,169 +239,6 @@ private fun AndroidApp() {
                         }
                     }
                 },
-            )
-        }
-    }
-}
-
-/**
- * Chat surface wrapped in the side navigation drawer. The drawer reads
- * conversations directly from the runtime — KMP-clean alternative
- * would be to route through `ConversationStoreGateway`, but the drawer
- * is Android-only anyway (uses the substrate Conversation type for
- * the `id` highlight + delete), so calling runtime directly is fine.
- */
-@Composable
-private fun ChatRoute(
-    store: AppViewModel,
-    runtime: WeftRuntime,
-    onOpenUrl: (String) -> Unit,
-    onCopyText: (String) -> Unit,
-) {
-    val state by store.state.collectAsState()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val speechGateway: SpeechGateway = koinInject()
-    val uiBridge: ComposeUiBridge = koinInject()
-    val agentCurrentConvId = state.currentConversationId.orEmpty()
-
-    val conversations by remember { runtime.conversationStore.search("") }
-        .collectAsState(initial = emptyList())
-
-    val threadTitle = conversations
-        .firstOrNull { it.id == agentCurrentConvId }
-        ?.title
-        ?.takeIf { it.isNotBlank() }
-        ?: "Undercurrent"
-
-    val personaRepo: PersonaRepository = koinInject()
-    val activeVoice by personaRepo.activeVoice.collectAsState()
-    val activeRole by personaRepo.activeRole.collectAsState()
-    val personaLabel = run {
-        val voiceLabel = activeVoice.name.takeIf { it != "Default" }
-        val roleLabel = activeRole?.name
-        listOfNotNull(voiceLabel, roleLabel).joinToString(" + ").ifEmpty { "Default" }
-    }
-    val threadSubtitle = listOf(
-        state.activeProvider.displayName,
-        personaLabel,
-    ).joinToString(" · ")
-
-    var hasMicPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
-                    == PackageManager.PERMISSION_GRANTED,
-        )
-    }
-    val micLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { granted -> hasMicPermission = granted }
-
-    val notifLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { /* banner re-checks on recompose */ }
-
-    fun closeAnd(action: () -> Unit) {
-        coroutineScope.launch { drawerState.close() }
-        action()
-    }
-
-    val drawerConversations = conversations.map {
-        dev.weft.undercurrent.shared.gateway.ConversationSummary(
-            id = it.id,
-            title = it.title,
-            createdAtMs = it.createdAtMs,
-            lastMessageAtMs = it.lastMessageAtMs,
-        )
-    }
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            AppDrawer(
-                conversations = drawerConversations,
-                activeConversationId = agentCurrentConvId,
-                onSelect = { id -> closeAnd { store.dispatch(AppIntent.SelectConversation(id)) } },
-                onNewChat = { closeAnd { store.dispatch(AppIntent.NewChat) } },
-                onDeleteConversation = { id -> store.dispatch(AppIntent.DeleteConversation(id)) },
-                onShowAllConversations = {
-                    closeAnd { store.dispatch(AppIntent.Navigate(Screen.Conversations)) }
-                },
-                onShowPersonas = { closeAnd { store.dispatch(AppIntent.Navigate(Screen.Personas)) } },
-                onShowMiniApps = { closeAnd { store.dispatch(AppIntent.Navigate(Screen.MiniApps)) } },
-                onShowMemories = { closeAnd { store.dispatch(AppIntent.Navigate(Screen.Memories)) } },
-                onShowTraces = { closeAnd { store.dispatch(AppIntent.Navigate(Screen.Traces)) } },
-                onShowSettings = { closeAnd { store.dispatch(AppIntent.Navigate(Screen.Settings)) } },
-            )
-        },
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            NotificationsPermissionBanner(
-                onGrant = { notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
-            )
-
-            val integrationsRepo: IntegrationsRepository = koinInject()
-            val enabledIntegrationIds by integrationsRepo.enabledIdsFlow
-                .collectAsState(initial = emptySet())
-
-            val miniAppsRepo: MiniAppsRepository = koinInject()
-            val miniApps by miniAppsRepo.miniApps.collectAsState()
-            val miniAppsScope = rememberCoroutineScope()
-
-            ChatScreen(
-                displayMessages = store.displayMessages,
-                inFlight = state.chat.inFlight,
-                lastError = state.chat.lastError,
-                onSend = { text, tier -> store.dispatch(AppIntent.SendChat(text, tier)) },
-                defaultTier = state.defaultTier,
-                threadTitle = threadTitle,
-                threadSubtitle = threadSubtitle,
-                activePersonaName = personaLabel,
-                lastModelId = null,
-                degradedMode = null,
-                speechGateway = speechGateway,
-                hasMicPermission = hasMicPermission,
-                onRequestMicPermission = {
-                    micLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                },
-                onCopyText = onCopyText,
-                onOpenUrl = onOpenUrl,
-                onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
-                onNewChat = { store.dispatch(AppIntent.NewChat) },
-                onDeleteThread = { store.dispatch(AppIntent.DeleteCurrentConversation) },
-                onRegenerate = { store.dispatch(AppIntent.RegenerateLast) },
-                skills = store.skills,
-                agents = state.availableAgents.map {
-                    AgentOption(it.name, it.displayName, it.description)
-                },
-                activeAgentName = state.activeAgentName,
-                onSelectAgent = { name -> store.dispatch(AppIntent.SelectAgent(name)) },
-                addToChatConfig = AddToChatConfig(
-                    activePalette = state.themePrefs.palette,
-                    activeMode = state.themePrefs.mode,
-                    connectedIntegrationsCount = enabledIntegrationIds.size,
-                    miniApps = miniApps,
-                    onSelectPalette = { p -> store.dispatch(AppIntent.SetPalette(p)) },
-                    onSelectMode = { m -> store.dispatch(AppIntent.SetThemeMode(m)) },
-                    onShowPersonas = { store.dispatch(AppIntent.Navigate(Screen.Personas)) },
-                    onShowIntegrations = { store.dispatch(AppIntent.Navigate(Screen.Integrations)) },
-                    onShowMiniApps = { store.dispatch(AppIntent.Navigate(Screen.MiniApps)) },
-                    onInvokeMiniApp = { miniApp ->
-                        store.dispatch(
-                            AppIntent.InvokeMiniApp(
-                                miniAppId = miniApp.id,
-                                triggerPrompt = miniApp.triggerPrompt,
-                                cachedRenderTreeJson = miniApp.lastRenderTreeJson,
-                            ),
-                        )
-                    },
-                    onAddMiniApp = { name, emoji, prompt ->
-                        miniAppsScope.launch {
-                            miniAppsRepo.add(name, emoji, prompt)
-                        }
-                    },
-                ),
             )
         }
     }

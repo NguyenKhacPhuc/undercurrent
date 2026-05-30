@@ -1,10 +1,8 @@
 package dev.weft.undercurrent.feature.memories
 
-import androidx.lifecycle.viewModelScope
-import dev.weft.undercurrent.shared.gateway.MemoryEntry
-import dev.weft.undercurrent.shared.gateway.MemoryStoreGateway
+import dev.weft.undercurrent.core.domain.MemoryEntry
+import dev.weft.undercurrent.core.domain.MemoryStoreRepository
 import dev.weft.undercurrent.shared.mvi.MviViewModel
-import kotlinx.coroutines.launch
 
 data class MemoriesState(val memories: List<MemoryEntry> = emptyList())
 
@@ -16,20 +14,18 @@ sealed interface MemoriesIntent {
 sealed interface MemoriesEffect
 
 class MemoriesViewModel(
-    private val store: MemoryStoreGateway,
+    private val store: MemoryStoreRepository,
 ) : MviViewModel<MemoriesState, MemoriesIntent, MemoriesEffect>(
     initialState = MemoriesState(memories = store.memories.value),
 ) {
     init {
-        viewModelScope.launch {
-            store.memories.collect { ms -> update { it.copy(memories = ms) } }
-        }
+        store.memories.collectInto { copy(memories = it) }
     }
 
-    override fun dispatch(intent: MemoriesIntent) {
+    override fun dispatch(intent: MemoriesIntent) = launch {
         when (intent) {
-            is MemoriesIntent.Delete -> viewModelScope.launch { store.delete(intent.id) }
-            MemoriesIntent.ClearAll -> viewModelScope.launch { store.clear() }
+            is MemoriesIntent.Delete -> store.delete(intent.id)
+            MemoriesIntent.ClearAll -> store.clear()
         }
     }
 }

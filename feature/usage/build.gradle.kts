@@ -13,6 +13,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // Gateway interfaces (UsageGateway + UsageTotals mirror).
+            implementation(projects.core.domain)
             implementation(projects.shared)
             // Today's ISO-date lookup for byDay map.
             implementation(libs.kotlinx.datetime)

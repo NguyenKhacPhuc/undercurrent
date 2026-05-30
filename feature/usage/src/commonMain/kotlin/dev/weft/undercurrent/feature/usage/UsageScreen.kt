@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.SectionLabel
-import dev.weft.undercurrent.shared.gateway.UsageTotals
+import dev.weft.undercurrent.core.domain.UsageTotals
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.absoluteValue
@@ -57,10 +57,6 @@ fun UsageScreen(
     UsageScreen(state = state, onBack = onBack)
 }
 
-/**
- * Stateless variant — used by the stateful overload above plus
- * `@Preview` / snapshot harnesses.
- */
 @OptIn(ExperimentalTime::class)
 @Composable
 fun UsageScreen(

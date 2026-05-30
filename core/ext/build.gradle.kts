@@ -9,11 +9,7 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // ConversationSummary — consumed by the conversation grouping
-            // helpers (formatLastActivity / groupConversationsByRecency)
-            // that live here so any UI module can use them without
-            // taking a feature-module dependency.
-            implementation(projects.shared)
+            implementation(projects.core.domain)
             implementation(libs.kotlinx.datetime)
         }
         androidMain.dependencies {

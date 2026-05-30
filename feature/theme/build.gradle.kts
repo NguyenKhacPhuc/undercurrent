@@ -12,7 +12,11 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // feature-specific common deps (e.g. :core:domain, :data:datastore)
+            // `AppIntent` parent marker — ThemeIntent extends it.
+            implementation(projects.shared)
+            // ThemeRepository + theme UseCases — Clean Architecture
+            // data + domain layers consumed by ThemeViewModel.
+            implementation(projects.core.domain)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

@@ -13,6 +13,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // KeyValidationGateway + ValidationResult.
+            implementation(projects.core.domain)
             implementation(projects.shared)
         }
         androidMain.dependencies {

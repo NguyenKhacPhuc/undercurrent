@@ -24,6 +24,6 @@ fun initKoin() {
     // "WeftBindings" subsystem.
     Napier.base(DebugAntilog())
     startKoin {
-        modules(iosAppModule)
+        modules(iosAllModules)
     }
 }

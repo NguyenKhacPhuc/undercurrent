@@ -33,7 +33,7 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.ui.TokenDivider
 import dev.weft.undercurrent.core.ext.formatLastActivity
 import dev.weft.undercurrent.core.ext.groupConversationsByRecency
-import dev.weft.undercurrent.shared.gateway.ConversationSummary
+import dev.weft.undercurrent.core.domain.ConversationSummary
 
 /**
  * Side drawer for the chat surface. Holds three regions:

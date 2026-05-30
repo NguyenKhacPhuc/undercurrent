@@ -1,10 +1,8 @@
 package dev.weft.undercurrent.feature.personas
 
-import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.core.model.PersonaKind
 import dev.weft.undercurrent.core.domain.PersonaRepository
 import dev.weft.undercurrent.shared.mvi.MviViewModel
-import kotlinx.coroutines.launch
 
 /**
  * Screen-scoped MVI store for [PersonasScreen].
@@ -29,43 +27,29 @@ class PersonasViewModel(
     ),
 ) {
     init {
-        viewModelScope.launch {
-            repo.activeVoice.collect { v -> update { it.copy(activeVoice = v) } }
-        }
-        viewModelScope.launch {
-            repo.activeRole.collect { r -> update { it.copy(activeRole = r) } }
-        }
-        viewModelScope.launch {
-            repo.customPersonas.collect { c -> update { it.copy(customPersonas = c) } }
-        }
+        repo.activeVoice.collectInto { copy(activeVoice = it) }
+        repo.activeRole.collectInto { copy(activeRole = it) }
+        repo.customPersonas.collectInto { copy(customPersonas = it) }
     }
 
-    override fun dispatch(intent: PersonasIntent) {
+    override fun dispatch(intent: PersonasIntent) = launch {
         when (intent) {
             is PersonasIntent.TapPersona -> handleTap(intent)
-            is PersonasIntent.AddCustom -> viewModelScope.launch { handleAdd(intent) }
-            is PersonasIntent.UpdateCustom -> viewModelScope.launch { handleUpdate(intent) }
-            is PersonasIntent.DeleteCustom -> viewModelScope.launch {
-                repo.deleteCustom(intent.id)
-            }
+            is PersonasIntent.AddCustom -> handleAdd(intent)
+            is PersonasIntent.UpdateCustom -> handleUpdate(intent)
+            is PersonasIntent.DeleteCustom -> repo.deleteCustom(intent.id)
         }
     }
 
-    /**
-     * Voice / Custom kinds replace the voice slot. Role kinds toggle
-     * — tapping the active role clears it.
-     */
-    private fun handleTap(intent: PersonasIntent.TapPersona) {
+    private suspend fun handleTap(intent: PersonasIntent.TapPersona) {
         val persona = intent.persona
         when (persona.kind) {
             PersonaKind.Role -> {
                 val currentId = current.activeRole?.id
                 val nextId = if (currentId == persona.id) null else persona.id
-                viewModelScope.launch { repo.setActiveRole(nextId) }
+                repo.setActiveRole(nextId)
             }
-            PersonaKind.Voice, PersonaKind.Custom -> {
-                viewModelScope.launch { repo.setActiveVoice(persona.id) }
-            }
+            PersonaKind.Voice, PersonaKind.Custom -> repo.setActiveVoice(persona.id)
         }
     }
 

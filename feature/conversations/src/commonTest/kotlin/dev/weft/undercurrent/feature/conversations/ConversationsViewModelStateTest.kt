@@ -1,7 +1,7 @@
 package dev.weft.undercurrent.feature.conversations
 
-import dev.weft.undercurrent.shared.gateway.ConversationStoreGateway
-import dev.weft.undercurrent.shared.gateway.ConversationSummary
+import dev.weft.undercurrent.core.domain.ConversationStoreRepository
+import dev.weft.undercurrent.core.domain.ConversationSummary
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.Dispatchers
@@ -109,7 +109,7 @@ class ConversationsViewModelStateTest : BehaviorSpec({
 })
 
 /**
- * KMP-portable [ConversationStoreGateway] fake. The search()
+ * KMP-portable [ConversationStoreRepository] fake. The search()
  * implementation returns the same flow for every query — the
  * production behavior where different queries yield different results
  * isn't covered here (it's tested via MockK in
@@ -117,7 +117,7 @@ class ConversationsViewModelStateTest : BehaviorSpec({
  */
 private class FakeConversationStoreGateway(
     initialResults: List<ConversationSummary> = emptyList(),
-) : ConversationStoreGateway {
+) : ConversationStoreRepository {
     private val _results = MutableStateFlow(initialResults)
 
     override fun search(query: String): Flow<List<ConversationSummary>> = _results

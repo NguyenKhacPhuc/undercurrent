@@ -9,7 +9,10 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // module-specific common deps go here
+            // AppState carries a Screen field. `api` so consumers that
+            // import AppState don't need a separate :core:navigation
+            // dep to resolve the supertype.
+            api(projects.core.navigation)
         }
         androidMain.dependencies {
             // module-specific Android deps go here

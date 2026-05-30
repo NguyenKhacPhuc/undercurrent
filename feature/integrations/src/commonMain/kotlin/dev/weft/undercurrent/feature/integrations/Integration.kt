@@ -1,6 +1,6 @@
 package dev.weft.undercurrent.feature.integrations
 
-import dev.weft.undercurrent.shared.gateway.OAuthConfig
+import dev.weft.undercurrent.core.domain.OAuthConfig
 
 /**
  * One supported third-party integration. Each integration is gated by

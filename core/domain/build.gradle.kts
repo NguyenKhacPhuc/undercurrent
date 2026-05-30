@@ -1,12 +1,9 @@
-// Pure KMP library — Android + iOS, no Compose, no Koin.
-//
-// Holds repository classes (DataStore-Preferences-backed) and, in
-// future, use cases. Repositories take a `DataStore<Preferences>` by
-// constructor — the data layer at `:data:datastore` builds the
-// platform-appropriate DataStore and DI hands it here.
+// KMP library — repository classes + their Koin bindings. Use cases
+// are declared per-feature in the consuming feature modules.
 
 plugins {
     alias(libs.plugins.undercurrent.kmp.library)
+    alias(libs.plugins.undercurrent.kmp.koin)
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -22,7 +19,16 @@ kotlin {
             api(libs.androidx.datastore.preferences.core)
         }
         androidMain.dependencies {
-            // module-specific Android deps go here
+            implementation("dev.weft:weft-runtime")
+            implementation("dev.weft:weft-compose")
+            implementation("dev.weft:weft-oauth")
+            implementation("dev.weft:weft-contracts")
+            implementation("dev.weft:weft-harness-conversation")
+            implementation("dev.weft:weft-harness-memory")
+            implementation("dev.weft:weft-harness-observability")
+            implementation("dev.weft:weft-harness-cost")
+            implementation(libs.kotlinx.coroutines.android)
+            implementation(libs.koin.android)
         }
         iosMain.dependencies {
             // module-specific iOS deps go here

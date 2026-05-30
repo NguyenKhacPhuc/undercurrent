@@ -41,37 +41,15 @@ import dev.weft.undercurrent.core.model.apiConsoleUrl
 import dev.weft.undercurrent.core.model.hostName
 import dev.weft.undercurrent.core.model.keyPlaceholder
 import dev.weft.undercurrent.core.model.signupHint
-import dev.weft.undercurrent.shared.gateway.KeyValidationGateway
-import dev.weft.undercurrent.shared.gateway.ValidationResult
+import dev.weft.undercurrent.core.domain.KeyValidationRepository
+import dev.weft.undercurrent.core.domain.ValidationResult
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-/**
- * Key paste flow. Provider-aware — title, body, signup hint,
- * placeholder, and validation target all reflect the active
- * [ProviderKind].
- *
- * Voice: leads with the privacy framing ("Your key. Your bill.
- * Nothing in between."). Primary action opens the provider's console
- * in the system browser; secondary path is paste-and-validate.
- *
- * KMP — commonMain. Moved from
- * `app/.../features/keypaste/KeyPasteScreen.kt`. Adjustments:
- *   - `apiConsoleUrl` / `signupHint` / `hostName` / `keyPlaceholder`
- *     pulled into `:core:model` as pure [ProviderKind] extensions.
- *   - `validateKey` (Koog-backed, Android-only) replaced with the
- *     [KeyValidationGateway] contract — Android impl in `:data:weft`
- *     keeps the Koog clients; iOS stub returns "not supported".
- *   - `openInBrowser` (Android Custom Tabs) lifted to a callback
- *     parameter [onOpenConsole]. Host wires it to a CCT launch on
- *     Android; iOS shell can wire `SFSafariViewController` later.
- *   - Eye-toggle uses "Show"/"Hide" text instead of Material icons-
- *     extended (which doesn't ship in CMP by default).
- */
 @Composable
 fun KeyPasteScreen(
     provider: ProviderKind,
-    validator: KeyValidationGateway,
+    validator: KeyValidationRepository,
     onKeyAccepted: (String) -> Unit,
     saveKey: suspend (String) -> Unit,
     onOpenConsole: (url: String) -> Unit,
@@ -331,7 +309,7 @@ private fun KeyPasteScreenPreview() {
     UndercurrentTheme {
         KeyPasteScreen(
             provider = ProviderKind.Anthropic,
-            validator = object : KeyValidationGateway {
+            validator = object : KeyValidationRepository {
                 override suspend fun validateKey(
                     provider: ProviderKind,
                     apiKey: String,

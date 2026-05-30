@@ -37,7 +37,7 @@ import dev.weft.undercurrent.core.ui.ScaffoldTextAction
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.SectionLabel
 import dev.weft.undercurrent.core.ui.TokenDivider
-import dev.weft.undercurrent.shared.gateway.ConversationSummary
+import dev.weft.undercurrent.core.domain.ConversationSummary
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 

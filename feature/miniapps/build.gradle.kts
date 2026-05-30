@@ -18,7 +18,13 @@ kotlin {
             implementation(projects.shared)
         }
         androidMain.dependencies {
-            // androidMain-only deps (e.g. :data:weft, ML Kit)
+            // Substrate — WeftMiniAppViewModel seeds the cached
+            // render tree into WeftRuntime.uiBridge on invocation.
+            // The chat-send capability is injected as a lambda
+            // (see miniAppAndroidModule) so this module does NOT
+            // depend on :feature:chat — that would cycle.
+            implementation("dev.weft:weft-runtime")
+            implementation("dev.weft:weft-contracts")
         }
     }
 }

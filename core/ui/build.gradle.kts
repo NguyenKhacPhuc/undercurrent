@@ -48,9 +48,7 @@ kotlin {
             // TrendingUp, …) that aren't in the core icon set. CMP
             // variant lives in `org.jetbrains.compose.material:*`.
             implementation(libs.compose.multiplatform.material.icons.extended)
-            // ConversationSummary (from :shared) + the conversation
-            // grouping helpers (in :core:ext) consumed by AppDrawer.
-            implementation(projects.shared)
+            implementation(projects.core.domain)
             implementation(projects.core.ext)
             implementation(libs.kotlinx.serialization.json)
             // Calendar / Countdown components use kotlinx-datetime +

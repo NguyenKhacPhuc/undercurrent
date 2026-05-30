@@ -52,8 +52,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  *   - `dev.weft.contracts.ProviderKind` → `:core:model` mirror.
  *   - `dev.weft.android.routing.catalogFor` is no longer reachable
  *     from commonMain; the host now passes a [modelCountFor] lambda
- *     that resolves to `ModelCatalog.modelsForProvider(p).size` on
- *     Android (and the StubModelCatalog returns 0 on iOS, which the
+ *     that resolves to `ModelCatalogRepository.modelsForProvider(p).size` on
+ *     Android (and the StubModelCatalogRepository returns 0 on iOS, which the
  *     screen still renders cleanly).
  *   - `BuiltInPersonas` / `Persona` from `:core:model`.
  *   - Theme imports from `:core:design-system`.

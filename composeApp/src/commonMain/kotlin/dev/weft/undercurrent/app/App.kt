@@ -18,21 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.AppEffect
+import dev.weft.undercurrent.core.model.PermissionDialogState
 import dev.weft.undercurrent.core.model.ThemeMode
 
-/**
- * Root Composable shared between Android and iOS. Owns the theme
- * wrapper, the snackbar host, the permission-dialog overlay, and the
- * top-level screen switch.
- *
- * Platform-specific bits (chat surface, agent-rendered tree, mini-app
- * tree preview, OS bridges) are injected through [PlatformAdapter].
- *
- * @param store the platform's [AppViewModel] implementation (Android wires
- *   `WeftAppViewModel`; iOS wires the stub).
- * @param platform substrate-coupled routes + OS callbacks. iOS passes
- *   placeholder composables for the substrate-only screens.
- */
 @Composable
 fun App(
     store: AppViewModel,
@@ -48,9 +36,7 @@ fun App(
         ThemeMode.Dark -> true
     }
 
-    LaunchedEffect(store) {
-        store.dispatch(AppIntent.Resume)
-    }
+    LaunchedEffect(store) { store.resume() }
 
     LaunchedEffect(store, snackbarHostState) {
         store.effects.collect { effect ->
@@ -79,11 +65,9 @@ fun App(
                         state = pending,
                         onOpenSettings = {
                             platform.onOpenAppDetailsSettings()
-                            store.dispatch(AppIntent.DismissPermissionDialog)
+                            store.dismissPermissionDialog()
                         },
-                        onDismiss = {
-                            store.dispatch(AppIntent.DismissPermissionDialog)
-                        },
+                        onDismiss = { store.dismissPermissionDialog() },
                     )
                 }
             }

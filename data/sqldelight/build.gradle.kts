@@ -6,6 +6,7 @@
 
 plugins {
     alias(libs.plugins.undercurrent.kmp.library)
+    alias(libs.plugins.undercurrent.kmp.koin)
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.kotlin.serialization)
 }

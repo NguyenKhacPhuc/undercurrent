@@ -24,26 +24,10 @@ dependencyResolutionManagement {
     }
 }
 
-// Type-safe project accessors — modules reference each other as
-// `implementation(projects.core.model)` instead of `:core:model`.
-// Match r10's convention.
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "undercurrent"
 
-// =============================================================
-// Weft SDK — composite build from sibling directory.
-// =============================================================
-// Source: https://github.com/NguyenKhacPhuc/android-harness
-// Expected layout:
-//   <parent>/weft/           (Weft SDK)
-//   <parent>/undercurrent/   (this app)
-//
-// Weft composite-build. The substrate is mostly KMP now (jvm +
-// androidTarget + iosArm64 + iosSimulatorArm64) — only the
-// composition-root + Android-specific OS bridges stay Android-only.
-// iOS-target consumers in this build pull the KMP variants directly;
-// host-app shells continue to pull the Android-library ones.
 includeBuild("../weft") {
     dependencySubstitution {
         substitute(module("dev.weft:weft-runtime"))

@@ -13,12 +13,18 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // Gateway interfaces (TraceStoreGateway + AgentTrace/* mirrors).
+            implementation(projects.core.domain)
             implementation(projects.shared)
             // HH:mm:ss.SSS formatting in trace rows + meta blocks.
             implementation(libs.kotlinx.datetime)
         }
         androidMain.dependencies {
-            // androidMain-only deps (e.g. :data:weft, ML Kit)
+            // Substrate — WeftTraceExportViewModel writes traces to a
+            // file via the runtime's OS bridges and shares via the
+            // system sheet.
+            implementation("dev.weft:weft-runtime")
+            implementation("dev.weft:weft-harness-observability")
+            implementation("dev.weft:weft-contracts")
         }
     }
 }

@@ -1,11 +1,9 @@
 package dev.weft.undercurrent.feature.conversations
 
-import androidx.lifecycle.viewModelScope
-import dev.weft.undercurrent.shared.gateway.ConversationStoreGateway
-import dev.weft.undercurrent.shared.gateway.ConversationSummary
+import dev.weft.undercurrent.core.domain.ConversationStoreRepository
+import dev.weft.undercurrent.core.domain.ConversationSummary
 import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 
 data class ConversationsState(
     val query: String = "",
@@ -27,7 +25,7 @@ sealed interface ConversationsEffect
  * restarts it whenever [ConversationsIntent.SetQuery] arrives.
  */
 class ConversationsViewModel(
-    private val store: ConversationStoreGateway,
+    private val store: ConversationStoreRepository,
 ) : MviViewModel<ConversationsState, ConversationsIntent, ConversationsEffect>(
     initialState = ConversationsState(),
 ) {
@@ -38,25 +36,19 @@ class ConversationsViewModel(
         resubscribe("")
     }
 
-    override fun dispatch(intent: ConversationsIntent) {
+    override fun dispatch(intent: ConversationsIntent) = launch {
         when (intent) {
             is ConversationsIntent.SetQuery -> {
                 update { it.copy(query = intent.query) }
                 resubscribe(intent.query)
             }
-            is ConversationsIntent.Delete -> viewModelScope.launch {
-                store.deleteConversation(intent.id)
-            }
-            ConversationsIntent.ClearAll -> viewModelScope.launch { store.clearAll() }
+            is ConversationsIntent.Delete -> store.deleteConversation(intent.id)
+            ConversationsIntent.ClearAll -> store.clearAll()
         }
     }
 
     private fun resubscribe(query: String) {
         searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            store.search(query).collect { list ->
-                update { it.copy(conversations = list) }
-            }
-        }
+        searchJob = store.search(query).collectInto { copy(conversations = it) }
     }
 }
