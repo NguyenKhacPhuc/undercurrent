@@ -15,9 +15,12 @@ import dev.weft.contracts.ShareContent
 import dev.weft.contracts.ShareTarget
 import dev.weft.contracts.UIUpdate
 import dev.weft.contracts.WeftCredentialProvider
+import dev.weft.harness.agents.AgentIntent
+import dev.weft.harness.agents.ToolEvent
+import dev.weft.harness.agents.TurnStatus
 import dev.weft.harness.agents.WeftAgent
 import dev.weft.harness.agents.routing.ModelPool
-import dev.weft.harness.agents.streaming.StreamChunk
+import dev.weft.harness.behavior.Turn
 import dev.weft.harness.conversation.PersistedRole
 import dev.weft.harness.observability.AgentTrace
 import dev.weft.harness.skills.SkillRegistry
@@ -510,8 +513,8 @@ internal class WeftAppStore(
         }
 
         update { it.copy(chat = ChatStatus(inFlight = true, lastError = null)) }
-        consumeAgentStream(a.regenerateStreaming())
-        update { it.copy(chat = it.chat.copy(inFlight = false)) }
+        // Fire-and-forget — same observer-driven model as handleSendChat.
+        a.dispatch(AgentIntent.Regenerate())
     }
 
     private suspend fun handleSendChat(
@@ -546,68 +549,132 @@ internal class WeftAppStore(
         }
 
         val effectiveTier = modelTier ?: current.defaultTier
-        consumeAgentStream(a.sendStreaming(trimmed, modelTier = effectiveTier?.toWeft()))
-        update { it.copy(chat = it.chat.copy(inFlight = false)) }
+        // Fire-and-forget — the long-lived agent-state observers
+        // installed in [setupAgentObservers] handle text deltas, tool
+        // bubbles, in-flight tracking, and error surfacing as the
+        // turn unfolds. `inFlight = false` will fire when state
+        // transitions back to TurnStatus.Idle / Failed.
+        a.dispatch(AgentIntent.Send(trimmed, tier = effectiveTier?.toWeft()))
     }
 
-    private suspend fun consumeAgentStream(stream: Flow<StreamChunk>) {
+    /**
+     * Install long-lived observers that project the agent's reactive
+     * surface into [displayMessages] + [AppState]. Replaces the old
+     * per-turn [consumeAgentStream] pump — we now react to state
+     * transitions instead of consuming per-turn `Flow<StreamChunk>`.
+     *
+     * Wired collectors:
+     *
+     *   1. `a.state.conversationId` → AppState.currentConversationId.
+     *      Already collected via setAgent's tail — kept there.
+     *   2. `a.state.pendingAssistantDelta` → streaming assistant
+     *      message in displayMessages. First non-empty value of a
+     *      turn creates a fresh DisplayMessage; subsequent emissions
+     *      update its `text`. Reset on turn end (Idle/Failed).
+     *   3. `a.state.turnStatus` → chat.inFlight + auto-clear pending
+     *      streaming message id.
+     *   4. `a.state.lastError` → chat.lastError (mirrors substrate's
+     *      Throwable as a string for the snackbar).
+     *   5. `a.events` (legacy ToolEvent SharedFlow — @Deprecated on
+     *      substrate but kept until tool-events make it onto
+     *      AgentEffect) → tool-start / tool-done / tool-fail bubbles.
+     *
+     * Every collector guards with `if (agent === a)` so stale
+     * emissions from an agent that was replaced (provider switch,
+     * agent swap) don't leak into the new agent's UI.
+     */
+    @Suppress("DEPRECATION")
+    private fun setupAgentStateObservers(a: WeftAgent) {
+        // Local streaming-message tracking — kept in one collector so
+        // the create-vs-update branch + the turn-end reset stay co-
+        // located. Captured by the closure; one streamingMessageId
+        // var per agent install, which is exactly the right scope.
         var streamingMessageId: Long? = null
-        runCatching {
-            stream.flowOn(Dispatchers.IO).collect { chunk ->
-                when (chunk) {
-                    is StreamChunk.TextDelta -> {
-                        val existingId = streamingMessageId
-                        if (existingId == null) {
+
+        viewModelScope.launch {
+            a.state
+                .map { it.pendingAssistantDelta to it.turnStatus }
+                .distinctUntilChanged()
+                .collect { (delta, status) ->
+                    if (agent !== a) return@collect
+                    when {
+                        delta.isNotEmpty() && streamingMessageId == null -> {
                             val msg = DisplayMessage.assistant(
-                                text = chunk.text,
+                                text = delta,
                                 agentName = current.activeAgentName,
                             )
                             streamingMessageId = msg.id
                             displayMessages += msg
-                        } else {
-                            val idx = displayMessages.indexOfLast { it.id == existingId }
+                        }
+                        delta.isNotEmpty() && streamingMessageId != null -> {
+                            val id = streamingMessageId!!
+                            val idx = displayMessages.indexOfLast { it.id == id }
                             if (idx >= 0) {
-                                val current = displayMessages[idx]
-                                displayMessages[idx] = current.copy(text = current.text + chunk.text)
+                                displayMessages[idx] = displayMessages[idx].copy(text = delta)
                             }
                         }
+                        delta.isEmpty() && (status == TurnStatus.Idle || status == TurnStatus.Failed) -> {
+                            streamingMessageId = null
+                        }
                     }
-                    is StreamChunk.ToolStarting ->
-                        displayMessages += DisplayMessage.toolStart(chunk.toolName)
-                    is StreamChunk.ToolCompleted ->
-                        displayMessages += DisplayMessage.toolDone(chunk.toolName)
-                    is StreamChunk.ToolFailed -> {
-                        val dialog = parsePermissionFailure(chunk.toolName, chunk.message)
+                }
+        }
+
+        viewModelScope.launch {
+            a.state
+                .map { it.turnStatus }
+                .distinctUntilChanged()
+                .collect { status ->
+                    if (agent !== a) return@collect
+                    val inFlight = status == TurnStatus.Sending ||
+                        status == TurnStatus.Streaming ||
+                        status == TurnStatus.ToolRunning
+                    if (current.chat.inFlight != inFlight) {
+                        update { it.copy(chat = it.chat.copy(inFlight = inFlight)) }
+                    }
+                }
+        }
+
+        viewModelScope.launch {
+            a.state
+                .map { it.lastError }
+                .distinctUntilChanged()
+                .collect { err ->
+                    if (agent !== a) return@collect
+                    if (err != null) {
+                        val msg = err.message ?: err::class.simpleName.orEmpty()
+                        update { it.copy(chat = it.chat.copy(lastError = msg)) }
+                    }
+                }
+        }
+
+        viewModelScope.launch {
+            a.events.collect { ev ->
+                if (agent !== a) return@collect
+                when (ev) {
+                    is ToolEvent.Starting ->
+                        displayMessages += DisplayMessage.toolStart(ev.toolName)
+                    is ToolEvent.Completed ->
+                        displayMessages += DisplayMessage.toolDone(ev.toolName)
+                    is ToolEvent.Failed -> {
+                        // "llm.retry" is the synthetic event the substrate
+                        // emits from onAttemptFailed inside its
+                        // withRetry wrapper. Drop it from the chat scroll
+                        // (the retry chatter would crowd the bubble view)
+                        // — telemetry still has it via TraceStore.
+                        if (ev.toolName == "llm.retry") return@collect
+                        val dialog = parsePermissionFailure(ev.toolName, ev.message)
                         if (dialog != null) {
                             displayMessages += DisplayMessage.toolFail(
-                                chunk.toolName,
+                                ev.toolName,
                                 "Needs permission — see dialog.",
                             )
                             update { it.copy(pendingPermissionDialog = dialog) }
                         } else {
-                            displayMessages += DisplayMessage.toolFail(chunk.toolName, chunk.message)
+                            displayMessages += DisplayMessage.toolFail(ev.toolName, ev.message)
                         }
                     }
-                    is StreamChunk.Done -> {
-                        if (streamingMessageId == null && chunk.finalReply.isNotBlank()) {
-                            displayMessages += DisplayMessage.assistant(
-                                text = chunk.finalReply,
-                                agentName = current.activeAgentName,
-                            )
-                        }
-                    }
-                    is StreamChunk.Failed ->
-                        update { it.copy(chat = it.chat.copy(lastError = chunk.message)) }
                 }
-            }
-        }.onFailure { t ->
-            update {
-                val existing = it.chat.lastError
-                it.copy(
-                    chat = it.chat.copy(
-                        lastError = existing ?: (t.message ?: t::class.simpleName.orEmpty()),
-                    ),
-                )
             }
         }
     }
@@ -786,6 +853,7 @@ internal class WeftAppStore(
                     }
                 }
         }
+        setupAgentStateObservers(a)
     }
 
     private suspend fun refreshProviderKeyStatus() {
