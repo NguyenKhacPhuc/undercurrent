@@ -1,28 +1,26 @@
-// WeftAgentEngine wraps WeftAgent in undercurrent's own KMP-shared
-// AgentEngine interface so commonMain feature modules can consume the
-// agent without binding to Weft's exact API. After Weft Phase 1 added
-// state/dispatch/effects on WeftAgent itself, this wrapper duplicates
-// most of what WeftAgent already exposes — a future refactor will
-// decide whether AgentEngine still earns its keep or whether feature
-// modules should consume WeftAgent's state directly.
-//
-// Until that refactor, this file uses the @Deprecated WeftAgent
-// methods directly. Suppressed file-wide so review noise stays low.
-@file:Suppress("DEPRECATION")
-
 package dev.weft.undercurrent.data.weft
 
+import dev.weft.harness.agents.AgentEffect
+import dev.weft.harness.agents.AgentIntent
+import dev.weft.harness.agents.TurnStatus
 import dev.weft.harness.agents.WeftAgent
-import dev.weft.harness.agents.streaming.StreamChunk
 import dev.weft.harness.agents.routing.ModelTier
+import dev.weft.harness.behavior.Turn
 import dev.weft.undercurrent.shared.agent.AgentEngine
 import dev.weft.undercurrent.shared.agent.AgentState
 import dev.weft.undercurrent.shared.agent.ChatChunk
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 /**
  * Android implementation of [AgentEngine] that wraps a [WeftAgent].
@@ -30,11 +28,11 @@ import kotlinx.coroutines.flow.map
  * Android-only.
  *
  * What this bridge does:
- *   - Translates Weft's [StreamChunk] sealed class into our
- *     KMP-shared [ChatChunk] (1:1 mapping plus the `Failed` →
- *     `ToolFailed("send")` collapse).
- *   - Wraps [WeftAgent.currentConversationId] into the broader
- *     [AgentState] shape feature modules consume.
+ *   - Translates Weft's reactive surface ([WeftAgent.state] +
+ *     [WeftAgent.effects]) into our KMP-shared [ChatChunk] stream
+ *     shape that feature modules consume.
+ *   - Projects [WeftAgent.state] into the broader [AgentState]
+ *     wrapper used by commonMain feature modules.
  *   - Maps the `modelTier` string from common code to Weft's
  *     [ModelTier] enum.
  *
@@ -54,34 +52,111 @@ class WeftAgentEngine(
     private val agent: WeftAgent,
 ) : AgentEngine {
 
-    // Initial state — ready=true because by the time DI builds this,
-    // the agent is constructed. Provider-switch / boot screens
-    // construct a different (stubbed) engine until the real agent
-    // is ready.
+    // Long-lived scope for mirroring `agent.state` into our shared
+    // AgentState flow. Cancelled implicitly when the process dies.
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     private val _state = MutableStateFlow(
         AgentState(
             ready = true,
-            conversationId = agent.currentConversationId.value
-                .takeIf { it.isNotBlank() },
-        )
+            conversationId = agent.state.value.conversationId.takeIf { it.isNotBlank() },
+        ),
     )
 
     override val state: StateFlow<AgentState> = _state.asStateFlow()
 
-    override fun sendStreaming(text: String, modelTier: String?): Flow<ChatChunk> =
-        agent.sendStreaming(userText = text, modelTier = modelTier.toWeftTier())
-            .map { it.toCommonChunk() }
+    init {
+        // Mirror the agent's conversation id into our shared state.
+        scope.launch {
+            agent.state
+                .map { it.conversationId }
+                .distinctUntilChanged()
+                .collect { convId ->
+                    _state.value = _state.value.copy(
+                        conversationId = convId.takeIf { it.isNotBlank() },
+                    )
+                }
+        }
+    }
 
-    override suspend fun send(text: String, modelTier: String?): String =
-        agent.send(userText = text, modelTier = modelTier.toWeftTier())
+    override fun sendStreaming(text: String, modelTier: String?): Flow<ChatChunk> = channelFlow {
+        // Project agent state + effects into ChatChunk emissions for
+        // the duration of one turn. Same pattern as IosWeftAgentLlmClient
+        // — see comments there for the prefix-tracking rationale.
+        var emittedPrefix = ""
+        val stateJob = launch {
+            agent.state.collect { st ->
+                val delta = st.pendingAssistantDelta
+                if (delta.length > emittedPrefix.length && delta.startsWith(emittedPrefix)) {
+                    trySend(ChatChunk.TextDelta(delta.substring(emittedPrefix.length)))
+                    emittedPrefix = delta
+                } else if (delta != emittedPrefix && delta.isNotEmpty()) {
+                    trySend(ChatChunk.TextDelta(delta))
+                    emittedPrefix = delta
+                }
+                when (st.turnStatus) {
+                    TurnStatus.Idle -> {
+                        if (st.lastError == null && emittedPrefix.isNotEmpty()) {
+                            trySend(ChatChunk.Done)
+                            close()
+                        }
+                    }
+                    TurnStatus.Failed -> {
+                        trySend(
+                            ChatChunk.ToolFailed(
+                                "send",
+                                st.lastError?.message ?: "send failed",
+                            ),
+                        )
+                        close()
+                    }
+                    else -> Unit
+                }
+            }
+        }
+        val effectsJob = launch {
+            agent.effects.collect { ef ->
+                when (ef) {
+                    is AgentEffect.ToolStarting -> trySend(ChatChunk.ToolStarting(ef.toolName))
+                    is AgentEffect.ToolCompleted -> trySend(ChatChunk.ToolCompleted(ef.toolName))
+                    is AgentEffect.ToolFailed -> trySend(
+                        ChatChunk.ToolFailed(ef.toolName, ef.message),
+                    )
+                    // Notify / QuotaBlocked / BreakerOpened — not
+                    // ChatChunk-shaped; consumers wanting these
+                    // subscribe directly to `agent.effects`.
+                    is AgentEffect.Notify,
+                    is AgentEffect.QuotaBlocked,
+                    is AgentEffect.BreakerOpened -> Unit
+                }
+            }
+        }
+
+        agent.dispatch(AgentIntent.Send(text, tier = modelTier.toWeftTier()))
+
+        awaitClose {
+            stateJob.cancel()
+            effectsJob.cancel()
+        }
+    }
+
+    override suspend fun send(text: String, modelTier: String?): String {
+        agent.dispatchAndAwait(
+            AgentIntent.Send(text, tier = modelTier.toWeftTier(), streaming = false),
+        )
+        // After the turn completes, the new assistant reply is the
+        // last entry in the agent's history.
+        val lastAssistant = agent.state.value.history.lastOrNull { it is Turn.Assistant } as? Turn.Assistant
+        return lastAssistant?.text.orEmpty()
+    }
 
     override suspend fun newChat() {
-        agent.newChat()
+        agent.dispatchAndAwait(AgentIntent.NewChat)
         _state.value = _state.value.copy(conversationId = null)
     }
 
     override suspend fun resume(conversationId: String) {
-        agent.resume(conversationId)
+        agent.dispatchAndAwait(AgentIntent.Resume(conversationId))
         _state.value = _state.value.copy(conversationId = conversationId)
     }
 
@@ -95,7 +170,7 @@ class WeftAgentEngine(
     }
 
     override suspend fun regenerateLast() {
-        agent.regenerate()
+        agent.dispatchAndAwait(AgentIntent.Regenerate(streaming = false))
     }
 
     override suspend fun deleteConversation(id: String) {
@@ -106,17 +181,6 @@ class WeftAgentEngine(
         if (_state.value.conversationId == id) {
             newChat()
         }
-    }
-
-    // ---- chunk translation -----------------------------------------------
-
-    private fun StreamChunk.toCommonChunk(): ChatChunk = when (this) {
-        is StreamChunk.TextDelta -> ChatChunk.TextDelta(text)
-        is StreamChunk.ToolStarting -> ChatChunk.ToolStarting(toolName)
-        is StreamChunk.ToolCompleted -> ChatChunk.ToolCompleted(toolName)
-        is StreamChunk.ToolFailed -> ChatChunk.ToolFailed(toolName, message)
-        is StreamChunk.Done -> ChatChunk.Done
-        is StreamChunk.Failed -> ChatChunk.ToolFailed("send", message)
     }
 
     // ---- model-tier translation ------------------------------------------

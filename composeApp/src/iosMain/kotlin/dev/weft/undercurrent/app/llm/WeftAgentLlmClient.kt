@@ -1,18 +1,13 @@
-// Adapter that fits Weft's per-call `Flow<StreamChunk>` shape into the
-// iOS LlmClient interface. Same situation as WeftAgentEngine: a
-// future refactor will decide whether this adapter still earns its
-// keep now that WeftAgent has its own MVI surface, or whether
-// IosAppStore should consume state/dispatch directly. Until then,
-// suppress deprecation to keep the review noise low.
-@file:Suppress("DEPRECATION")
-
 package dev.weft.undercurrent.app.llm
 
+import dev.weft.harness.agents.AgentIntent
+import dev.weft.harness.agents.TurnStatus
 import dev.weft.harness.agents.WeftAgent
-import dev.weft.harness.agents.streaming.StreamChunk
 import dev.weft.undercurrent.app.IosWeftAgentFactory
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.launch
 
 /**
  * Thin [LlmClient] adapter that routes Anthropic chat through the
@@ -57,12 +52,12 @@ internal class WeftAgentLlmClient(
     private var agent: WeftAgent? = null
     private var cachedKey: String? = null
 
-    override fun send(history: List<LlmMessage>, systemPrompt: String): Flow<LlmChunk> = flow {
+    override fun send(history: List<LlmMessage>, systemPrompt: String): Flow<LlmChunk> = channelFlow {
         val apiKey = getApiKey()
         if (apiKey.isNullOrBlank()) {
-            emit(LlmChunk.Error("No Anthropic API key configured"))
-            emit(LlmChunk.Done)
-            return@flow
+            trySend(LlmChunk.Error("No Anthropic API key configured"))
+            trySend(LlmChunk.Done)
+            return@channelFlow
         }
 
         // Rebuild the agent when the API key rotates. Otherwise reuse
@@ -75,30 +70,56 @@ internal class WeftAgentLlmClient(
             )
             cachedKey = apiKey
         }
+        val a = agent!!
 
         // The agent rebuilds its prompt from its own ConversationStore.
         // The new user turn is the last user-role entry in `history` —
         // anything older is the agent's own ground truth at this point.
         val userText = history.lastOrNull { it.role == LlmMessage.ROLE_USER }?.content
         if (userText.isNullOrBlank()) {
-            emit(LlmChunk.Error("No user message to send"))
-            emit(LlmChunk.Done)
-            return@flow
+            trySend(LlmChunk.Error("No user message to send"))
+            trySend(LlmChunk.Done)
+            return@channelFlow
         }
 
-        agent!!.sendStreaming(userText).collect { chunk ->
-            when (chunk) {
-                is StreamChunk.TextDelta -> emit(LlmChunk.TextDelta(chunk.text))
-                is StreamChunk.Failed -> emit(LlmChunk.Error(chunk.message))
-                is StreamChunk.Done -> emit(LlmChunk.Done)
-                // Tool events ignored until the substrate-on-iOS path
-                // registers actual tools. They emit through `events`
-                // (SharedFlow) for surfaces that want to render them;
-                // chat UI doesn't need them for plain-text turns.
-                is StreamChunk.ToolStarting -> Unit
-                is StreamChunk.ToolCompleted -> Unit
-                is StreamChunk.ToolFailed -> Unit
+        // Project the agent's reactive state into a one-shot LlmChunk
+        // Flow. Each TextDelta is the substring of pendingAssistantDelta
+        // that grew since the last emission. We close the channel when
+        // the turn returns to Idle (success) or transitions to Failed.
+        var emittedPrefix = ""
+        val stateJob = launch {
+            a.state.collect { st ->
+                val delta = st.pendingAssistantDelta
+                if (delta.length > emittedPrefix.length && delta.startsWith(emittedPrefix)) {
+                    trySend(LlmChunk.TextDelta(delta.substring(emittedPrefix.length)))
+                    emittedPrefix = delta
+                } else if (delta != emittedPrefix && delta.isNotEmpty()) {
+                    // Defensive — handle the rare case where the delta
+                    // doesn't share our captured prefix (e.g. a brand-
+                    // new turn started after we missed the reset).
+                    trySend(LlmChunk.TextDelta(delta))
+                    emittedPrefix = delta
+                }
+                when (st.turnStatus) {
+                    TurnStatus.Idle -> {
+                        if (st.lastError == null && emittedPrefix.isNotEmpty()) {
+                            trySend(LlmChunk.Done)
+                            close()
+                        }
+                    }
+                    TurnStatus.Failed -> {
+                        trySend(LlmChunk.Error(st.lastError?.message ?: "send failed"))
+                        close()
+                    }
+                    else -> Unit
+                }
             }
+        }
+
+        a.dispatch(AgentIntent.Send(userText))
+
+        awaitClose {
+            stateJob.cancel()
         }
     }
 }
