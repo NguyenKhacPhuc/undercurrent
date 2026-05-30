@@ -48,8 +48,10 @@ import dev.weft.undercurrent.shared.gateway.UiBridgeGateway
 import dev.weft.undercurrent.shared.mvi.Store
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -153,7 +155,7 @@ internal class WeftAppStore(
             AppIntent.NewChat -> viewModelScope.launch { handleNewChat() }
             AppIntent.DeleteCurrentConversation -> viewModelScope.launch {
                 val a = agent ?: return@launch
-                handleDeleteConversation(a.currentConversationId.value)
+                handleDeleteConversation(a.state.value.conversationId)
             }
             is AppIntent.DeleteConversation -> viewModelScope.launch {
                 handleDeleteConversation(intent.id)
@@ -256,7 +258,7 @@ internal class WeftAppStore(
                 screen = Screen.Creator,
                 previousScreen = current.screen,
                 chat = ChatStatus(),
-                currentConversationId = a.currentConversationId.value,
+                currentConversationId = a.state.value.conversationId,
             )
         }
         val kickoff = when (kind) {
@@ -304,7 +306,7 @@ internal class WeftAppStore(
             apiKey = storedKey,
         )
         a.resume()
-        hydrateMessages(a.currentConversationId.value)
+        hydrateMessages(a.state.value.conversationId)
         setAgent(a, screen = Screen.Chat, availableAgents = agentSummaries)
     }
 
@@ -328,7 +330,7 @@ internal class WeftAppStore(
         } ?: return
         val a = buildAgentFor(agentName = name, provider = provider, apiKey = key)
         a.resume()
-        hydrateMessages(a.currentConversationId.value)
+        hydrateMessages(a.state.value.conversationId)
         setAgent(a, activeAgentName = name)
     }
 
@@ -378,7 +380,7 @@ internal class WeftAppStore(
                 apiKey = key,
             )
             a.resume()
-            hydrateMessages(a.currentConversationId.value)
+            hydrateMessages(a.state.value.conversationId)
             setAgent(a)
         }
     }
@@ -407,7 +409,7 @@ internal class WeftAppStore(
                 apiKey = key,
             )
             a.resume()
-            hydrateMessages(a.currentConversationId.value)
+            hydrateMessages(a.state.value.conversationId)
             setAgent(a)
         } else {
             agent = null
@@ -430,7 +432,7 @@ internal class WeftAppStore(
                 apiKey = key,
             )
             a.resume()
-            hydrateMessages(a.currentConversationId.value)
+            hydrateMessages(a.state.value.conversationId)
             setAgent(a)
         }
     }
@@ -460,7 +462,7 @@ internal class WeftAppStore(
         update {
             it.copy(
                 screen = Screen.Chat,
-                currentConversationId = a.currentConversationId.value,
+                currentConversationId = a.state.value.conversationId,
             )
         }
     }
@@ -473,14 +475,14 @@ internal class WeftAppStore(
             it.copy(
                 screen = Screen.Chat,
                 chat = ChatStatus(),
-                currentConversationId = a.currentConversationId.value,
+                currentConversationId = a.state.value.conversationId,
             )
         }
     }
 
     private suspend fun handleDeleteConversation(id: String) {
         val a = agent ?: return
-        val wasActive = a.currentConversationId.value == id
+        val wasActive = a.state.value.conversationId == id
         withContext(Dispatchers.IO) {
             runtime.conversationStore.deleteConversation(id)
         }
@@ -491,7 +493,7 @@ internal class WeftAppStore(
                 it.copy(
                     screen = Screen.Chat,
                     chat = ChatStatus(),
-                    currentConversationId = a.currentConversationId.value,
+                    currentConversationId = a.state.value.conversationId,
                 )
             }
         }
@@ -758,7 +760,7 @@ internal class WeftAppStore(
         update {
             it.copy(
                 agentReady = true,
-                currentConversationId = a.currentConversationId.value,
+                currentConversationId = a.state.value.conversationId,
                 screen = screen,
                 availableAgents = availableAgents,
                 activeAgentName = activeAgentName,
@@ -772,14 +774,17 @@ internal class WeftAppStore(
         // launching a fresh collector each time and relying on
         // SharedFlow buffering being benign).
         viewModelScope.launch {
-            a.currentConversationId.collect { convId ->
-                if (agent === a) {
-                    update { current ->
-                        if (current.currentConversationId == convId) current
-                        else current.copy(currentConversationId = convId)
+            a.state
+                .map { it.conversationId }
+                .distinctUntilChanged()
+                .collect { convId ->
+                    if (agent === a) {
+                        update { current ->
+                            if (current.currentConversationId == convId) current
+                            else current.copy(currentConversationId = convId)
+                        }
                     }
                 }
-            }
         }
     }
 
