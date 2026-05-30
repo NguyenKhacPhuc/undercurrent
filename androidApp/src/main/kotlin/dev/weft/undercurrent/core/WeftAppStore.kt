@@ -1,3 +1,18 @@
+// `a.newChat()`, `a.resume()`, `a.resetHistory()`, `a.sendEvent()` —
+// remaining @Deprecated WeftAgent methods used in this file. Each is
+// suspending and the call sites rely on the new state being visible
+// synchronously on the next line (e.g. `a.state.value.conversationId`
+// after `a.newChat()`). Migrating to fire-and-forget dispatch requires
+// either:
+//   - a substrate-side `dispatchAndAwait(intent)` that suspends until
+//     the intent's effects have landed in `state`, OR
+//   - restructuring each call site to be observer-driven (drop the
+//     immediate read; trust the conv-id observer to push the new id
+//     into AppState).
+// Tracked as the Phase 2c follow-up. File-level suppression here so
+// the remaining warnings don't drown out new code review.
+@file:Suppress("DEPRECATION")
+
 package dev.weft.undercurrent.core
 
 import androidx.compose.runtime.mutableStateListOf
