@@ -19,7 +19,7 @@ import dev.weft.undercurrent.app.AppStore
 import dev.weft.undercurrent.core.ASSISTANT_APP_PREAMBLE
 import dev.weft.undercurrent.core.WeftAppStore
 import dev.weft.undercurrent.core.navigation.NavigationChannel
-import dev.weft.undercurrent.data.SqlDelightDataSource
+import dev.weft.undercurrent.data.sqldelight.SqlDelightDataSource
 import dev.weft.undercurrent.core.domain.IntegrationsRepository
 import dev.weft.undercurrent.core.domain.MiniAppsRepository
 import dev.weft.undercurrent.core.domain.ModelPrefsRepository

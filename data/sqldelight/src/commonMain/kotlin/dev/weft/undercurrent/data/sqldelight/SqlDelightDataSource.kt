@@ -1,4 +1,4 @@
-package dev.weft.undercurrent.data
+package dev.weft.undercurrent.data.sqldelight
 
 import dev.weft.contracts.DataSource
 import dev.weft.contracts.QueryResult
@@ -16,7 +16,10 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import java.util.UUID
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * Persistent [DataSource] backed by SQLDelight. Records live in the
@@ -34,7 +37,8 @@ import java.util.UUID
  * collections growing past ~10k rows, push the filter into SQLite via
  * JSON1 (`json_extract`).
  */
-internal class SqlDelightDataSource(
+@OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
+class SqlDelightDataSource(
     override val name: String,
     private val database: UndercurrentDatabase,
     override val description: String = "",
@@ -50,7 +54,7 @@ internal class SqlDelightDataSource(
         sort: List<SortSpec>,
         projection: List<String>,
         limit: Int,
-    ): QueryResult = withContext(Dispatchers.IO) {
+    ): QueryResult = withContext(Dispatchers.Default) {
         val all = database.recordsQueries
             .selectBySource(name)
             .executeAsList()
@@ -72,11 +76,11 @@ internal class SqlDelightDataSource(
     override suspend fun upsert(
         record: JsonObject,
         idempotencyKey: String?,
-    ): UpsertResult = withContext(Dispatchers.IO) {
-        val now = System.currentTimeMillis()
+    ): UpsertResult = withContext(Dispatchers.Default) {
+        val now = Clock.System.now().toEpochMilliseconds()
         val id = idempotencyKey
             ?: record["id"]?.jsonPrimitive?.contentOrNull()
-            ?: "rec.${UUID.randomUUID().toString().take(12)}"
+            ?: "rec.${Uuid.random().toString().take(12)}"
         val payload = ensureId(record, id)
         val payloadJson = json.encodeToString(JsonObject.serializer(), payload)
 
@@ -100,7 +104,7 @@ internal class SqlDelightDataSource(
         UpsertResult(id = id, created = created)
     }
 
-    override suspend fun delete(id: String): Boolean = withContext(Dispatchers.IO) {
+    override suspend fun delete(id: String): Boolean = withContext(Dispatchers.Default) {
         val existed = database.recordsQueries.selectById(id).executeAsOneOrNull() != null
         if (existed) {
             database.recordsQueries.deleteById(id)

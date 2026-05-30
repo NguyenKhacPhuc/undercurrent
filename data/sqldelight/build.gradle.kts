@@ -7,6 +7,7 @@
 plugins {
     alias(libs.plugins.undercurrent.kmp.library)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 sqldelight {
@@ -27,6 +28,11 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines.extensions)
+            // Weft contracts — DataSource interface implemented by
+            // SqlDelightDataSource. `api` so consumers see the type.
+            api("dev.weft:weft-contracts")
+            // SqlDelightDataSource serializes record payloads as JsonObject.
+            implementation(libs.kotlinx.serialization.json)
         }
         androidMain.dependencies {
             implementation(libs.sqldelight.android.driver)

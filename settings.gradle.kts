@@ -57,6 +57,12 @@ includeBuild("../weft") {
         substitute(module("dev.weft.devtools:weft-devtools"))
             .using(project(":devtools"))
 
+        // KMP `:contracts` — pure-Kotlin interfaces (DataSource,
+        // FileSaveSpec, OsCapabilities, …) consumed by undercurrent's
+        // KMP-published data modules.
+        substitute(module("dev.weft:weft-contracts"))
+            .using(project(":contracts"))
+
         // KMP-published harness modules. Required by composeApp's
         // iosMain so it can build a substrate-backed WeftAgent.
         substitute(module("dev.weft:weft-harness-agents"))
