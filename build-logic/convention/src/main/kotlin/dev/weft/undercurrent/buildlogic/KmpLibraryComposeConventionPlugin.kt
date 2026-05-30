@@ -40,5 +40,20 @@ class KmpLibraryComposeConventionPlugin : Plugin<Project> {
                 implementation(libs.findLibrary("compose-multiplatform-ui-tooling-preview").get())
             }
         }
+
+        // Android Studio's preview panel renders previews via
+        // `androidx.compose.ui.tooling.ComposeViewAdapter` — that
+        // class lives in `androidx.compose.ui:ui-tooling` (the
+        // AndroidX variant, NOT the CMP one). Even when the @Preview
+        // annotation comes from CMP, the renderer still has to be on
+        // the debug classpath of the Android library variant or AS
+        // throws ClassNotFoundException at preview-render time.
+        //
+        // Add it as a debugImplementation on the Android-library
+        // variant so release builds don't pay the cost.
+        dependencies.add(
+            "debugImplementation",
+            libs.findLibrary("androidx-compose-ui-tooling").get(),
+        )
     }
 }
