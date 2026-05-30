@@ -102,7 +102,6 @@ include(":core:ext")             // Kotlin extensions
 // =============================================================
 // Data modules — persistence + network + integrations
 // =============================================================
-include(":data:repository")      // top-level repositories (KMP common API)
 include(":data:datastore")       // DataStore-Preferences factory (commonMain + per-platform path builders)
 include(":data:sqldelight")      // SQLDelight schema + drivers
 include(":data:network")         // Ktor HTTP client (when needed outside Weft)
