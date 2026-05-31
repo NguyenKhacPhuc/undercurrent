@@ -51,8 +51,6 @@ class WeftUiBridgeRepository(
     }
 
     private fun WeftComponentNode.toCommon(): ComponentNode {
-        // JSON round-trip is the simplest correct mapping — both sides
-        // share the same wire format. See WeftUiBridgeRepository KDoc.
         val json = JSON.encodeToString(WeftComponentNode.serializer(), this)
         return JSON.decodeFromString(ComponentNode.serializer(), json)
     }

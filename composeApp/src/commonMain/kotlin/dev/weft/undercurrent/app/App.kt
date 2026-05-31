@@ -2,7 +2,9 @@ package dev.weft.undercurrent.app
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -25,6 +27,7 @@ import dev.weft.undercurrent.core.model.ThemeMode
 fun App(
     store: AppViewModel,
     platform: PlatformAdapter,
+    overlays: @Composable BoxScope.() -> Unit = {},
 ) {
     val state by store.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -48,7 +51,7 @@ fun App(
 
     UndercurrentTheme(palette = state.themePrefs.palette, darkMode = darkMode) {
         Surface(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
                 ScreenRouter(platform = platform)
 
                 SnackbarHost(
@@ -66,6 +69,8 @@ fun App(
                         onDismiss = { store.dismissPermissionDialog() },
                     )
                 }
+
+                overlays()
             }
         }
     }

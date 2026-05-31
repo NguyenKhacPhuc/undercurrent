@@ -81,6 +81,8 @@ val appModule = module {
         )
     }
 
+    single { ComposeUiBridge(componentRegistry = get<WeftUi>().componentRegistry) }
+
     single { OAuthCallbackChannel() }
     single<KeyVault>(named(OAUTH_KEY_VAULT)) {
         AndroidKeyVault.create(androidContext(), fileName = "oauth_tokens")
@@ -218,6 +220,7 @@ val appModule = module {
             agentSlot = get(),
             agentFactory = get(),
             chatVm = get(),
+            uiBridgeRepo = get(),
         )
     }
 

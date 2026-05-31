@@ -9,7 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -212,34 +211,28 @@ private fun AndroidApp() {
         navigationVm.dispatch(NavigationIntent.Back)
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            App(store = store, platform = platform)
+    Box(modifier = Modifier.fillMaxSize()) {
+        App(store = store, platform = platform) {
             PendingRequestRenderer(uiBridge)
             WeftOverlayHost(uiBridge)
-        }
-
-        saveFromRenderDraft?.let { draft ->
-            SaveAsMiniAppDialog(
-                initial = null,
-                suggestedPrompt = draft,
-                onDismiss = { saveFromRenderDraft = null },
-                onSave = { name, emoji, triggerPrompt ->
-                    saveFromRenderDraft = null
-                    appMiniAppsScope.launch {
-                        val created = appMiniAppsRepo.add(name, emoji, triggerPrompt)
-                        val tree = (uiBridge.lastUpdate as? UIUpdate.RenderTree)?.tree
-                        if (tree != null) {
-                            val json = Json.encodeToString(ComponentNode.serializer(), tree)
-                            appMiniAppsRepo.setCachedRender(created.id, json)
+            saveFromRenderDraft?.let { draft ->
+                SaveAsMiniAppDialog(
+                    initial = null,
+                    suggestedPrompt = draft,
+                    onDismiss = { saveFromRenderDraft = null },
+                    onSave = { name, emoji, triggerPrompt ->
+                        saveFromRenderDraft = null
+                        appMiniAppsScope.launch {
+                            val created = appMiniAppsRepo.add(name, emoji, triggerPrompt)
+                            val tree = (uiBridge.lastUpdate as? UIUpdate.RenderTree)?.tree
+                            if (tree != null) {
+                                val json = Json.encodeToString(ComponentNode.serializer(), tree)
+                                appMiniAppsRepo.setCachedRender(created.id, json)
+                            }
                         }
-                    }
-                },
-            )
+                    },
+                )
+            }
         }
     }
 }

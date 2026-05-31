@@ -11,6 +11,7 @@ import dev.weft.undercurrent.app.AppViewModel
 import dev.weft.undercurrent.core.domain.OnboardingRepository
 import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.domain.ThemeRepository
+import dev.weft.undercurrent.core.domain.UiBridgeRepository
 import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.AppState
 import dev.weft.undercurrent.core.navigation.NavBackStack
@@ -42,6 +43,7 @@ internal class WeftAppViewModel(
     agentSlot: AgentSlot,
     private val agentFactory: WeftAgentFactory,
     private val chatVm: ChatViewModel,
+    uiBridgeRepo: UiBridgeRepository,
 ) : MviViewModel<AppState, Nothing, AppEffect>(
     initialState = AppState.initial(),
 ), AppViewModel {
@@ -83,6 +85,11 @@ internal class WeftAppViewModel(
             val next = top ?: Screen.Loading
             if (current.screen != next) {
                 update { it.copy(previousScreen = it.screen, screen = next) }
+            }
+        }
+        uiBridgeRepo.renderEvents.observe { _ ->
+            if (current.screen !is Screen.RenderedTree) {
+                navigationVm.dispatch(NavigationIntent.Navigate(Screen.RenderedTree))
             }
         }
     }
