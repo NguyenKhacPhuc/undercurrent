@@ -2,7 +2,6 @@ package dev.weft.undercurrent.feature.chat
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -28,7 +27,6 @@ import dev.weft.undercurrent.core.navigation.NavigationIntent
 import dev.weft.undercurrent.core.navigation.NavigationViewModel
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.core.ui.components.AppDrawer
-import dev.weft.undercurrent.feature.chat.components.NotificationsPermissionBanner
 import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
 import dev.weft.undercurrent.feature.theme.ThemeIntent
@@ -95,10 +93,6 @@ fun ChatRoute(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted -> hasMicPermission = granted }
 
-    val notifLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { /* banner re-checks on recompose */ }
-
     fun closeAnd(action: () -> Unit) {
         coroutineScope.launch { drawerState.close() }
         action()
@@ -135,14 +129,6 @@ fun ChatRoute(
         },
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            NotificationsPermissionBanner(
-                onGrant = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                },
-            )
-
             ChatScreen(
                 header = ChatHeaderConfig(
                     threadTitle = threadTitle,
