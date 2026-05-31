@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import dev.weft.undercurrent.core.navigation.NavigationIntent
 import dev.weft.undercurrent.core.navigation.NavigationViewModel
 import dev.weft.undercurrent.core.navigation.Screen
-import dev.weft.undercurrent.feature.chat.IosChatRoute
 import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
 import kotlinx.cinterop.BetaInteropApi
@@ -18,15 +17,9 @@ import org.koin.compose.koinInject
 import platform.Foundation.NSURL
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationOpenSettingsURLString
-import platform.UIKit.UIPasteboard
 
 fun iosPlatformAdapter(): PlatformAdapter = PlatformAdapter(
-    chatRoute = {
-        IosChatRoute(
-            onOpenUrl = { url -> openUrl(url) },
-            onCopyText = { text -> UIPasteboard.generalPasteboard.string = text },
-        )
-    },
+    chatRoute = { IosPlaceholder(label = "Chat") },
     renderedTreeRoute = { IosPlaceholder(label = "Rendered tree") },
     miniAppsRoute = { IosMiniAppsRoute() },
     creatorRoute = { IosPlaceholder(label = "Creator") },

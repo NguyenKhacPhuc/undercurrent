@@ -10,7 +10,6 @@ import dev.weft.undercurrent.core.navigation.navigationModule
 import dev.weft.undercurrent.core.ui.components.undercurrentComponents
 import dev.weft.undercurrent.data.datastore.datastoreIosModule
 import dev.weft.undercurrent.data.sqldelight.databaseIosModule
-import dev.weft.undercurrent.feature.chat.chatIosModule
 import dev.weft.undercurrent.feature.chat.chatModule
 import dev.weft.undercurrent.feature.conversations.conversationsModule
 import dev.weft.undercurrent.feature.creator.CreatorViewModel
@@ -24,6 +23,7 @@ import dev.weft.undercurrent.feature.theme.themeModule
 import dev.weft.undercurrent.feature.traces.TraceExportViewModel
 import dev.weft.undercurrent.feature.traces.tracesModule
 import dev.weft.undercurrent.feature.usage.usageModule
+import dev.weft.undercurrent.core.domain.ChatRepository
 import dev.weft.undercurrent.core.domain.ConversationStoreRepository
 import dev.weft.undercurrent.core.domain.IosSpeechRepository
 import dev.weft.undercurrent.core.domain.KeyValidationRepository
@@ -33,6 +33,7 @@ import dev.weft.undercurrent.core.domain.MemoryStoreRepository
 import dev.weft.undercurrent.core.domain.ModelCatalogRepository
 import dev.weft.undercurrent.core.domain.OAuthRepository
 import dev.weft.undercurrent.core.domain.SpeechRepository
+import dev.weft.undercurrent.core.domain.StubChatRepository
 import dev.weft.undercurrent.core.domain.StubKeyValidationRepository
 import dev.weft.undercurrent.core.domain.StubMemoryStoreRepository
 import dev.weft.undercurrent.core.domain.StubModelCatalogRepository
@@ -67,6 +68,7 @@ val iosAppModule = module {
     single<ModelCatalogRepository> { StubModelCatalogRepository() }
     single<SpeechRepository> { IosSpeechRepository() }
     single<UiBridgeRepository> { StubUiBridgeRepository() }
+    single<ChatRepository> { StubChatRepository() }
 
     single<AppViewModel> {
         IosAppViewModel(
@@ -101,7 +103,6 @@ val iosAllModules = listOf(
     datastoreIosModule,
     databaseIosModule,
     chatModule,
-    chatIosModule,
     themeModule,
     onboardingModule,
     personasModule,
