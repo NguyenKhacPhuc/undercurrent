@@ -6,8 +6,6 @@ import coil3.network.ktor3.KtorNetworkFetcherFactory
 import dev.weft.compose.components.WeftComponentRegistry
 import dev.weft.undercurrent.core.domain.repositoryModule
 import dev.weft.undercurrent.core.domain.usecase.chat.chatUseCasesModule
-import dev.weft.undercurrent.core.domain.usecase.onboarding.onboardingUseCasesModule
-import dev.weft.undercurrent.core.domain.usecase.theme.themeUseCasesModule
 import dev.weft.undercurrent.core.navigation.navigationModule
 import dev.weft.undercurrent.core.ui.components.undercurrentComponents
 import dev.weft.undercurrent.data.datastore.datastoreIosModule
@@ -100,8 +98,6 @@ val iosAllModules = listOf(
     navigationModule,
     repositoryModule,
     chatUseCasesModule,
-    themeUseCasesModule,
-    onboardingUseCasesModule,
     datastoreIosModule,
     databaseIosModule,
     chatModule,

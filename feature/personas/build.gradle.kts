@@ -14,6 +14,7 @@ kotlin {
         commonMain.dependencies {
             // PersonaRepository (active voice / role + custom personas).
             implementation(projects.core.domain)
+            implementation(projects.feature.creator)
             // Store<State, Intent, Effect> MVI base + the gateway
             // interfaces in :shared/commonMain.
             implementation(projects.shared)

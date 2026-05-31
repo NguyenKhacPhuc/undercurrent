@@ -24,8 +24,6 @@ import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.domain.ThemeRepository
 import dev.weft.undercurrent.core.domain.repositoryModule
 import dev.weft.undercurrent.core.domain.usecase.chat.chatUseCasesModule
-import dev.weft.undercurrent.core.domain.usecase.onboarding.onboardingUseCasesModule
-import dev.weft.undercurrent.core.domain.usecase.theme.themeUseCasesModule
 import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.AppState
 import dev.weft.undercurrent.core.navigation.NavigationChannel
@@ -257,8 +255,6 @@ val allModules = listOf(
     navigationModule,
     repositoryModule,
     chatUseCasesModule,
-    themeUseCasesModule,
-    onboardingUseCasesModule,
     datastoreAndroidModule,
     databaseAndroidModule,
     repositoryAndroidModule,

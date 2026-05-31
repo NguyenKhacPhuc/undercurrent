@@ -14,6 +14,7 @@ kotlin {
         commonMain.dependencies {
             // KeyValidationGateway + ValidationResult.
             implementation(projects.core.domain)
+            implementation(projects.feature.providers)
             implementation(projects.shared)
         }
         androidMain.dependencies {

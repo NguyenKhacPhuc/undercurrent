@@ -5,7 +5,7 @@ import org.koin.dsl.module
 val onboardingModule = module {
     single {
         OnboardingViewModel(
-            completeOnboarding = get(),
+            repo = get(),
             navigationVm = get(),
         )
     }

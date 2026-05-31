@@ -49,11 +49,7 @@ fun App(
     UndercurrentTheme(palette = state.themePrefs.palette, darkMode = darkMode) {
         Surface(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxSize()) {
-                ScreenRouter(
-                    state = state,
-                    store = store,
-                    platform = platform,
-                )
+                ScreenRouter(platform = platform)
 
                 SnackbarHost(
                     hostState = snackbarHostState,

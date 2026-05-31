@@ -16,6 +16,7 @@ kotlin {
             implementation(projects.shared)
             // CompleteOnboardingUseCase + OnboardingRepository.
             implementation(projects.core.domain)
+            implementation(projects.feature.providers)
         }
         androidMain.dependencies {
             // androidMain-only deps (e.g. :data:weft, ML Kit)

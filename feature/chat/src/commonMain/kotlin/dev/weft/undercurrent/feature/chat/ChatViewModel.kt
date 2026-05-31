@@ -4,18 +4,12 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import dev.weft.undercurrent.core.domain.ChatChunk
 import dev.weft.undercurrent.core.domain.ChatMessage
+import dev.weft.undercurrent.core.domain.ChatRepository
 import dev.weft.undercurrent.core.domain.ChatRole
-import dev.weft.undercurrent.core.domain.usecase.chat.DeleteConversationUseCase
 import dev.weft.undercurrent.core.domain.usecase.chat.DeleteCurrentConversationUseCase
-import dev.weft.undercurrent.core.domain.usecase.chat.LoadMessagesUseCase
-import dev.weft.undercurrent.core.domain.usecase.chat.NewChatUseCase
 import dev.weft.undercurrent.core.domain.usecase.chat.ObserveChatStateUseCase
-import dev.weft.undercurrent.core.domain.usecase.chat.RegenerateLastUseCase
-import dev.weft.undercurrent.core.domain.usecase.chat.ResumeChatUseCase
 import dev.weft.undercurrent.core.domain.usecase.chat.SelectAgentUseCase
 import dev.weft.undercurrent.core.domain.usecase.chat.SelectConversationUseCase
-import dev.weft.undercurrent.core.domain.usecase.chat.SendChatUseCase
-import dev.weft.undercurrent.core.domain.usecase.chat.SendUiEventUseCase
 import dev.weft.undercurrent.core.model.ModelTier
 import dev.weft.undercurrent.feature.chat.components.DisplayMessage
 import dev.weft.undercurrent.shared.mvi.MviViewModel
@@ -23,17 +17,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 
 class ChatViewModel(
-    private val sendChat: SendChatUseCase,
-    private val regenerateLast: RegenerateLastUseCase,
-    private val newChat: NewChatUseCase,
+    private val repo: ChatRepository,
     private val selectConversation: SelectConversationUseCase,
-    private val deleteConversation: DeleteConversationUseCase,
     private val deleteCurrentConversation: DeleteCurrentConversationUseCase,
     private val selectAgent: SelectAgentUseCase,
-    private val resumeChat: ResumeChatUseCase,
-    private val sendUiEventUseCase: SendUiEventUseCase,
     private val observeChatState: ObserveChatStateUseCase,
-    private val loadMessages: LoadMessagesUseCase,
     initialSkills: List<SkillSummary> = emptyList(),
 ) : MviViewModel<ChatState, ChatIntent, ChatEffect>(
     initialState = ChatState.initial(),
@@ -65,7 +53,7 @@ class ChatViewModel(
     }
 
     fun resume() {
-        launch { resumeChat() }
+        launch { repo.resume() }
     }
 
     fun clear() {
@@ -76,13 +64,13 @@ class ChatViewModel(
     fun reload(conversationId: String? = null) {
         val id = conversationId ?: current.currentConversationId ?: return
         launch {
-            val msgs = loadMessages(id)
+            val msgs = repo.loadMessages(id)
             reseedDisplayMessages(msgs)
         }
     }
 
     suspend fun send(text: String, modelTier: ModelTier? = null) {
-        runStreamingTurn(text, sendChat(text, modelTier))
+        runStreamingTurn(text, repo.send(text, modelTier))
     }
 
     suspend fun sendUiEvent(
@@ -91,17 +79,17 @@ class ChatViewModel(
         fieldValues: Map<String, String>,
     ) {
         displayMessages += DisplayMessage.event(action, sourceLabel, fieldValues)
-        sendUiEventUseCase(action, sourceLabel, fieldValues)
+        repo.sendUiEvent(action, sourceLabel, fieldValues)
     }
 
     override fun dispatch(intent: ChatIntent) = launch {
         when (intent) {
             is ChatIntent.SendChat ->
-                runStreamingTurn(intent.text, sendChat(intent.text, intent.modelTier))
+                runStreamingTurn(intent.text, repo.send(intent.text, intent.modelTier))
             ChatIntent.RegenerateLast ->
-                runStreamingTurn(userTextForRegenerate = null, regenerateLast())
+                runStreamingTurn(userTextForRegenerate = null, repo.regenerateLast())
             ChatIntent.NewChat -> {
-                newChat()
+                repo.newChat()
                 displayMessages.clear()
                 update { it.copy(inFlight = false, lastError = null) }
             }
@@ -120,7 +108,7 @@ class ChatViewModel(
             }
             is ChatIntent.DeleteConversation -> {
                 val wasActive = current.currentConversationId == intent.id
-                deleteConversation(intent.id)
+                repo.deleteConversation(intent.id)
                 if (wasActive) {
                     displayMessages.clear()
                     update { it.copy(inFlight = false, lastError = null) }

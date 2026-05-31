@@ -14,6 +14,7 @@ kotlin {
         commonMain.dependencies {
             // Gateway interfaces (ConversationStoreGateway + ConversationSummary).
             implementation(projects.core.domain)
+            implementation(projects.feature.chat)
             implementation(projects.shared)
             // formatLastActivity / groupConversationsByRecency — hoisted
             // out of this module so :core:ui can use them too without
