@@ -5,500 +5,415 @@ for these tokens.
 
 ## What this repo is
 
-Undercurrent is a personal-assistant Android app built on the Weft SDK.
-Streaming chat, multi-provider key management, custom personas, memory
-browsing, OAuth-gated integrations (Linear). It's also the reference
-app for Weft — when something doesn't have an obvious pattern, this
-is where to invent it first.
+Undercurrent is a personal-assistant app (Android + iOS) built on the
+Weft SDK. Streaming chat, multi-provider key management, custom
+personas, memory browsing, OAuth-gated integrations. Also the reference
+host for Weft — new patterns get invented here first.
 
-The Weft SDK is in a sibling directory: `../weft`. Wired via
-`includeBuild("../weft")` in `settings.gradle.kts`. Both repos must be
-cloned side-by-side for the build to resolve. Weft SDK is published as
-<https://github.com/NguyenKhacPhuc/android-harness>.
+Weft SDK lives at `../weft` and is wired via `includeBuild("../weft")`
+in `settings.gradle.kts`. Both repos must be cloned side-by-side.
 
 ## The architectural rule (read first)
 
 > **The SDK provides everything. The app just registers.**
 
-Full split documented in `../weft/docs/architecture-vision.md`. When
-adding logic to this repo, ask: *would another Weft host need this
-same behavior?* If yes, it goes in `../weft`, not here. The app's
-responsibilities are: identity (preamble + theme), screens (the
-Compose UI shell), DI wiring (Koin module), and *which* tools /
-components / data-sources / MCP-servers / integrations to register.
-The data-binding system, `$exec` action interception, `$binding`
-resolution, prompt assembly, memory tools, etc. all live in the SDK
-and are exposed via registration hooks. Don't duplicate substrate
-behavior into the app — fix it in the SDK and let it flow back.
+The full split is documented in `../weft/docs/architecture-vision.md`.
+Before adding logic, ask: *would another Weft host need this same
+behavior?* If yes → SDK. If it's about this app's identity / UX /
+branding → here.
 
-## Build & test
-
-```bash
-# Debug APK (NEW: the entrypoint module is :androidApp, not :app).
-./gradlew :androidApp:assembleDebug
-
-# Just the Kotlin compile (faster when iterating).
-./gradlew :androidApp:compileDebugKotlin
-
-# A single feature module — verifies BOTH Android + iOS compile
-# (catches features that accidentally touch Android-only APIs from
-# commonMain).
-./gradlew :feature:chat:compileKotlinAndroid
-./gradlew :feature:chat:compileKotlinIosSimulatorArm64
-
-# Install + start + tail logs.
-adb shell am force-stop dev.weft.undercurrent
-adb install -r androidApp/build/outputs/apk/debug/androidApp-debug.apk
-adb shell am start -n dev.weft.undercurrent/.MainActivity
-adb logcat | grep -E "Undercurrent|YourTag"
-
-# Unit tests — one feature module
-./gradlew :feature:personas:testDebugUnitTest
-
-# Unit tests — all modules (`testDebugUnitTest` is the conventional
-# task name from the AGP test plugin).
-./gradlew testDebugUnitTest
-```
-
-## Module layout (KMP)
+## Module layout
 
 ```
 undercurrent/
-├── androidApp/          Android entry — Application + MainActivity
-├── composeApp/          CMP shared UI (commonMain + androidMain + iosMain)
-├── iosApp/              iOS Xcode project (embeds ComposeApp.framework)
-├── shared/              KMP business interfaces (AgentEngine, etc.)
-├── core/                model, ui, design-system, navigation, resources, domain, ext
-├── data/                repository, datastore, sqldelight, network, weft (Android-only)
-├── feature/             one Gradle module per screen/flow (17 features)
-├── build-logic/         convention plugins (undercurrent.kmp.feature etc.)
-└── app/                 OLD single-module — being emptied into the above
+├── androidApp/         Android entry — Application + MainActivity
+├── composeApp/         CMP shared UI shell (ScreenRouter, AppViewModel iOS impl)
+├── iosApp/             iOS Xcode project (embeds ComposeApp.framework)
+├── shared/             KMP — MviViewModel base + AgentState mirror
+├── core/
+│   ├── model           pure data (KMP)
+│   ├── domain          repository interfaces + Weft impls (androidMain)
+│   │                   + iOS stubs (iosMain) + 4 chat use cases + RepositoryModule
+│   ├── navigation      Screen + NavigationViewModel + NavigationChannel
+│   ├── ui              shared composables (LoadingPlaceholder, AppDrawer …)
+│   ├── design-system   palette + typography + shapes
+│   ├── resources       strings, drawables
+│   └── ext             KMP extension helpers
+├── data/
+│   ├── datastore       KMP DataStore-Preferences factory + Koin
+│   ├── sqldelight      schema + drivers + Koin
+│   ├── network         Ktor client + token interceptor (when needed outside Weft)
+│   └── weft            Android-only — Weft *tools* (NavigationTools, ShowLocationOnMapTool,
+│                       CreatorTools). Repository impls moved to :core:domain/androidMain.
+├── feature/            one Gradle module per screen/flow (~17 features)
+│   └── <name>/         <Name>ViewModel + <Name>Screen + <Name>Route + <Name>Module
+└── build-logic/        convention plugins (undercurrent.kmp.feature etc.)
 ```
 
-**Weft stays Android-only.** Feature modules MUST NOT depend on
-Weft directly (would break iOS compilation). Weft access goes
-through `:data:weft` which exposes Android implementations of
-KMP-shared interfaces declared in `:shared`.
+**KMP discipline.** Feature modules MUST NOT depend on Weft directly —
+that breaks iOS compilation. The chat feature is the exception: its
+`androidMain` owns the agent host (`AgentSession`, `WeftAgentFactory`,
+`WeftChatRepository`) so the substrate dep stays scoped.
 
-See [`docs/kmp-migration-playbook.md`](docs/kmp-migration-playbook.md)
-for the file-by-file migration recipe.
+**Repository impls live with the interface.** `:core:domain/commonMain`
+holds every `*Repository` interface; `:core:domain/androidMain` holds
+Weft-backed impls (`WeftKeyVaultRepository`, `AndroidSpeechRepository`,
+…); `:core:domain/iosMain` holds Keychain / stub impls
+(`KeychainKeyVaultRepository`, `StubUsageRepository`, …). Each platform
+publishes its Koin bindings as `repositoryAndroidModule` /
+`repositoryIosModule` (the latter inline in `IosKoinModule.kt`).
 
-**Force-stop is important** when iterating on tools. The
-`WeftRuntime`'s tool catalog is built once at process start; reinstalling
-without killing the old process means the agent keeps using the stale
-catalog.
+## MVI pattern (load-bearing)
 
-## Architecture
-
-MVI everywhere — both the orchestrator (AppViewModel) and per-feature
-screens follow the same shape. Koin for DI.
-
-> **Naming note.** The MVI base class is called `MviViewModel<S, I, E>`
-> — NOT `Store`. The "Store" suffix is reserved for persistent data
-> stores (`MemoryStore`, `ConversationStore`, `TraceStore`, `UsageStore`
-> in the Weft substrate; `TokenStore` in `:data:network`). Feature
-> classes are `<Name>ViewModel` (e.g. `PersonasViewModel`,
-> `WeftAppViewModel`).
-
-### MVI pattern (load-bearing — every new feature follows this)
-
-The generic base lives at
-`:shared/src/commonMain/kotlin/dev/weft/undercurrent/shared/mvi/MviViewModel.kt`:
+Generic base at `:shared/src/commonMain/.../mvi/MviViewModel.kt`:
 
 ```kotlin
 abstract class MviViewModel<State, Intent, Effect>(initialState: State) : ViewModel() {
-    val state: StateFlow<State>      // observable; Compose collectAsState
-    val effects: Flow<Effect>        // one-shot; LaunchedEffect collect
-    protected val current: State     // current snapshot inside handlers
-    abstract fun dispatch(intent: Intent)
+    val state: StateFlow<State>
+    val effects: Flow<Effect>
+    protected val current: State
+    abstract fun dispatch(intent: Intent): Job
+
     protected fun update(reducer: (State) -> State)
     protected fun emit(effect: Effect)
+
+    // Sugar — every feature VM uses these instead of viewModelScope.launch:
+    protected fun launch(block: suspend CoroutineScope.() -> Unit): Job
+    protected fun <T> Flow<T>.collectInto(reducer: State.(T) -> State): Job
+    protected fun <T> Flow<T>.observe(block: suspend (T) -> Unit): Job
 }
 ```
 
-Every feature has the same four files:
-
-```
-:feature:<name>/src/commonMain/kotlin/.../feature/<name>/
-├─ <Name>Mvi.kt           ← State (data class) + Intent + Effect (sealed)
-├─ <Name>ViewModel.kt     ← class <Name>ViewModel(...) : MviViewModel<S, I, E>(...)
-├─ <Name>Screen.kt        ← @Composable; reads state.collectAsState(), dispatches intents
-└─ (optional helpers)
-```
-
-Conventions:
-- **`<Name>State`** is a single immutable data class. No nullable
-  StateFlows; aggregate everything one screen needs into one bundle.
-- **`<Name>Intent`** is a sealed interface. One variant per user action;
-  data-class variants carry params. Read access doesn't go through
-  intents — only mutations do.
-- **`<Name>Effect`** is a sealed interface, often empty at first.
-  Reserve for things that genuinely shouldn't replay on configuration
-  change (toasts, transient navigation hints). State is for everything
-  else.
-- **Subscribe to repos / gateways in `init`.** The ViewModel is the
-  projection point: collect repo flows and project into your state via
-  `update { it.copy(foo = ...) }`. Don't expose repo flows directly.
-- **Plain helpers are OK for pure projections** — e.g.
-  `IntegrationsViewModel.statusFor(integration, enabled): IntegrationStatus`
-  is a pure function, not a mutation, so it doesn't go through dispatch.
-- **Screens never call `viewModelScope` directly.** They dispatch;
-  the ViewModel launches coroutines.
-- **`koinViewModel<XxxViewModel>()`** — use
-  `org.koin.compose.viewmodel.koinViewModel` (the KMP one), not the
-  Android-only `org.koin.androidx.compose.koinViewModel`.
-
-### Stateful / stateless screen split (Compose best-practice)
-
-Every screen has TWO overloads of its top-level Composable. Hosts
-call the stateful one; the stateless one is what `@Preview` (and
-future snapshot tests) render against.
+**`dispatch` returns `Job`.** Every override uses the
+`= launch { when {…} }` form — branches just call `suspend` functions
+directly. Don't wrap individual branches in `launch { }` — the outer
+`launch` already provides a coroutine context.
 
 ```kotlin
-// Stateful — thin wrapper that hoists state from the ViewModel.
+override fun dispatch(intent: ThemeIntent) = launch {
+    when (intent) {
+        is ThemeIntent.SetPalette -> repo.setPalette(intent.palette)
+        is ThemeIntent.SetThemeMode -> repo.setMode(intent.mode)
+    }
+}
+```
+
+**`collectInto` for state projection.** Replaces the boilerplate
+`viewModelScope.launch { flow.collect { update { it.copy(...) } } }`:
+
+```kotlin
+init {
+    themeRepo.prefsFlow.collectInto { copy(themePrefs = it) }
+    onboardingRepo.completedFlow.collectInto { copy(onboardingCompleted = it) }
+}
+```
+
+The reducer's receiver is the current `State` — write `copy(...)`
+directly, not `it.copy(...)`.
+
+**`observe` for side-effects on a flow.** Use when the collector
+needs to call beyond `update`.
+
+## Per-feature module structure
+
+```
+:feature:<name>/src/commonMain/.../feature/<name>/
+├── <Name>State.kt        (data class — one bundle the screen reads)
+├── <Name>Intent.kt       (sealed interface — one variant per user action)
+├── <Name>Effect.kt       (sealed interface — one-shot signals; often empty)
+├── <Name>ViewModel.kt    (extends MviViewModel<S, I, E>)
+├── <Name>Screen.kt       (stateless Composable: state in, callbacks out)
+├── <Name>Route.kt        (stateful entry point — koinInjects + dispatches)
+└── <Name>Module.kt       (Koin: single { <Name>ViewModel(...) })
+```
+
+**Route is the entry point.** `ScreenRouter` is a thin dispatch table:
+each `Screen.X` branch calls `<Name>Route()`. The Route owns its own
+VM injection + intent dispatch + state collection; ScreenRouter never
+injects feature VMs.
+
+```kotlin
+// :feature:settings/.../SettingsRoute.kt
 @Composable
-fun XxxScreen(
-    onBack: () -> Unit,
-    viewModel: XxxViewModel = koinViewModel(),
-) {
-    val state by viewModel.state.collectAsState()
+fun SettingsRoute() {
+    val nav: NavigationViewModel = koinInject()
+    val providerPrefs: ProviderPrefsRepository = koinInject()
+    val activeProvider by providerPrefs.activeProvider.collectAsState()
+    SettingsScreen(
+        activeProvider = activeProvider,
+        onShowProvider = { nav.dispatch(NavigationIntent.Navigate(Screen.Providers)) },
+        ...
+    )
+}
+```
+
+Platform-specific callbacks (`onOpenConsole`, `onRestartProcess`) come
+in as Route parameters — `ScreenRouter` passes them through from
+`PlatformAdapter`.
+
+**Stateful / stateless screen split.** The Screen Composable takes
+state + callbacks (testable + previewable). The Route is the stateful
+wrapper. `@Preview` renders against the stateless Screen.
+
+## UI rules (Compose)
+
+1. **Under 300 lines per file.** When a Screen grows past that, split
+   sub-Composables into a `components/` sibling subpackage
+   (`feature/chat/components/ChatHeader.kt`, `MessageBlock.kt`, …).
+   The top-level Screen / Route file stays a thin assembly.
+2. **Every Composable file has at least one `@Preview`.** Use
+   `org.jetbrains.compose.ui.tooling.preview.Preview` (the CMP-native
+   annotation, usable from commonMain). The AndroidX
+   `androidx.compose.ui.tooling.preview.Preview` is Android-only and
+   forbidden in commonMain. Wrap the preview body in
+   `UndercurrentTheme { … }` so it renders against real tokens. One
+   realistic preview per Composable is the bar; add an "empty state"
+   variant only when that UI is non-trivial.
+3. **Stateless + stateful split (state hoisting).** Every screen has
+   TWO Composables: the *stateless* one (state in, callbacks out — no
+   `koinInject`, no `collectAsState`) and the *stateful* `Route`
+   wrapper that does the injection + state collection. `@Preview`
+   always renders the stateless one. Local UI scratch state
+   (`remember { mutableStateOf }` for "which dialog is open",
+   text-input drafts, expand toggles) stays inside the stateless
+   Composable — those don't belong on the ViewModel.
+
+```kotlin
+// stateful — the entry point ScreenRouter calls
+@Composable
+fun XxxRoute() {
+    val vm: XxxViewModel = koinInject()
+    val state by vm.state.collectAsState()
     XxxScreen(
         state = state,
-        onBack = onBack,
-        onAction = { viewModel.dispatch(XxxIntent.Action) },
+        onAction = { vm.dispatch(XxxIntent.Action) },
+        onBack = { /* nav */ },
     )
 }
 
-// Stateless — state in, callbacks out. Previewable + testable.
+// stateless — previewable, testable, no DI
 @Composable
 fun XxxScreen(
     state: XxxState,
-    onBack: () -> Unit,
     onAction: () -> Unit = {},
+    onBack: () -> Unit = {},
 ) { /* UI body */ }
 
 @Preview
 @Composable
 private fun XxxScreenPreview() {
     UndercurrentTheme {
-        XxxScreen(state = XxxState(/* realistic seed */), onBack = {})
+        XxxScreen(state = XxxState(/* realistic seed */))
     }
 }
 ```
 
-Rules:
+4. **Default lambdas on every callback** (`= {}`) so previews + tests
+   don't have to wire every action.
+5. **Group sub-Composables by feature, not by widget type.** A
+   `components/` subpackage owned by ONE feature — not a shared
+   "widgets" graveyard. Cross-feature reusables go in `:core:ui`.
+6. **Bundle wide signatures into per-section configs.** When a
+   Composable's parameter list crosses ~8 items, group related
+   params/callbacks into a config class
+   (`ChatHeaderConfig`, `ChatMessagesConfig`, `ChatInputConfig` —
+   see `ChatScreen.kt`). Easier to evolve; impossible to mis-order.
 
-- **Local UI state stays in the stateless overload** — dialogs, expand
-  toggles, text-input scratch state. The `remember { mutableStateOf }`
-  for "which dialog is open" doesn't belong on the ViewModel.
-- **Default lambdas** on every callback param (`= {}`) so previews and
-  test harnesses don't have to wire every action.
-- **`@Preview` annotation** is `org.jetbrains.compose.ui.tooling.preview.Preview` —
-  the CMP-native one, usable from commonMain. The AndroidX
-  `androidx.compose.ui.tooling.preview.Preview` is Android-only and
-  forbidden in commonMain.
-- **One realistic Preview per screen** is the bar; add an "empty
-  state" variant when the empty-state UI is non-trivial. Don't
-  bloat the file with five-state matrices.
+## Use case rule
 
-Canonical examples already converted: `PersonasScreen`, `UsageScreen`,
-`AgentMemoriesScreen`.
+> Use cases are worth their own file ONLY when (a) called from multiple
+> places, or (b) they contain real logic — guards, transforms, flow
+> composition. Pure 1-line `repo.foo()` delegations go straight in the
+> ViewModel.
 
-### The orchestrator (root AppViewModel)
+Current use cases (all in `:core:domain/usecase/chat/`):
 
-The same pattern applies, just at a wider scope:
+- `SelectConversationUseCase` — idempotent guard + load
+- `DeleteCurrentConversationUseCase` — null guard + Bool return
+- `SelectAgentUseCase` — 3 early-return guards
+- `ObserveChatStateUseCase` — combines 4 `ChatRepository` flows into a `ChatStateSnapshot`
 
-- **Interface** `dev.weft.undercurrent.app.AppViewModel` lives in
-  `:composeApp/commonMain/.../app/AppViewModel.kt`. Both platforms see
-  the same surface (`state` / `effects` / `displayMessages` /
-  `skills` / `dispatch` / `sendUiEvent` / `saveKey`).
-- **Android impl** `WeftAppViewModel` in
-  `:androidApp/.../core/WeftAppViewModel.kt` —
-  `: MviViewModel<AppState, AppIntent, AppEffect>(AppState.initial()), AppViewModel`.
-  Closes over `WeftRuntime` directly; full agent loop here.
-- **iOS impl** `IosAppViewModel` in `:composeApp/iosMain/.../app/IosAppViewModel.kt`
-  — same shape, backed by the Ktor `LlmClient` stack +
-  `KeychainKeyVaultGateway` + DataStore-Preferences + SQLDelight.
+That's the entire roster. When something's tempting to extract, check
+the two criteria first.
 
-State types ([`AppState`](composeApp/src/commonMain/kotlin/dev/weft/undercurrent/app/AppState.kt) /
-[`AppIntent`](composeApp/src/commonMain/kotlin/dev/weft/undercurrent/app/AppIntent.kt) /
-`AppEffect`) are commonMain mirrors — feature screens that consume the
-app store get types they can read on both platforms without dragging
-the substrate in.
+## Per-module Koin DI
 
-Per-screen surfaces are wired through `ScreenRouter`:
-- 11 KMP-clean screens render inline (Settings / Appearance / KeyPaste
-  / Onboarding / Providers / Personas / Memories / Traces / Usage /
-  Integrations / Conversations).
-- 4 substrate-coupled screens go through `PlatformAdapter` lambdas
-  (Chat / RenderedTree / Creator / MiniApps with `TreeRenderer`).
+No single bloated `AppModule.kt`. Each module publishes its own Koin
+module:
 
-Adding a new screen:
-1. Create the `:feature:<name>/` module via the convention plugin.
-2. Add the four files (Mvi / Store / Screen / + the build.gradle.kts
-   feature/data deps).
-3. Wire Koin in `:androidApp/.../di/AppModule.kt` and
-   `:composeApp/iosMain/.../app/IosKoinModule.kt`:
-   `viewModel { XxxStore(...) }`.
-4. Add a `Screen.<Name>` variant in `:core:navigation` if it's
-   navigable.
-5. Add a `ScreenRouter` branch in
-   `:composeApp/commonMain/.../app/ScreenRouter.kt`.
+- `:core:domain` → `repositoryModule` (KMP repo bindings),
+  `repositoryAndroidModule` (Weft impls), `chatUseCasesModule`
+- `:core:navigation` → `navigationModule`
+- `:data:datastore` → `datastoreAndroidModule` / `datastoreIosModule`
+- `:data:sqldelight` → `databaseAndroidModule` / `databaseIosModule`
+- `:feature:<name>` → `<name>Module` (binds the ViewModel),
+  `<name>AndroidModule` (Weft-backed impls of feature interfaces, where
+  applicable)
 
-### Other architectural notes
+`:androidApp/.../AppModule.kt` composes them into `allModules`. Same
+shape on iOS via `:composeApp/iosMain/.../IosKoinModule.kt`'s
+`iosAllModules`.
 
-- **`di/AppModule.kt`** (Android) + **`IosKoinModule.kt`** (iOS) are
-  the **single source of truth** for which tools the agent has, which
-  OAuth tokens exist, which MCP servers are wired up, which gateways
-  bind to which impls.
-- **`MainActivity.kt`** — Compose host. Renders `App()` from
-  `:composeApp/commonMain`. Owns OAuth deep link
-  (`undercurrent://oauth/…`) and the process restart for MCP changes.
-- **`features/<feature>/`** — legacy phrasing; today every feature is
-  its own KMP module under `:feature:<name>/`. Each has a Store, a
-  Screen, optionally a Repository (in `:data:datastore`), and
-  optionally agent tools (in `:data:weft/.../tools/` on Android since
-  Weft tools must be androidMain).
+## App-specific patterns
 
-## Tool-authoring rules (do NOT skip)
+- **`NavigationChannel`** is how Weft tools navigate. The tool emits to
+  the channel; `WeftAppViewModel`/`IosAppViewModel` collects and
+  dispatches `NavigationIntent.Navigate(...)`. Keeps the back stack
+  honest.
+- **Permission denials surface as a dialog.** `WeftAppViewModel` detects
+  the permission-denied shape in `ChatChunk.ToolFail`, populates
+  `pendingPermissionDialog`, and `MainActivity` renders an AlertDialog
+  with an "Open Settings" deep-link. Don't let permission errors land
+  as inline toolFail bubbles.
+- **MCP integrations need a process restart.** `WeftRuntime` bakes the
+  MCP server list at construction. Connect/Disconnect persists the
+  change, then prompts the user to restart. `restartProcess(context)`
+  in `MainActivity.kt` does the kill-and-relaunch.
+- **Anti-hallucination preamble.** `core/AppPreamble.kt` includes the
+  "never narrate a tool call you don't make" directive. Don't reformat
+  casually — sentences are tuned against agent behavior.
+- **Force-stop is important when iterating on tools.** `WeftRuntime`'s
+  tool catalog is built once at process start; reinstalling without
+  killing the old process means the agent uses the stale catalog.
 
-Adding agent tools is a recurring task in this repo. Tool selection is
-a soft attention process — names + descriptions determine whether the
-model picks the tool or silently skips it.
+## Tool-authoring rules
 
-Full guide: `../weft/docs/writing-a-custom-tool.md`. Headlines:
+Tool selection is a soft attention process — names + descriptions
+determine whether the model picks the tool or silently skips it. Full
+guide: `../weft/docs/writing-a-custom-tool.md`. Headlines:
 
-1. **Name: `<verb>_<noun>`, ≤3 words, lowercase_snake_case.**
-   `open_map`, `set_theme_palette`, `open_personas`. Compound names
-   with prepositions (`show_location_on_map`) get skipped.
-2. **Description: lead with the action.** "Open the map app pinned
-   at…" beats "This tool is used when…". Include 2–4 user-phrasing
-   examples.
-3. **Cap descriptions at ~3 sentences.** Long descriptions cause
-   tool-skip behavior.
-4. **Disambiguate from neighbors.** When two tools sound similar, add
-   a sentence like "NOT for directions — use `other_tool` for X."
+1. **Name: `<verb>_<noun>`, ≤3 words, `lowercase_snake_case`.**
+   `open_map`, `set_theme_palette`. Compound prepositions
+   (`show_location_on_map`) get skipped.
+2. **Description leads with the action.** "Open the map app pinned
+   at…" beats "This tool is used when…". 2–4 user-phrasing examples.
+3. **Cap descriptions at ~3 sentences.** Longer = tool-skip.
+4. **Disambiguate from neighbors.** "NOT for directions — use
+   `maps_open_directions` for navigation."
 5. **Use `KotlinTypeToken(typeOf<Args>())`, not `typeToken<Args>()`.**
    The app builds JVM 11; substrate's inline `typeToken` is JVM 17
    bytecode and won't inline.
 
-When a tool gets narrated but not called, the cure is usually (in
-order): force-stop + reinstall, fresh conversation, rename to
-verb-noun shape, shorten description.
+When narrated-but-not-called: force-stop + reinstall → fresh
+conversation → rename to verb-noun → shorten description.
 
-## App-specific patterns to know
+## Testing (BDD via kotest)
 
-- **Agent tools live in `features/<area>/`.** Theme tools in
-  `features/theme/`, navigation tools in `features/navigation/`, map
-  tool in `features/maps/`. Wire them in `di/AppModule.kt` via
-  `extraToolsFactory`.
-- **`NavigationChannel`** is how tools navigate the user. The agent
-  fires `open_personas` → tool emits to the channel → `AppStore`
-  collects + dispatches `AppIntent.Navigate`. Keeps `previousScreen`
-  correct.
-- **Permission denials surface as a dialog.** `AppStore` detects
-  `PermissionDeniedException` shape in `StreamChunk.ToolFailed`,
-  populates `pendingPermissionDialog`, and MainActivity renders an
-  AlertDialog with an "Open Settings" deep-link. Don't let
-  permission errors land in chat as toolFail bubbles.
-- **MCP integrations need a process restart.** `WeftRuntime` bakes
-  the MCP server list in at construction. Connect/Disconnect in the
-  Integrations screen persists the change, then prompts the user to
-  restart. `restartProcess(context)` in `MainActivity.kt` does the
-  kill-and-relaunch.
-- **Anti-hallucination preamble.** `core/AppPreamble.kt` includes an
-  explicit "never narrate a tool call you don't make" directive.
-  Keep it — without it, Claude sometimes describes tool calls in
-  text without emitting the tool_use block.
+The convention plugin wires kotest + Turbine + kotlinx-coroutines-test
+into every KMP library's `commonTest`; MockK + kotest-runner-junit5 in
+`androidUnitTest`. No per-module test deps to add.
 
-## Testing (MVI ViewModels)
+**BDD style** — `BehaviorSpec` with `Given` / `When` / `Then`:
 
-Unit-testing rules for feature ViewModels. The harness is wired in
-`KmpLibraryConventionPlugin` — MockK + Kotest + Turbine + coroutines-test
-are auto-added to every KMP library's `androidUnitTest` source set; no
-per-module build changes needed.
+```kotlin
+class FooViewModelTest : BehaviorSpec({
+    val mainDispatcher = StandardTestDispatcher()
+    beforeTest { Dispatchers.setMain(mainDispatcher) }
+    afterTest { Dispatchers.resetMain() }
 
-**Stack — split across `commonTest` and `androidUnitTest`.**
+    Given("a fresh VM") {
+        When("Intent.X is dispatched") {
+            Then("state.foo becomes 'bar'") {
+                runTest {
+                    val vm = FooViewModel(FakeRepository())
+                    vm.dispatch(FooIntent.X)
+                    advanceUntilIdle()      // dispatch is async — returns Job
+                    vm.state.value.foo shouldBe "bar"
+                }
+            }
+        }
+    }
+})
+```
 
-- **commonTest** (runs on Android + iOS): Kotest `BehaviorSpec` engine
-  + Kotest matchers + Turbine + kotlinx-coroutines-test +
-  `kotlin.test`. Tests here use **hand-rolled fakes** for
-  collaborators — MockK is JVM-only.
-- **androidUnitTest** (JVM only, layered on top of commonTest): adds
-  `kotest-runner-junit5` (so JUnit Platform discovers the specs) and
-  **MockK**. Use these for collaborator-interaction tests where
-  `coVerify` / `coVerifyOrder` earns its keep.
+**Split convention** (when both styles apply):
 
-The convention plugin wires both source sets automatically. Per-feature
-`build.gradle.kts` files don't touch test deps.
-
-**BDD style.** Outer `Given` describes the setup precondition (a fresh
-ViewModel, a seeded gateway, a specific flow shape), inner `When`
-describes the intent dispatched (or event simulated), innermost
-`Then` describes the observable outcome. Use uppercase
-`Given` / `When` / `Then` to avoid the `when` keyword backtick
-collision. A `Given` with no `When` is fine for pure initial-state
-projections (no action — just observe).
-
-**Naming convention.** MVI base class is `MviViewModel<S, I, E>` in
-`:shared/mvi/MviViewModel.kt` — extends `androidx.lifecycle.ViewModel`.
-Feature classes are `XyzViewModel`. Persistent stores (`MemoryStore`,
-`ConversationStore`, `TraceStore`, `UsageStore` in the Weft substrate;
-`TokenStore` in `:data:network`) keep the `Store` suffix unambiguously.
-
-**Per-spec split convention.** For each MVI ViewModel, prefer two specs
-with **NO overlap** between them:
-
-  - `<Name>ViewModelStateTest.kt` in **commonTest** — covers initial
-    state, live-flow propagation, "ViewModel didn't mutate
-    optimistically" — any assertion that only reads `vm.state.value`
-    or observes via Turbine. Uses a hand-rolled `Fake<Gateway>`
-    (KMP-portable). Runs on Android + iOS.
-  - `<Name>ViewModelTest.kt` in **androidUnitTest** — **only** the
-    Thens that need MockK's `coVerify(exactly = N) { gateway.method(args) }`
-    to assert the right gateway method was called with the right
-    arguments. State-shape assertions (`shouldBe …` on
-    `vm.state.value`) live in the commonTest sibling — do not
-    duplicate them here.
+- `<Name>ViewModelStateTest.kt` in **commonTest** — state-projection
+  assertions only. Hand-rolled `Fake<Repository>` (KMP-portable, no
+  MockK). Runs on Android + iOS.
+- `<Name>ViewModelTest.kt` in **androidUnitTest** — collaborator
+  interaction assertions (`coVerify(exactly = N) { repo.method(...) }`).
+  JVM-only because MockK is JVM-only.
 
 The split is by *what an assertion checks*, not by *what the test
-exercises*: a test that dispatches an Intent and asserts only the
-new state belongs in commonTest; a test that dispatches and asserts
-the gateway was called belongs in androidUnitTest.
+exercises*.
 
-The base `Store` class (`shared/.../mvi/StoreTest.kt`) and the
-read-only `UsageStore` (one interface gateway, no dispatch) live
-**entirely in commonTest** — they don't need MockK at all.
+**Always `runTest { advanceUntilIdle() }` before asserting state.**
+`MviViewModel.dispatch` returns `Job` — every state change is async on
+the test dispatcher.
 
-**Blocker: three feature stores can't fully split today.**
-`MiniAppsStore`, `PersonasStore`, and `IntegrationsStore` each take a
-concrete `final` repository (`MiniAppsRepository`, `PersonaRepository`,
-`IntegrationsRepository`) — Kotlin classes, not interfaces, so a
-commonTest fake can't subclass them. To split these, the production
-code needs an interface extraction (rename current → `…Impl`, add an
-interface with the public surface), or a commonTest fake has to wrap
-the real class with an in-memory `DataStore<Preferences>` stand-in.
-Neither is shipped yet; those three specs stay JVM-only via MockK.
+## Coverage
 
-**Source set.** Tests live under
-`<module>/src/androidUnitTest/kotlin/<package>/<Class>Test.kt`. The
-Android target's JVM runs them via the JUnit 5 runner. Do NOT put
-JVM-only mocking in `commonTest` — MockK doesn't support Kotlin/Native.
+Kover wired at root, filtered to `*ViewModel` + `*UseCase` classes.
 
-**The 5 idioms every store test repeats:**
+```bash
+./gradlew koverHtmlReport     # build/reports/kover/html/index.html
+./gradlew koverXmlReport      # for CI tools
+```
 
-1. **Replace `Dispatchers.Main`.** `Store` extends `ViewModel`;
-   `viewModelScope` dispatches on Main. Every spec needs:
-   ```kotlin
-   val mainDispatcher = StandardTestDispatcher()
-   beforeTest { Dispatchers.setMain(mainDispatcher) }
-   afterTest { Dispatchers.resetMain() }
-   ```
+## Build commands
 
-2. **`fakeGateway(...)` helper.** Centralize the MockK setup — every
-   StateFlow property returns a `MutableStateFlow(seed)`, every
-   suspend method `coEvery { … } returns Unit`:
-   ```kotlin
-   fun fakeRepo(initial: List<Foo> = emptyList()): FooRepo {
-       val repo = mockk<FooRepo>()
-       every { repo.foos } returns MutableStateFlow(initial)
-       coEvery { repo.add(any()) } returns Unit
-       return repo
-   }
-   ```
+```bash
+# Cross-platform compile (catches features that touch Android-only
+# APIs from commonMain).
+./gradlew :androidApp:compileDebugKotlin
+./gradlew :composeApp:compileKotlinIosSimulatorArm64
 
-3. **`runTest { … advanceUntilIdle() }`** for any test that calls
-   `dispatch()`. The store does `viewModelScope.launch { repo.foo() }`
-   internally — the suspend call doesn't fire until the test scheduler
-   drains.
+# A specific feature.
+./gradlew :feature:chat:compileDebugKotlinAndroid
+./gradlew :feature:chat:compileKotlinIosSimulatorArm64
 
-4. **Simulate live emissions via `flow.value = newValue`** then
-   `advanceUntilIdle()`. The store's init-block collector picks up
-   the change and projects it into state.
+# Install + start + tail logs.
+adb shell am force-stop dev.weft.undercurrent
+adb install -r androidApp/build/outputs/apk/debug/androidApp-debug.apk
+adb shell am start -n dev.weft.undercurrent/.MainActivity
+adb logcat | grep Undercurrent
 
-5. **`coVerify(exactly = N)` over `confirmVerified`.** The store's init
-   block reads gateway flow getters (`activeVoice`, etc.) to seed the
-   projection — those reads would falsely trip `confirmVerified`. Use
-   per-method `coVerify(exactly = N)` calls instead; they catch the
-   same regression class without the false positive.
-
-**Coverage targets per store:** initial state from gateway snapshot,
-live state updates on each flow emission, every Intent variant's
-gateway call + resulting state/effect change, at least one
-"interaction discipline" test (a single intent doesn't fire unrelated
-methods — catches the regression-class where Tap accidentally fires
-Add).
-
-**What NOT to test in this layer:** transient state between
-`dispatch()` and a suspend completion. MockK's `coEvery { … } returns
-…` doesn't truly suspend, so `runCurrent()` advances through the
-whole launched block in one step — the InProgress / Loading state is
-gone before assertions run. Test the final state of each intent path
-instead, and trust the `update { … }` calls in the middle.
-
-**Reference templates.**
-
-- `shared/.../mvi/StoreTest.kt` (**commonTest**) — generic `Store`
-  base, no MockK, no fakes; test double is a tiny `CounterStore`.
-- `feature/usage/.../UsageStoreTest.kt` (**commonTest**) — single
-  interface gateway, hand-rolled `FakeUsageGateway`. Cleanest
-  illustration of the KMP pattern.
-- `feature/memories/.../MemoriesStoreStateTest.kt` (**commonTest**) +
-  `MemoriesStoreTest.kt` (**androidUnitTest**) — the split pattern.
-  State-projection in commonTest with a fake; intent forwarding in
-  androidUnitTest with MockK `coVerify`.
-- `feature/personas/.../PersonasStoreTest.kt` (**androidUnitTest**) —
-  the all-MockK pattern for stores whose collaborator is a concrete
-  final class.
-- `feature/integrations/.../IntegrationsStoreTest.kt`
-  (**androidUnitTest**) — sealed-result-handling reference
-  (`OAuthResult` mapped to `ActionStatus.Failure` per variant).
-
-## Provider + persona + theme
-
-- `features/providers/` — Anthropic / OpenAI / OpenRouter / DeepSeek
-  key management + per-tier model overrides. `KeyVault` (encrypted
-  prefs) holds the keys.
-- `features/personas/` — voice + role (two independent slots).
-  Injected per turn via `extraVolatilePrefix` in the runtime config.
-  No agent rebuild needed on switch.
-- `theme/` — palette + light/dark mode. DataStore-backed. Set via
-  agent tools (`set_theme_palette`, `set_theme_mode`) or via the
-  "Add to Chat" sheet on the chat screen.
+# Tests.
+./gradlew test                                    # everything
+./gradlew :feature:chat:test                      # one module
+./gradlew :shared:test                            # MviViewModel base
+```
 
 ## Conventions
 
 - **No emojis in code or commits** unless the user explicitly asks.
-- **Internal-only by default.** `internal class FooViewModel`, not
-  `class FooViewModel`. App code never gets consumed externally.
-- **AppStore is the single source of truth.** ViewModels for specific
-  surfaces (PersonasViewModel etc.) own their feature's persistence
-  but route navigation + agent state through AppStore.
+- **No excessive comments.** Don't narrate the obvious. Why-comments
+  for non-obvious choices, KDoc on public APIs intended for host
+  consumers, nothing else.
+- **`internal` by default** for classes that don't cross module
+  boundaries. Public is the exception.
 - **DataStore for prefs, KeyVault for secrets, SQLDelight (via Weft)
   for conversations + memory.** Don't mix.
+- **Async dispatch is the contract.** `dispatch` returns `Job`. Don't
+  assume state changes synchronously after a dispatch call.
 
 ## What NOT to do
 
-- Don't add tools directly to the substrate (`../weft/tools/`); they
-  belong here via `extraToolsFactory`.
-- Don't change tool names without testing — the model is sensitive
-  to wording.
-- Don't bypass `AppStore` to mutate `AppState`. The reducer is the
-  only writer; views observe.
-- Don't reformat the AppPreamble casually. Each sentence has been
-  tuned against agent behavior.
-- Don't add screens that don't show up in the side drawer or
-  Settings — the user has no way to reach them otherwise.
-- Don't put MockK or kotest-runner-junit5 in `commonTest` — both
-  are JVM-only. The convention plugin keeps them in
-  `androidUnitTest`. Kotest's engine + assertions + Turbine
-  themselves ARE KMP and DO live in `commonTest`.
-- Don't reach for `confirmVerified(mock)` in store tests. The init
-  block reads gateway flow getters to seed state; `confirmVerified`
-  treats those as unverified calls and fails. Use per-method
-  `coVerify(exactly = N)`.
-- Don't try to assert transient `Loading` / `InProgress` state
-  mid-coroutine with MockK + `runCurrent()`. MockK's `coEvery`
-  returns immediately rather than suspending, so the dispatcher
-  advances past the transient before the assertion runs. Test the
-  terminal state of each path instead.
+- Don't add app-specific tools to `../weft/tools/`. They belong here
+  via `extraToolsFactory` in `AppModule.kt`.
+- Don't reach for `viewModelScope.launch { … }` in a ViewModel —
+  use the base-class `launch { … }` helper. Same for `collectInto` /
+  `observe` instead of hand-rolled `collect + update`.
+- Don't wrap individual `when` branches in `launch { }` when the outer
+  dispatch already does. Each branch should be a direct `suspend` call.
+- Don't create a Use case for a 1-line repo delegation. Inline it in
+  the ViewModel.
+- Don't depend on Weft from a feature module (breaks iOS). Wrap it
+  through a `:core:domain` repository whose Android impl lives in
+  `:core:domain/androidMain`.
+- Don't inject feature ViewModels into `ScreenRouter`. Each feature's
+  `Route` composable does its own injection.
+- Don't call `koinInject` / `koinViewModel` / `collectAsState` inside
+  a stateless Screen Composable. That's the `Route`'s job — the Screen
+  takes state + callbacks only so `@Preview` and snapshot tests can
+  render it.
+- Don't ship a Composable file over 300 lines or one without a
+  `@Preview`. Split into a `components/` subpackage when it grows.
+- Don't put MockK or kotest-runner-junit5 in `commonTest` — both are
+  JVM-only. Hand-rolled fakes only there. Kotest's engine + assertions
+  + Turbine ARE KMP and live in `commonTest`.
+- Don't reformat the AppPreamble casually — sentences are tuned against
+  agent behavior.
+</content>
+</invoke>
