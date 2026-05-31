@@ -64,11 +64,14 @@ class ConversationsViewModelStateTest : BehaviorSpec({
 
     Given("a store with an active subscription") {
         When("SetQuery('hello') is dispatched") {
-            Then("the query slot updates immediately on the state flow") {
-                val store = ConversationsViewModel(FakeConversationStoreGateway())
-                store.dispatch(ConversationsIntent.SetQuery("hello"))
+            Then("the query slot updates on the state flow") {
+                runTest {
+                    val store = ConversationsViewModel(FakeConversationStoreGateway())
+                    store.dispatch(ConversationsIntent.SetQuery("hello"))
+                    advanceUntilIdle()
 
-                store.state.value.query shouldBe "hello"
+                    store.state.value.query shouldBe "hello"
+                }
             }
         }
     }

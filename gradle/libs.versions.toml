@@ -73,6 +73,9 @@ mockk = "1.13.13"
 # Lint
 detekt = "1.23.7"
 
+# Coverage
+kover = "0.9.1"
+
 [libraries]
 # kotlinx — KMP-friendly (works in commonMain).
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -220,6 +223,7 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 
 # Convention plugins (live in build-logic/, applied via
 # `alias(libs.plugins.undercurrent.kmp.feature)` etc.). No version

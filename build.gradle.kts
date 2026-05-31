@@ -16,6 +16,28 @@ plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.sqldelight) apply false
+    alias(libs.plugins.kover)
+}
+
+subprojects {
+    apply(plugin = rootProject.libs.plugins.kover.get().pluginId)
+}
+
+dependencies {
+    subprojects.forEach { kover(project(it.path)) }
+}
+
+kover {
+    reports {
+        filters {
+            includes {
+                classes(
+                    "dev.weft.undercurrent.*ViewModel",
+                    "dev.weft.undercurrent.*UseCase",
+                )
+            }
+        }
+    }
 }
 
 tasks.register("clean", Delete::class) {

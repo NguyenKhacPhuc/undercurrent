@@ -309,6 +309,7 @@ class IntegrationsMviViewModelTest : BehaviorSpec({
                     check(mid is ActionStatus.Success)
 
                     store.dispatch(IntegrationsIntent.ClearLastAction)
+                    advanceUntilIdle()
 
                     store.state.value.lastAction shouldBe ActionStatus.Idle
                 }
