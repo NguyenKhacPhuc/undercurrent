@@ -27,6 +27,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.chat_delete_thread_body
+import dev.weft.undercurrent.core.resources.chat_delete_thread_menu
+import dev.weft.undercurrent.core.resources.chat_delete_thread_title
+import dev.weft.undercurrent.core.resources.chat_header_new
+import dev.weft.undercurrent.core.resources.chat_untitled
+import dev.weft.undercurrent.core.resources.common_cancel
+import dev.weft.undercurrent.core.resources.common_delete
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -98,7 +107,7 @@ internal fun ChatHeader(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text = "New",
+                    text = stringResource(Res.string.chat_header_new),
                     style = typography.sansHeader.copy(
                         color = colors.ink,
                         fontWeight = FontWeight.SemiBold,
@@ -124,7 +133,7 @@ internal fun ChatHeader(
                     DropdownMenuItem(
                         text = {
                             Text(
-                                text = "Delete thread",
+                                text = stringResource(Res.string.chat_delete_thread_menu),
                                 style = typography.sansHeader.copy(
                                     color = colors.error,
                                     fontSize = 15.sp,
@@ -150,19 +159,19 @@ internal fun ChatHeader(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete this thread?") },
+            title = { Text(stringResource(Res.string.chat_delete_thread_title)) },
             text = {
-                val label = threadTitle.ifBlank { "(untitled)" }
-                Text("\"$label\" and all its messages will be permanently removed.")
+                val label = threadTitle.ifBlank { stringResource(Res.string.chat_untitled) }
+                Text(stringResource(Res.string.chat_delete_thread_body, label))
             },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
                     onDeleteThread()
-                }) { Text("Delete", color = colors.error) }
+                }) { Text(stringResource(Res.string.common_delete), color = colors.error) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmDelete = false }) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }

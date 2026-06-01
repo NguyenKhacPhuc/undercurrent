@@ -35,7 +35,11 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.cd_collapse
+import dev.weft.undercurrent.core.resources.cd_expand
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // Stack — vertical column with Undercurrent spacing
@@ -309,7 +313,7 @@ internal class RevealComponent : WeftComponent<RevealProps>(
                 }
                 Icon(
                     imageVector = if (open) undercurrentIcon("collapse") else undercurrentIcon("expand"),
-                    contentDescription = if (open) "Collapse" else "Expand",
+                    contentDescription = if (open) stringResource(Res.string.cd_collapse) else stringResource(Res.string.cd_expand),
                     tint = cs.inkMuted,
                     modifier = Modifier.size(20.dp),
                 )

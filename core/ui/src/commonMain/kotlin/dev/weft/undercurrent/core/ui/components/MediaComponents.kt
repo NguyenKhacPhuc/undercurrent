@@ -39,7 +39,13 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.cd_image
+import dev.weft.undercurrent.core.resources.cd_pause
+import dev.weft.undercurrent.core.resources.cd_play
+import dev.weft.undercurrent.core.resources.cd_video
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // AudioPlayer — play/pause + progress bar + duration text (no actual playback)
@@ -99,7 +105,7 @@ internal class AudioPlayerComponent : WeftComponent<AudioPlayerProps>(
                 ) {
                     Icon(
                         imageVector = undercurrentIcon(if (isPlaying) "pause" else "play"),
-                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        contentDescription = if (isPlaying) stringResource(Res.string.cd_pause) else stringResource(Res.string.cd_play),
                         tint = cs.onAccent,
                         modifier = Modifier.size(22.dp),
                     )
@@ -184,10 +190,11 @@ internal class VideoFrameComponent(private val imageLoader: ImageLoader) : WeftC
                     )
                 },
         ) {
+            val videoLabel = stringResource(Res.string.cd_video)
             SubcomposeAsyncImage(
                 model = props.thumbnailUrl,
                 imageLoader = imageLoader,
-                contentDescription = props.title.ifBlank { "video" },
+                contentDescription = props.title.ifBlank { videoLabel },
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
                 error = {
@@ -205,7 +212,7 @@ internal class VideoFrameComponent(private val imageLoader: ImageLoader) : WeftC
             ) {
                 Icon(
                     imageVector = undercurrentIcon("play"),
-                    contentDescription = "Play",
+                    contentDescription = stringResource(Res.string.cd_play),
                     tint = cs.background,
                     modifier = Modifier.size(28.dp),
                 )
@@ -285,10 +292,11 @@ internal class ImageGalleryComponent(private val imageLoader: ImageLoader) : Wef
                     .clip(UndercurrentTheme.shapes.medium)
                     .background(cs.surfaceMuted),
             ) {
+                val imageLabel = stringResource(Res.string.cd_image)
                 SubcomposeAsyncImage(
                     model = focused.url,
                     imageLoader = imageLoader,
-                    contentDescription = focused.caption.ifBlank { "image" },
+                    contentDescription = focused.caption.ifBlank { imageLabel },
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxWidth().aspectRatio(4f / 3f),
                     error = {

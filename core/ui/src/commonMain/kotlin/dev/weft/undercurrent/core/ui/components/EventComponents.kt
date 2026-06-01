@@ -25,7 +25,12 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.component_open_status_closed
+import dev.weft.undercurrent.core.resources.component_open_status_closing_soon
+import dev.weft.undercurrent.core.resources.component_open_status_open
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // EventCard — date block + title + venue + time
@@ -265,9 +270,9 @@ internal class OpenStatusComponent : WeftComponent<OpenStatusProps>(
         val cs = UndercurrentTheme.colors
         val tp = UndercurrentTheme.typography
         val (dotColor, label, labelColor) = when (props.status.lowercase()) {
-            "closed" -> Triple(cs.inkSubtle, "Closed", cs.inkMuted)
-            "closing_soon", "closing-soon", "closingsoon" -> Triple(cs.error.copy(alpha = 0.8f), "Closing soon", cs.error)
-            else -> Triple(cs.accent, "Open", cs.accent)
+            "closed" -> Triple(cs.inkSubtle, stringResource(Res.string.component_open_status_closed), cs.inkMuted)
+            "closing_soon", "closing-soon", "closingsoon" -> Triple(cs.error.copy(alpha = 0.8f), stringResource(Res.string.component_open_status_closing_soon), cs.error)
+            else -> Triple(cs.accent, stringResource(Res.string.component_open_status_open), cs.accent)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(dotColor))

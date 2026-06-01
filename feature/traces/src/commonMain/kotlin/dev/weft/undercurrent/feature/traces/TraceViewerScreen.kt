@@ -33,6 +33,47 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.traces_action_clear
+import dev.weft.undercurrent.core.resources.traces_action_copied
+import dev.weft.undercurrent.core.resources.traces_action_copy
+import dev.weft.undercurrent.core.resources.traces_action_export
+import dev.weft.undercurrent.core.resources.traces_chip_copied
+import dev.weft.undercurrent.core.resources.traces_chip_copy
+import dev.weft.undercurrent.core.resources.traces_code_args
+import dev.weft.undercurrent.core.resources.traces_code_error
+import dev.weft.undercurrent.core.resources.traces_code_result
+import dev.weft.undercurrent.core.resources.traces_detail_title
+import dev.weft.undercurrent.core.resources.traces_empty_body
+import dev.weft.undercurrent.core.resources.traces_empty_title
+import dev.weft.undercurrent.core.resources.traces_feedback_prompt
+import dev.weft.undercurrent.core.resources.traces_feedback_thumbs_down
+import dev.weft.undercurrent.core.resources.traces_feedback_thumbs_down_active
+import dev.weft.undercurrent.core.resources.traces_feedback_thumbs_up
+import dev.weft.undercurrent.core.resources.traces_feedback_thumbs_up_active
+import dev.weft.undercurrent.core.resources.traces_label_assistant
+import dev.weft.undercurrent.core.resources.traces_label_error
+import dev.weft.undercurrent.core.resources.traces_label_user
+import dev.weft.undercurrent.core.resources.traces_llm_cache_line
+import dev.weft.undercurrent.core.resources.traces_llm_calls_header
+import dev.weft.undercurrent.core.resources.traces_llm_tokens_line
+import dev.weft.undercurrent.core.resources.traces_meta_cache
+import dev.weft.undercurrent.core.resources.traces_meta_cache_value
+import dev.weft.undercurrent.core.resources.traces_meta_conversation
+import dev.weft.undercurrent.core.resources.traces_meta_duration
+import dev.weft.undercurrent.core.resources.traces_meta_id
+import dev.weft.undercurrent.core.resources.traces_meta_parent
+import dev.weft.undercurrent.core.resources.traces_meta_started
+import dev.weft.undercurrent.core.resources.traces_meta_status
+import dev.weft.undercurrent.core.resources.traces_meta_tokens
+import dev.weft.undercurrent.core.resources.traces_meta_tokens_value
+import dev.weft.undercurrent.core.resources.traces_row_summary_llm
+import dev.weft.undercurrent.core.resources.traces_row_summary_tool
+import dev.weft.undercurrent.core.resources.traces_status_failed
+import dev.weft.undercurrent.core.resources.traces_status_ok
+import dev.weft.undercurrent.core.resources.traces_status_running
+import dev.weft.undercurrent.core.resources.traces_title
+import dev.weft.undercurrent.core.resources.traces_tool_calls_header
 import dev.weft.undercurrent.core.ui.ScaffoldTextAction
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.TokenDivider
@@ -48,6 +89,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -110,11 +152,11 @@ fun TraceViewerScreen(
     val typography = UndercurrentTheme.typography
 
     ScreenScaffold(
-        title = "Traces",
+        title = stringResource(Res.string.traces_title),
         onBack = onBack,
         trailing = {
             ScaffoldTextAction(
-                label = "Clear",
+                label = stringResource(Res.string.traces_action_clear),
                 onClick = onClearAll,
                 enabled = traces.isNotEmpty(),
                 isDestructive = true,
@@ -128,12 +170,12 @@ fun TraceViewerScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "No traces yet",
+                    text = stringResource(Res.string.traces_empty_title),
                     style = typography.sansHeader.copy(color = colors.ink),
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Send a message in chat to see a turn's trace here.",
+                    text = stringResource(Res.string.traces_empty_body),
                     style = typography.sansSmall.copy(color = colors.inkMuted),
                 )
             }
@@ -175,7 +217,7 @@ private fun TraceRow(t: AgentTrace, onClick: () -> Unit) {
                         .padding(horizontal = 6.dp, vertical = 2.dp),
                 ) {
                     Text(
-                        text = t.status.label,
+                        text = t.status.statusLabel(),
                         style = typography.sansLabel.copy(color = statusColor),
                     )
                 }
@@ -194,8 +236,8 @@ private fun TraceRow(t: AgentTrace, onClick: () -> Unit) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = listOfNotNull(
-                    "${t.llmCalls.size} LLM",
-                    "${t.toolCalls.size} tool",
+                    stringResource(Res.string.traces_row_summary_llm, t.llmCalls.size),
+                    stringResource(Res.string.traces_row_summary_tool, t.toolCalls.size),
                     t.durationMs?.let { "${it}ms" },
                     t.totalTokens.takeIf { it > 0 }?.let { "$it tok" },
                 ).joinToString(" · "),
@@ -219,11 +261,11 @@ private fun TraceDetail(
     var copyAck by remember { mutableStateOf(false) }
 
     ScreenScaffold(
-        title = "Trace",
+        title = stringResource(Res.string.traces_detail_title),
         onBack = onBack,
         trailing = {
             ScaffoldTextAction(
-                label = if (copyAck) "Copied" else "Copy",
+                label = if (copyAck) stringResource(Res.string.traces_action_copied) else stringResource(Res.string.traces_action_copy),
                 onClick = {
                     clipboard.setText(AnnotatedString(formatTraceForClipboard(t)))
                     copyAck = true
@@ -233,7 +275,7 @@ private fun TraceDetail(
                     }
                 },
             )
-            if (onExport != null) ScaffoldTextAction(label = "Export", onClick = onExport)
+            if (onExport != null) ScaffoldTextAction(label = stringResource(Res.string.traces_action_export), onClick = onExport)
         },
     ) {
         LazyColumn(
@@ -243,19 +285,19 @@ private fun TraceDetail(
         ) {
             item("feedback") { FeedbackRow(t.feedback, onSetFeedback) }
             item("meta") { TraceMetaBlock(t) }
-            item("user") { LabeledBlock("User", t.userMessage) }
+            item("user") { LabeledBlock(stringResource(Res.string.traces_label_user), t.userMessage) }
             t.finalAssistantMessage?.let { reply ->
-                item("assistant") { LabeledBlock("Assistant", reply) }
+                item("assistant") { LabeledBlock(stringResource(Res.string.traces_label_assistant), reply) }
             }
             t.errorMessage?.let { err ->
                 item("error") {
-                    LabeledBlock("Error", err, valueColor = colors.error)
+                    LabeledBlock(stringResource(Res.string.traces_label_error), err, valueColor = colors.error)
                 }
             }
             if (t.llmCalls.isNotEmpty()) {
                 item("llm-header") {
                     Text(
-                        text = "LLM CALLS · ${t.llmCalls.size}",
+                        text = stringResource(Res.string.traces_llm_calls_header, t.llmCalls.size),
                         style = typography.sansLabel.copy(color = colors.inkSubtle),
                     )
                 }
@@ -272,7 +314,7 @@ private fun TraceDetail(
             if (t.toolCalls.isNotEmpty()) {
                 item("tool-header") {
                     Text(
-                        text = "TOOL CALLS · ${t.toolCalls.size}",
+                        text = stringResource(Res.string.traces_tool_calls_header, t.toolCalls.size),
                         style = typography.sansLabel.copy(color = colors.inkSubtle),
                     )
                 }
@@ -296,18 +338,26 @@ private fun FeedbackRow(current: TraceFeedback, onSet: (TraceFeedback) -> Unit) 
     val typography = UndercurrentTheme.typography
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = "Was this turn helpful?",
+            text = stringResource(Res.string.traces_feedback_prompt),
             style = typography.sansSmall.copy(color = colors.inkMuted),
         )
         Spacer(modifier = Modifier.weight(1f))
         ScaffoldTextAction(
-            label = if (current == TraceFeedback.THUMBS_UP) "👍 yes" else "👍",
+            label = if (current == TraceFeedback.THUMBS_UP) {
+                stringResource(Res.string.traces_feedback_thumbs_up_active)
+            } else {
+                stringResource(Res.string.traces_feedback_thumbs_up)
+            },
             onClick = {
                 onSet(if (current == TraceFeedback.THUMBS_UP) TraceFeedback.NONE else TraceFeedback.THUMBS_UP)
             },
         )
         ScaffoldTextAction(
-            label = if (current == TraceFeedback.THUMBS_DOWN) "👎 no" else "👎",
+            label = if (current == TraceFeedback.THUMBS_DOWN) {
+                stringResource(Res.string.traces_feedback_thumbs_down_active)
+            } else {
+                stringResource(Res.string.traces_feedback_thumbs_down)
+            },
             onClick = {
                 onSet(if (current == TraceFeedback.THUMBS_DOWN) TraceFeedback.NONE else TraceFeedback.THUMBS_DOWN)
             },
@@ -326,25 +376,29 @@ private fun TraceMetaBlock(t: AgentTrace) {
             .background(colors.surfaceMuted)
             .padding(12.dp),
     ) {
-        MetaLine(label = "Trace id", value = t.id)
-        MetaLine(label = "Status", value = t.status.label)
-        MetaLine(label = "Conversation", value = t.conversationId)
-        t.parentTraceId?.let { MetaLine(label = "Parent trace", value = it) }
-        MetaLine(label = "Started", value = formatTimeOfDay(t.startEpochMs))
-        t.durationMs?.let { MetaLine(label = "Duration", value = formatDuration(it)) }
+        MetaLine(label = stringResource(Res.string.traces_meta_id), value = t.id)
+        MetaLine(label = stringResource(Res.string.traces_meta_status), value = t.status.statusLabel())
+        MetaLine(label = stringResource(Res.string.traces_meta_conversation), value = t.conversationId)
+        t.parentTraceId?.let { MetaLine(label = stringResource(Res.string.traces_meta_parent), value = it) }
+        MetaLine(label = stringResource(Res.string.traces_meta_started), value = formatTimeOfDay(t.startEpochMs))
+        t.durationMs?.let { MetaLine(label = stringResource(Res.string.traces_meta_duration), value = formatDuration(it)) }
         if (t.totalTokens > 0) {
             MetaLine(
-                label = "Tokens",
-                value = "${t.totalInputTokens} in / ${t.totalOutputTokens} out " +
-                    "(${t.totalTokens} total)",
+                label = stringResource(Res.string.traces_meta_tokens),
+                value = stringResource(
+                    Res.string.traces_meta_tokens_value,
+                    t.totalInputTokens,
+                    t.totalOutputTokens,
+                    t.totalTokens,
+                ),
             )
         }
         val cacheRead = t.llmCalls.sumOf { it.cacheReadTokens ?: 0 }
         val cacheWrite = t.llmCalls.sumOf { it.cacheWriteTokens ?: 0 }
         if (cacheRead > 0 || cacheWrite > 0) {
             MetaLine(
-                label = "Cache",
-                value = "$cacheRead read / $cacheWrite write",
+                label = stringResource(Res.string.traces_meta_cache),
+                value = stringResource(Res.string.traces_meta_cache_value, cacheRead, cacheWrite),
             )
         }
     }
@@ -422,7 +476,12 @@ private fun LlmCallBlock(call: LlmCallTrace, traceStartMs: Long, onCopy: () -> U
         if (tokens != null && tokens > 0) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "${call.inputTokens ?: 0} in / ${call.outputTokens ?: 0} out (${tokens} total)",
+                text = stringResource(
+                    Res.string.traces_llm_tokens_line,
+                    call.inputTokens ?: 0,
+                    call.outputTokens ?: 0,
+                    tokens,
+                ),
                 style = typography.sansSmall.copy(color = colors.inkMuted),
             )
         }
@@ -431,7 +490,7 @@ private fun LlmCallBlock(call: LlmCallTrace, traceStartMs: Long, onCopy: () -> U
         if ((cr != null && cr > 0) || (cw != null && cw > 0)) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "cache: ${cr ?: 0} read / ${cw ?: 0} write",
+                text = stringResource(Res.string.traces_llm_cache_line, cr ?: 0, cw ?: 0),
                 style = typography.sansSmall.copy(color = colors.inkMuted),
             )
         }
@@ -478,14 +537,14 @@ private fun ToolCallBlock(call: ToolCallTrace, traceStartMs: Long, onCopy: () ->
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
-        CodeLine(label = "args", value = call.argsPreview)
+        CodeLine(label = stringResource(Res.string.traces_code_args), value = call.argsPreview)
         call.resultPreview?.let { result ->
             Spacer(modifier = Modifier.height(4.dp))
-            CodeLine(label = "result", value = result)
+            CodeLine(label = stringResource(Res.string.traces_code_result), value = result)
         }
         call.errorMessage?.let {
             Spacer(modifier = Modifier.height(4.dp))
-            CodeLine(label = "error", value = it, valueColor = colors.error)
+            CodeLine(label = stringResource(Res.string.traces_code_error), value = it, valueColor = colors.error)
         }
         Spacer(modifier = Modifier.height(6.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -516,7 +575,7 @@ private fun CopyChip(onClick: () -> Unit) {
             .padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         Text(
-            text = if (pressed) "✓ copied" else "Copy",
+            text = if (pressed) stringResource(Res.string.traces_chip_copied) else stringResource(Res.string.traces_chip_copy),
             style = typography.sansLabel.copy(color = colors.inkMuted),
         )
     }
@@ -666,6 +725,13 @@ private val TraceStatus.label: String
         TraceStatus.COMPLETED -> "OK"
         TraceStatus.FAILED -> "FAIL"
     }
+
+@Composable
+private fun TraceStatus.statusLabel(): String = when (this) {
+    TraceStatus.RUNNING -> stringResource(Res.string.traces_status_running)
+    TraceStatus.COMPLETED -> stringResource(Res.string.traces_status_ok)
+    TraceStatus.FAILED -> stringResource(Res.string.traces_status_failed)
+}
 
 @Preview
 @Composable

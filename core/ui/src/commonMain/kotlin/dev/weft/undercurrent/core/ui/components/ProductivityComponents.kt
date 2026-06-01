@@ -32,7 +32,10 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.component_task_group_empty
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // TaskItem — rich todo row (checkbox + title + meta + optional tap)
@@ -239,7 +242,7 @@ internal class KanbanColumnComponent : WeftComponent<KanbanColumnProps>(
             // Items.
             if (node.children.isEmpty()) {
                 Text(
-                    text = "Empty",
+                    text = stringResource(Res.string.component_task_group_empty),
                     style = tp.sansSmall.copy(),
                     color = cs.inkSubtle,
                     modifier = Modifier.padding(16.dp),

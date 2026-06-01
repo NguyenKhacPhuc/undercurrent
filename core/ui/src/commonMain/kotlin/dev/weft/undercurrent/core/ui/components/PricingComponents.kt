@@ -24,7 +24,10 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.component_price_recommended
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // PriceCard — tier name + price/period + feature list + CTA
@@ -87,7 +90,7 @@ internal class PriceCardComponent : WeftComponent<PriceCardProps>(
                             .padding(horizontal = 10.dp, vertical = 3.dp),
                     ) {
                         Text(
-                            text = "RECOMMENDED",
+                            text = stringResource(Res.string.component_price_recommended),
                             style = tp.sansSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 letterSpacing = 0.8.sp,

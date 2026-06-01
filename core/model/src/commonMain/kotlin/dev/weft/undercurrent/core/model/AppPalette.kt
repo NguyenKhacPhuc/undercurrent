@@ -21,23 +21,22 @@ package dev.weft.undercurrent.core.model
  */
 enum class AppPalette(
     val displayName: String,
-    val tagline: String,
 ) {
+    // Taglines are localized in the UI via `AppPalette.taglineRes()`
+    // (:core:ui), resolved with stringResource at the picker — not held
+    // here, since this enum is resource-free commonMain. displayName is
+    // still hardcoded (a follow-up extraction).
     WarmDarkAmber(
         displayName = "Warm dark",
-        tagline = "Amber accent. Calm, writerly.",
     ),
     SageOchre(
         displayName = "Sage & ochre",
-        tagline = "Quieter, more distinct.",
     ),
     Newsprint(
         displayName = "Newsprint",
-        tagline = "High contrast. Editorial red.",
     ),
     Vellum(
         displayName = "Vellum",
-        tagline = "No accent. Pure writing surface.",
     );
 
     companion object {

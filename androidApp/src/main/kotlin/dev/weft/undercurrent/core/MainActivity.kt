@@ -49,6 +49,8 @@ import dev.weft.undercurrent.core.model.ThemeMode
 import dev.weft.undercurrent.core.navigation.NavigationIntent
 import dev.weft.undercurrent.core.navigation.NavigationViewModel
 import dev.weft.undercurrent.core.navigation.Screen
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.mini_app_preview_placeholder
 import dev.weft.undercurrent.feature.chat.ChatRoute
 import dev.weft.undercurrent.feature.chat.components.DisplayRole
 import dev.weft.undercurrent.feature.creator.CreatorIntent
@@ -60,6 +62,7 @@ import dev.weft.undercurrent.feature.miniapps.MiniAppsScreen
 import dev.weft.undercurrent.feature.miniapps.SaveAsMiniAppDialog
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import org.jetbrains.compose.resources.stringResource
 import org.koin.android.ext.android.get
 import org.koin.compose.koinInject
 
@@ -175,7 +178,7 @@ private fun AndroidApp() {
                                     onEvent = { /* swallow — taps go to onTap */ },
                                 )
                             } else {
-                                Text("(preview)")
+                                Text(stringResource(Res.string.mini_app_preview_placeholder))
                             }
                         }
                     },

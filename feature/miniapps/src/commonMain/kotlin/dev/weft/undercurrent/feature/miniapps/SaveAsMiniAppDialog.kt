@@ -28,6 +28,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.MiniApp
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.common_cancel
+import dev.weft.undercurrent.core.resources.common_create
+import dev.weft.undercurrent.core.resources.common_delete
+import dev.weft.undercurrent.core.resources.common_save
+import dev.weft.undercurrent.core.resources.miniapps_dialog_delete_body
+import dev.weft.undercurrent.core.resources.miniapps_dialog_delete_title
+import dev.weft.undercurrent.core.resources.miniapps_dialog_field_icon
+import dev.weft.undercurrent.core.resources.miniapps_dialog_field_icon_placeholder
+import dev.weft.undercurrent.core.resources.miniapps_dialog_field_name
+import dev.weft.undercurrent.core.resources.miniapps_dialog_field_name_placeholder
+import dev.weft.undercurrent.core.resources.miniapps_dialog_field_prompt
+import dev.weft.undercurrent.core.resources.miniapps_dialog_field_prompt_placeholder
+import dev.weft.undercurrent.core.resources.miniapps_dialog_hint
+import dev.weft.undercurrent.core.resources.miniapps_dialog_title_create
+import dev.weft.undercurrent.core.resources.miniapps_dialog_title_edit
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Dialog that captures a prompt as a [MiniApp]. Two modes — create
@@ -58,7 +75,12 @@ fun SaveAsMiniAppDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isEdit) "Edit mini-app" else "Save as mini-app") },
+        title = {
+            Text(
+                if (isEdit) stringResource(Res.string.miniapps_dialog_title_edit)
+                else stringResource(Res.string.miniapps_dialog_title_create),
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
@@ -66,30 +88,29 @@ fun SaveAsMiniAppDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     LabeledField(
-                        label = "Icon",
+                        label = stringResource(Res.string.miniapps_dialog_field_icon),
                         value = emoji,
                         onValueChange = { v -> emoji = v.take(4) },
-                        placeholder = "✨",
+                        placeholder = stringResource(Res.string.miniapps_dialog_field_icon_placeholder),
                         modifier = Modifier.width(72.dp),
                     )
                     LabeledField(
-                        label = "Name",
+                        label = stringResource(Res.string.miniapps_dialog_field_name),
                         value = name,
                         onValueChange = { name = it },
-                        placeholder = "Log water",
+                        placeholder = stringResource(Res.string.miniapps_dialog_field_name_placeholder),
                         modifier = Modifier.weight(1f),
                     )
                 }
                 LabeledField(
-                    label = "Prompt",
+                    label = stringResource(Res.string.miniapps_dialog_field_prompt),
                     value = prompt,
                     onValueChange = { prompt = it },
-                    placeholder = "What this mini-app should ask the assistant.",
+                    placeholder = stringResource(Res.string.miniapps_dialog_field_prompt_placeholder),
                     minLines = 4,
                 )
                 Text(
-                    text = "Tapping this mini-app later will send the prompt above " +
-                        "to the assistant — exactly as you typed it.",
+                    text = stringResource(Res.string.miniapps_dialog_hint),
                     style = UndercurrentTheme.typography.sansSmall.copy(
                         color = colors.inkSubtle,
                     ),
@@ -106,16 +127,21 @@ fun SaveAsMiniAppDialog(
                         prompt.trim(),
                     )
                 },
-            ) { Text(if (isEdit) "Save" else "Create") }
+            ) {
+                Text(
+                    if (isEdit) stringResource(Res.string.common_save)
+                    else stringResource(Res.string.common_create),
+                )
+            }
         },
         dismissButton = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (onDelete != null) {
                     TextButton(onClick = { confirmDelete = true }) {
-                        Text("Delete", color = colors.error)
+                        Text(stringResource(Res.string.common_delete), color = colors.error)
                     }
                 }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_cancel)) }
             }
         },
     )
@@ -123,16 +149,16 @@ fun SaveAsMiniAppDialog(
     if (confirmDelete && onDelete != null && initial != null) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete \"${initial.name}\"?") },
-            text = { Text("The mini-app will be permanently removed. Existing chats are not affected.") },
+            title = { Text(stringResource(Res.string.miniapps_dialog_delete_title, initial.name)) },
+            text = { Text(stringResource(Res.string.miniapps_dialog_delete_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
                     onDelete()
-                }) { Text("Delete", color = colors.error) }
+                }) { Text(stringResource(Res.string.common_delete), color = colors.error) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmDelete = false }) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }

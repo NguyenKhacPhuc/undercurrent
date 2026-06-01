@@ -28,6 +28,8 @@ import dev.weft.undercurrent.core.model.AppPalette
 import dev.weft.undercurrent.core.model.MiniApp
 import dev.weft.undercurrent.core.model.ModelTier
 import dev.weft.undercurrent.core.model.ThemeMode
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.chat_thinking
 import dev.weft.undercurrent.feature.chat.components.AddToChatSheet
 import dev.weft.undercurrent.feature.chat.components.AssistantActions
 import dev.weft.undercurrent.feature.chat.components.BlinkingCursor
@@ -42,6 +44,7 @@ import dev.weft.undercurrent.feature.chat.components.TierChipRow
 import dev.weft.undercurrent.feature.miniapps.SaveAsMiniAppDialog
 import dev.weft.undercurrent.core.domain.SpeechRepository
 import dev.weft.undercurrent.core.domain.VoiceState
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -148,7 +151,7 @@ fun ChatScreen(
             if (messages.inFlight && !lastIsAssistant) {
                 item("inflight") {
                     Text(
-                        text = "Thinking…",
+                        text = stringResource(Res.string.chat_thinking),
                         style = typography.sansSmall.copy(color = colors.inkMuted),
                     )
                 }

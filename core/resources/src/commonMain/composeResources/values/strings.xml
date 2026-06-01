@@ -1,6 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Sign-in / register screen (feature/auth) -->
+    <!-- ============================================================ -->
+    <!-- App                                                          -->
+    <!-- ============================================================ -->
+    <string name="app_name">Undercurrent</string>
+
+    <!-- ============================================================ -->
+    <!-- Common                                                       -->
+    <!-- ============================================================ -->
+    <string name="common_retry">Retry</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_save">Save</string>
+    <string name="common_create">Create</string>
+
+    <!-- ============================================================ -->
+    <!-- ContentDescription                                           -->
+    <!-- ============================================================ -->
+    <string name="cd_search">Search</string>
+    <string name="cd_clear">Clear</string>
+    <string name="cd_checked">checked</string>
+    <string name="cd_confirmed">Confirmed</string>
+    <string name="cd_play">Play</string>
+    <string name="cd_pause">Pause</string>
+    <string name="cd_video">video</string>
+    <string name="cd_image">image</string>
+    <string name="cd_tip">tip</string>
+    <string name="cd_dismiss">Dismiss</string>
+    <string name="cd_toggle_bookmark">Toggle bookmark</string>
+    <string name="cd_rating_star">%1$d star</string>
+    <string name="cd_collapse">Collapse</string>
+    <string name="cd_expand">Expand</string>
+
+    <!-- ============================================================ -->
+    <!-- Auth — sign-in / register screen                             -->
+    <!-- ============================================================ -->
     <string name="auth_sign_in_title">Welcome back</string>
     <string name="auth_register_title">Create your account</string>
     <string name="auth_sign_in_subtitle">Sign in with your email and password.</string>
@@ -13,18 +47,400 @@
     <string name="auth_switch_to_sign_in_with_email">Switch to Sign In with this email</string>
     <string name="auth_cta_sign_in">Sign In</string>
     <string name="auth_cta_register">Create account</string>
-
-    <!-- Auth error messages -->
     <string name="auth_error_invalid_credentials">Invalid email or password.</string>
     <string name="auth_error_rate_limited">Too many failed attempts. Try again later.</string>
     <string name="auth_error_network">Couldn\'t reach the server. Check your connection.</string>
 
-    <!-- Common -->
-    <string name="common_retry">Retry</string>
-
-    <!-- Settings account section (feature/auth) -->
+    <!-- ============================================================ -->
+    <!-- Settings — account section                                   -->
+    <!-- ============================================================ -->
     <string name="account_section_label">Account</string>
     <string name="account_loading">Loading account…</string>
     <string name="account_load_error">Couldn\'t load account.</string>
     <string name="account_sign_out">Sign Out</string>
+
+    <!-- ============================================================ -->
+    <!-- Settings                                                     -->
+    <!-- ============================================================ -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_provider_label">Provider</string>
+    <string name="settings_integrations_label">Integrations</string>
+    <string name="settings_integrations_subtitle">Connect third-party services</string>
+    <string name="settings_usage_label">Usage</string>
+    <string name="settings_usage_subtitle">Tokens and cost</string>
+
+    <!-- ============================================================ -->
+    <!-- AppDrawer                                                    -->
+    <!-- ============================================================ -->
+    <string name="drawer_app_name">Undercurrent</string>
+    <string name="drawer_new_chat">New chat</string>
+    <string name="drawer_empty_conversations">No conversations yet</string>
+    <string name="drawer_all_conversations">All conversations</string>
+    <string name="drawer_personas">Personas</string>
+    <string name="drawer_mini_apps">Mini apps</string>
+    <string name="drawer_memories">Memories</string>
+    <string name="drawer_traces">Traces</string>
+    <string name="drawer_settings">Settings</string>
+    <string name="drawer_untitled_conversation">(untitled)</string>
+    <string name="drawer_delete_dialog_title">Delete this thread?</string>
+    <string name="drawer_delete_dialog_message">\"%1$s\" and all its messages will be permanently removed.</string>
+
+    <!-- ============================================================ -->
+    <!-- Onboarding                                                   -->
+    <!-- ============================================================ -->
+    <string name="onboarding_intro_title">Hi.</string>
+    <string name="onboarding_intro_body_1">I\'m Undercurrent. A small, private assistant that lives on this phone. I\'ll help you think, write, remember — quietly, without sending your conversations anywhere they don\'t need to go.</string>
+    <string name="onboarding_intro_body_2">I work best when you bring your own provider — Anthropic, OpenAI, OpenRouter, DeepSeek. You\'ll paste a key in a minute. Until then, this is just paper.</string>
+    <string name="onboarding_memory_title">Memory you can see.</string>
+    <string name="onboarding_memory_body_1">If I remember something about you — a project name, a preference, a way you like to be addressed — it\'ll show up in Memories. Delete any of it. Wipe all of it.</string>
+    <string name="onboarding_memory_body_2">Conversations, traces, costs. Everything I\'ve done is browsable. Nothing\'s hidden, nothing leaves.</string>
+    <string name="onboarding_persona_title">Pick a voice.</string>
+    <string name="onboarding_persona_body">Choose how I sound. Default works for most things — pick another if you\'d like a particular register. You can change this anytime in Personas.</string>
+    <string name="onboarding_provider_title">One last thing.</string>
+    <string name="onboarding_provider_body">Pick where the model lives. You can change this later — each provider keeps its own key on this device.</string>
+    <string name="onboarding_cta_begin">Begin reading →</string>
+    <string name="onboarding_cta_lets_go">Let\'s go →</string>
+    <string name="onboarding_cta_continue">Keep going →</string>
+    <string name="onboarding_helper_intro">Nothing happens until you tap.</string>
+    <string name="onboarding_helper_persona_selected">· %1$s selected</string>
+    <string name="onboarding_helper_provider_selected">· %1$s selected</string>
+    <string name="onboarding_voice_label">VOICE</string>
+    <string name="onboarding_provider_label">PROVIDER</string>
+    <string name="onboarding_keys_privacy">Keys live on this device. Nothing else.</string>
+    <string name="onboarding_skip_default_voice">Skip — use the default voice</string>
+    <string name="onboarding_model_count_40_plus">40+ MODELS</string>
+    <string name="onboarding_model_count_20_plus">20+ MODELS</string>
+    <string name="onboarding_model_count_format">%1$d MODELS</string>
+
+    <!-- ============================================================ -->
+    <!-- KeyPaste                                                     -->
+    <!-- ============================================================ -->
+    <string name="keypaste_title">Connect your key.</string>
+    <string name="keypaste_subtitle">Your key. Your bill. Nothing in between.</string>
+    <string name="keypaste_body_format">Undercurrent talks to %1$s from this phone. We never see your conversations or your billing.</string>
+    <string name="keypaste_get_key_format">Get an API key from %1$s →</string>
+    <string name="keypaste_paste_label">PASTE YOUR KEY</string>
+    <string name="keypaste_hide">Hide</string>
+    <string name="keypaste_show">Show</string>
+    <string name="keypaste_checking">Checking…</string>
+    <string name="keypaste_connect">Connect</string>
+    <string name="keypaste_footer_format">Stored encrypted on this device. Only sent to %1$s when you message the assistant.</string>
+    <string name="keypaste_or">OR</string>
+
+    <!-- ============================================================ -->
+    <!-- Providers                                                    -->
+    <!-- ============================================================ -->
+    <string name="providers_title">Provider</string>
+    <string name="providers_section_providers">Providers</string>
+    <string name="providers_section_default_tier">Default model tier</string>
+    <string name="providers_tip_about_tiers_title">About tiers</string>
+    <string name="providers_tip_about_tiers">Cheap is fast and short. Standard is the default. Heavy is for hard problems. Auto picks per turn.</string>
+    <string name="providers_no_key">No key saved</string>
+    <string name="providers_active_key_format">Active · •••• last4=%1$s</string>
+    <string name="providers_stored_key_format">•••• last4=%1$s</string>
+    <string name="providers_api_key_label">API KEY</string>
+    <string name="providers_get_key">Get a key  →</string>
+    <string name="providers_hide">Hide</string>
+    <string name="providers_show">Show</string>
+    <string name="providers_checking">Checking…</string>
+    <string name="providers_save_key">Save key</string>
+    <string name="providers_remove_key">Remove key</string>
+    <string name="providers_models_customization">Models customization</string>
+    <string name="providers_models_subtitle">4 tiers: Cheap · Standard · Vision · Heavy</string>
+    <string name="providers_remove_confirm_title_format">Remove %1$s key?</string>
+    <string name="providers_remove_confirm_body_format">The stored key will be deleted from this device. Since %1$s is your active provider, you\'ll be returned to the key-paste screen to add a new one.</string>
+    <string name="providers_remove">Remove</string>
+    <string name="providers_default_tag">default</string>
+    <string name="providers_tier_auto">Auto</string>
+
+    <string name="provider_name_anthropic">Anthropic</string>
+    <string name="provider_name_openai">OpenAI</string>
+    <string name="provider_name_openrouter">OpenRouter</string>
+    <string name="provider_name_deepseek">DeepSeek</string>
+    <string name="provider_tagline_anthropic">Claude family. Slow, deliberate, well-read.</string>
+    <string name="provider_tagline_openai">Familiar. Fast. The default everyone knows.</string>
+    <string name="provider_tagline_openrouter">Many models behind one key. Mix and match.</string>
+    <string name="provider_tagline_deepseek">Inexpensive, capable, and quiet.</string>
+
+    <!-- ============================================================ -->
+    <!-- Appearance                                                   -->
+    <!-- ============================================================ -->
+    <string name="appearance_title">Appearance</string>
+    <string name="appearance_theme_section">Theme</string>
+    <string name="appearance_mode_section">Mode</string>
+
+    <!-- ============================================================ -->
+    <!-- Integrations                                                 -->
+    <!-- ============================================================ -->
+    <string name="integrations_title">Integrations</string>
+    <string name="integrations_intro">Connect a service so I can read from and write to it on your behalf. Each connection lives on this device — revoke any time, here or at the provider.</string>
+    <string name="integrations_footer">Tokens are stored encrypted on this device. They never transit through any server I control.</string>
+    <string name="integrations_connect">Connect</string>
+    <string name="integrations_disconnect">Disconnect</string>
+    <string name="integrations_restart_banner">Restart Undercurrent to apply changes.</string>
+    <string name="integrations_restart_action">RESTART</string>
+
+    <!-- ============================================================ -->
+    <!-- Personas                                                     -->
+    <!-- ============================================================ -->
+    <string name="personas_title">Personas</string>
+    <string name="personas_intro">A voice shapes how I sound. A role shapes what I focus on. You can pick one of each — they layer.</string>
+    <string name="personas_section_voices">Voices</string>
+    <string name="personas_section_roles">Roles</string>
+    <string name="personas_new_action">+ New</string>
+    <string name="personas_footer_hint">Tap to apply. Tap the active role again to clear it. Long-press a custom one to edit.</string>
+    <string name="personas_active_pill">ACTIVE</string>
+    <string name="personas_editor_title_edit">Edit persona</string>
+    <string name="personas_editor_title_new_role">New role</string>
+    <string name="personas_editor_title_new_voice">New voice</string>
+    <string name="personas_editor_field_name">Name</string>
+    <string name="personas_editor_field_tagline">Tagline</string>
+    <string name="personas_editor_field_instructions">Instructions</string>
+    <string name="personas_editor_name_placeholder">Tech writer</string>
+    <string name="personas_editor_tagline_placeholder">Optional one-liner shown in the picker.</string>
+    <string name="personas_editor_instructions_placeholder">Speak as a senior tech writer. Use active voice. Avoid jargon unless defined.</string>
+    <string name="personas_delete_dialog_title">Delete \"%1$s\"?</string>
+    <string name="personas_delete_dialog_body">This custom persona will be permanently removed.</string>
+
+    <!-- ============================================================ -->
+    <!-- Mini apps                                                    -->
+    <!-- ============================================================ -->
+    <string name="miniapps_title">Mini apps</string>
+    <string name="miniapps_intro">Tap a mini-app to open it. Long-press to rename or delete.</string>
+    <string name="miniapps_footer_hint">Build a new one from scratch above, or run a prompt in chat and tap \"Save as mini-app\" on the reply.</string>
+    <string name="miniapps_empty_title">No mini-apps yet.</string>
+    <string name="miniapps_empty_body">Build one with a guided wizard, or run a prompt in chat and tap \"Save as mini-app\" on the reply.</string>
+    <string name="miniapps_empty_cta">+ New mini-app</string>
+    <string name="miniapps_new_row_title">New mini-app</string>
+    <string name="miniapps_new_row_subtitle">Walk through a guided wizard to set one up.</string>
+    <string name="miniapps_no_preview">Tap to open — preview will appear after first run.</string>
+    <string name="miniapps_usage_count">%1$d×</string>
+    <string name="miniapps_dialog_title_create">Save as mini-app</string>
+    <string name="miniapps_dialog_title_edit">Edit mini-app</string>
+    <string name="miniapps_dialog_field_icon">Icon</string>
+    <string name="miniapps_dialog_field_icon_placeholder">✨</string>
+    <string name="miniapps_dialog_field_name">Name</string>
+    <string name="miniapps_dialog_field_name_placeholder">Log water</string>
+    <string name="miniapps_dialog_field_prompt">Prompt</string>
+    <string name="miniapps_dialog_field_prompt_placeholder">What this mini-app should ask the assistant.</string>
+    <string name="miniapps_dialog_hint">Tapping this mini-app later will send the prompt above to the assistant — exactly as you typed it.</string>
+    <string name="miniapps_dialog_delete_title">Delete \"%1$s\"?</string>
+    <string name="miniapps_dialog_delete_body">The mini-app will be permanently removed. Existing chats are not affected.</string>
+    <string name="mini_app_preview_placeholder">(preview)</string>
+
+    <!-- ============================================================ -->
+    <!-- Conversations                                                -->
+    <!-- ============================================================ -->
+    <string name="conversations_title">Conversations</string>
+    <string name="conversations_new_action">+ New</string>
+    <string name="conversations_search_placeholder">Search threads…</string>
+    <string name="conversations_empty_title">No conversations yet</string>
+    <string name="conversations_empty_body">Start chatting and your threads will show up here.</string>
+    <string name="conversations_no_matches_title">No matches</string>
+    <string name="conversations_no_matches_body">No threads have \"%1$s\" in the title or any message.</string>
+    <string name="conversations_clear_all_action">Clear all</string>
+    <string name="conversations_clear_all_dialog_title">Clear all conversations?</string>
+    <string name="conversations_clear_all_dialog_body">Every thread and every message will be permanently removed.</string>
+    <string name="conversations_delete_dialog_title">Delete this thread?</string>
+    <string name="conversations_delete_dialog_body">\"%1$s\" and all its messages will be permanently removed.</string>
+    <string name="conversations_untitled">(untitled)</string>
+
+    <!-- ============================================================ -->
+    <!-- Memories                                                     -->
+    <!-- ============================================================ -->
+    <string name="memories_title">Memories</string>
+    <string name="memories_clear_all">Clear all</string>
+    <string name="memories_clear_confirm_title">Forget everything?</string>
+    <string name="memories_clear_confirm_body">This deletes every memory the agent has stored. It can\'t be undone.</string>
+    <string name="memories_clear_confirm_action">Forget all</string>
+    <string name="memories_count_format">%1$d memories</string>
+    <string name="memories_empty_title">Nothing remembered yet</string>
+    <string name="memories_empty_body">Anything the assistant wants to remember about you will show up here, and you can delete it any time.</string>
+    <string name="memory_scope_session">SESSION</string>
+    <string name="memory_scope_permanent">PERMANENT</string>
+    <string name="memory_scope_any">ANY</string>
+
+    <!-- ============================================================ -->
+    <!-- Traces                                                       -->
+    <!-- ============================================================ -->
+    <string name="traces_title">Traces</string>
+    <string name="traces_detail_title">Trace</string>
+    <string name="traces_empty_title">No traces yet</string>
+    <string name="traces_empty_body">Send a message in chat to see a turn\'s trace here.</string>
+    <string name="traces_action_clear">Clear</string>
+    <string name="traces_action_copy">Copy</string>
+    <string name="traces_action_copied">Copied</string>
+    <string name="traces_action_export">Export</string>
+    <string name="traces_chip_copy">Copy</string>
+    <string name="traces_chip_copied">✓ copied</string>
+    <string name="traces_status_running">RUNNING</string>
+    <string name="traces_status_ok">OK</string>
+    <string name="traces_status_failed">FAIL</string>
+    <string name="traces_row_summary_llm">%1$d LLM</string>
+    <string name="traces_row_summary_tool">%1$d tool</string>
+    <string name="traces_feedback_prompt">Was this turn helpful?</string>
+    <string name="traces_feedback_thumbs_up">👍</string>
+    <string name="traces_feedback_thumbs_up_active">👍 yes</string>
+    <string name="traces_feedback_thumbs_down">👎</string>
+    <string name="traces_feedback_thumbs_down_active">👎 no</string>
+    <string name="traces_meta_id">Trace id</string>
+    <string name="traces_meta_status">Status</string>
+    <string name="traces_meta_conversation">Conversation</string>
+    <string name="traces_meta_parent">Parent trace</string>
+    <string name="traces_meta_started">Started</string>
+    <string name="traces_meta_duration">Duration</string>
+    <string name="traces_meta_tokens">Tokens</string>
+    <string name="traces_meta_tokens_value">%1$d in / %2$d out (%3$d total)</string>
+    <string name="traces_meta_cache">Cache</string>
+    <string name="traces_meta_cache_value">%1$d read / %2$d write</string>
+    <string name="traces_llm_calls_header">LLM CALLS · %1$d</string>
+    <string name="traces_tool_calls_header">TOOL CALLS · %1$d</string>
+    <string name="traces_llm_tokens_line">%1$d in / %2$d out (%3$d total)</string>
+    <string name="traces_llm_cache_line">cache: %1$d read / %2$d write</string>
+    <string name="traces_label_user">User</string>
+    <string name="traces_label_assistant">Assistant</string>
+    <string name="traces_label_error">Error</string>
+    <string name="traces_code_args">args</string>
+    <string name="traces_code_result">result</string>
+    <string name="traces_code_error">error</string>
+
+    <!-- ============================================================ -->
+    <!-- Usage                                                        -->
+    <!-- ============================================================ -->
+    <string name="usage_title">Usage</string>
+    <string name="usage_tokens_label">Tokens</string>
+    <string name="usage_cache_savings_label">Cache savings</string>
+    <string name="usage_history_label">Last 14 days</string>
+    <string name="usage_last_model_format">Last model: %1$s</string>
+    <string name="usage_label_today">Today</string>
+    <string name="usage_label_lifetime">Lifetime</string>
+    <string name="usage_label_input">Input</string>
+    <string name="usage_label_output">Output</string>
+    <string name="usage_label_cache_reads">Cache reads</string>
+    <string name="usage_label_cache_writes">Cache writes</string>
+    <string name="usage_cache_savings_header_format">~$%1$s saved</string>
+    <string name="usage_cache_savings_body_format">%1$s cache-read tokens, billed at ~10%% of base input rate.</string>
+
+    <!-- ============================================================ -->
+    <!-- Chat                                                         -->
+    <!-- ============================================================ -->
+    <string name="chat_thinking">Thinking…</string>
+    <string name="chat_input_placeholder">Write a paragraph back…</string>
+    <string name="chat_header_new">New</string>
+    <string name="chat_delete_thread_menu">Delete thread</string>
+    <string name="chat_delete_thread_title">Delete this thread?</string>
+    <string name="chat_delete_thread_body">\"%1$s\" and all its messages will be permanently removed.</string>
+    <string name="chat_untitled">(untitled)</string>
+    <string name="chat_action_copy">Copy</string>
+    <string name="chat_action_regenerate">Regenerate</string>
+    <string name="chat_action_save_as_feature">Save as feature</string>
+    <string name="chat_tier_auto">AUTO</string>
+    <string name="chat_tier_auto_label">Auto</string>
+    <string name="chat_tier_default_format">Default: %1$s</string>
+    <string name="chat_tier_router_decides">Router decides</string>
+    <string name="chat_tier_last_model_format">· %1$s chosen this turn</string>
+    <string name="chat_add_to_chat_title">Add to Chat</string>
+    <string name="chat_choose_style">Choose style</string>
+    <string name="chat_connectors">Connectors</string>
+    <string name="chat_connectors_none">None</string>
+    <string name="chat_connectors_one">1 connected</string>
+    <string name="chat_connectors_count_format">%1$d connected</string>
+    <string name="chat_theme_section">THEME</string>
+    <string name="chat_mini_apps_label">MINI APPS</string>
+    <string name="chat_mini_apps_manage">Manage</string>
+    <string name="chat_degraded_title">Assistant unreachable</string>
+    <string name="chat_degraded_waiting_format">The LLM API has been failing — pausing for %1$ds before retrying.</string>
+    <string name="chat_degraded_retrying">Retrying on next send…</string>
+    <string name="chat_assistant_app_label">UNDERCURRENT</string>
+    <string name="chat_tool_running">running…</string>
+
+    <string name="model_tier_cheap">Cheap</string>
+    <string name="model_tier_standard">Standard</string>
+    <string name="model_tier_vision">Vision</string>
+    <string name="model_tier_heavy">Heavy</string>
+
+    <!-- ============================================================ -->
+    <!-- Creator                                                      -->
+    <!-- ============================================================ -->
+    <string name="creator_title_fallback">Creator</string>
+    <string name="creator_subtitle">Walk through the questions to finish.</string>
+    <string name="creator_thinking">Preparing the first question…</string>
+
+    <!-- ============================================================ -->
+    <!-- Permission dialog                                            -->
+    <!-- ============================================================ -->
+    <string name="permission_dialog_open_settings">Open Settings</string>
+    <string name="permission_dialog_not_now">Not now</string>
+
+    <!-- ============================================================ -->
+    <!-- WeftComponent renderers (core/ui/components)                 -->
+    <!-- ============================================================ -->
+    <string name="component_workout_reps">REPS</string>
+    <string name="component_workout_weight">WEIGHT</string>
+    <string name="component_heart_rate_bpm">BPM</string>
+    <string name="component_heart_rate_need_more_readings">Need ≥2 readings.</string>
+    <string name="component_nutrition_servings_per_container">%1$s servings per container</string>
+    <string name="component_nutrition_serving_size">Serving size</string>
+    <string name="component_nutrition_calories">Calories</string>
+    <string name="component_sleep_score">Score · %1$d</string>
+    <string name="component_heatmap_less">Less</string>
+    <string name="component_heatmap_more">More</string>
+    <string name="component_pagination_page_of">Page %1$d of %2$d</string>
+    <string name="component_quest_level">LEVEL %1$d</string>
+    <string name="component_reservation_confirmation">CONFIRMATION</string>
+    <string name="component_task_group_empty">Empty</string>
+    <string name="component_price_recommended">RECOMMENDED</string>
+    <string name="component_comment_reply">Reply</string>
+    <string name="component_open_status_closed">Closed</string>
+    <string name="component_open_status_closing_soon">Closing soon</string>
+    <string name="component_open_status_open">Open</string>
+    <string name="component_flight_nonstop">Nonstop</string>
+    <string name="component_flight_one_stop">1 stop</string>
+    <string name="component_flight_stops">%1$d stops</string>
+    <string name="component_boarding_status_boarding">BOARDING</string>
+    <string name="component_boarding_status_delayed">DELAYED</string>
+    <string name="component_boarding_status_boarded">BOARDED</string>
+    <string name="component_boarding_status_on_time">ON TIME</string>
+    <string name="component_boarding_pass_passenger">PASSENGER</string>
+    <string name="component_boarding_pass_date">DATE</string>
+    <string name="component_boarding_pass_flight">FLIGHT</string>
+    <string name="component_boarding_pass_seat">SEAT</string>
+    <string name="component_boarding_pass_gate">GATE</string>
+    <string name="component_donut_unnamed_segment">(unnamed)</string>
+    <string name="component_countdown_invalid_target">Invalid target</string>
+    <string name="component_countdown_missing_target">—</string>
+    <string name="component_countdown_overdue_suffix">overdue</string>
+    <string name="component_countdown_to_go_suffix">to go</string>
+    <string name="component_countdown_unit_weeks">weeks</string>
+    <string name="component_countdown_unit_days">days</string>
+    <string name="component_countdown_unit_hours">hours</string>
+    <string name="component_countdown_unit_minutes">minutes</string>
+    <string name="component_countdown_unit_seconds">seconds</string>
+
+    <!-- ============================================================ -->
+    <!-- Palette taglines — shown in the theme picker                 -->
+    <!-- ============================================================ -->
+    <string name="palette_tagline_warm_dark">Amber accent. Calm, writerly.</string>
+    <string name="palette_tagline_sage_ochre">Quieter, more distinct.</string>
+    <string name="palette_tagline_newsprint">High contrast. Editorial red.</string>
+    <string name="palette_tagline_vellum">No accent. Pure writing surface.</string>
+
+    <!-- ============================================================ -->
+    <!-- Persona taglines — built-ins, shown in the persona picker    -->
+    <!-- ============================================================ -->
+    <string name="persona_tagline_default">Warm. Plain. The voice of the app.</string>
+    <string name="persona_tagline_editor">Picky about tense, ruthless on filler.</string>
+    <string name="persona_tagline_field_notes">Spare, observational, present tense.</string>
+    <string name="persona_tagline_reader">Quotes back to you, builds slowly.</string>
+    <string name="persona_tagline_almanac">Dry, factual, comfortable with lists.</string>
+    <string name="persona_tagline_developer">Speaks code first, knows the stack.</string>
+    <string name="persona_tagline_doctor">Careful, asks before suggesting.</string>
+    <string name="persona_tagline_lawyer">Plain-English legal concepts, not advice.</string>
+    <string name="persona_tagline_teacher">Patient, checks understanding.</string>
+    <string name="persona_tagline_researcher">Names uncertainty, suggests sources.</string>
+
+    <!-- ============================================================ -->
+    <!-- Integration taglines — shown in the integrations picker      -->
+    <!-- ============================================================ -->
+    <string name="integration_tagline_linear">Issues, projects, and comments via natural language.</string>
 </resources>

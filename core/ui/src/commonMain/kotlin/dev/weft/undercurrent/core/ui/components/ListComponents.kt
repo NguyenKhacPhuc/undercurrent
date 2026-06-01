@@ -34,7 +34,10 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.cd_checked
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // ListRow — leading icon + title/subtitle + optional trailing
@@ -247,7 +250,7 @@ internal class ChecklistComponent : WeftComponent<ChecklistProps>(
                         if (isChecked) {
                             Icon(
                                 imageVector = undercurrentIcon("check"),
-                                contentDescription = "checked",
+                                contentDescription = stringResource(Res.string.cd_checked),
                                 tint = cs.onAccent,
                                 modifier = Modifier.size(16.dp),
                             )

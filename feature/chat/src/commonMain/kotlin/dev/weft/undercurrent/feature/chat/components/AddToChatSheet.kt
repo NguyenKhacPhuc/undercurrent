@@ -37,7 +37,19 @@ import dev.weft.undercurrent.core.designsystem.colors
 import dev.weft.undercurrent.core.model.AppPalette
 import dev.weft.undercurrent.core.model.MiniApp
 import dev.weft.undercurrent.core.model.ThemeMode
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.chat_add_to_chat_title
+import dev.weft.undercurrent.core.resources.chat_choose_style
+import dev.weft.undercurrent.core.resources.chat_connectors
+import dev.weft.undercurrent.core.resources.chat_connectors_count_format
+import dev.weft.undercurrent.core.resources.chat_connectors_none
+import dev.weft.undercurrent.core.resources.chat_connectors_one
+import dev.weft.undercurrent.core.resources.chat_mini_apps_label
+import dev.weft.undercurrent.core.resources.chat_mini_apps_manage
+import dev.weft.undercurrent.core.resources.chat_theme_section
+import dev.weft.undercurrent.core.ui.taglineRes
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,7 +91,7 @@ fun AddToChatSheet(
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp)) {
             Box(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Add to Chat",
+                    text = stringResource(Res.string.chat_add_to_chat_title),
                     style = typography.serifBody.copy(
                         color = colors.ink,
                         fontSize = 19.sp,
@@ -101,13 +113,13 @@ fun AddToChatSheet(
             }
 
             SheetLinkRow(
-                label = "Choose style",
+                label = stringResource(Res.string.chat_choose_style),
                 trailing = activePersonaLabel,
                 onClick = { closeThen(onShowPersonas) },
             )
             Spacer(Modifier.height(8.dp))
 
-            SectionLabel(text = "THEME")
+            SectionLabel(text = stringResource(Res.string.chat_theme_section))
             Spacer(Modifier.height(8.dp))
             PalettePicker(selected = activePalette, onSelect = onSelectPalette)
             Spacer(Modifier.height(10.dp))
@@ -115,11 +127,11 @@ fun AddToChatSheet(
             Spacer(Modifier.height(16.dp))
 
             SheetLinkRow(
-                label = "Connectors",
+                label = stringResource(Res.string.chat_connectors),
                 trailing = when (connectedIntegrationsCount) {
-                    0 -> "None"
-                    1 -> "1 connected"
-                    else -> "$connectedIntegrationsCount connected"
+                    0 -> stringResource(Res.string.chat_connectors_none)
+                    1 -> stringResource(Res.string.chat_connectors_one)
+                    else -> stringResource(Res.string.chat_connectors_count_format, connectedIntegrationsCount)
                 },
                 onClick = { closeThen(onShowIntegrations) },
             )
@@ -152,12 +164,12 @@ private fun MiniAppsChipRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "MINI APPS",
+                text = stringResource(Res.string.chat_mini_apps_label),
                 style = typography.sansLabel.copy(color = colors.inkSubtle),
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = "Manage",
+                text = stringResource(Res.string.chat_mini_apps_manage),
                 style = typography.sansLabel.copy(
                     color = colors.ink,
                     fontWeight = FontWeight.SemiBold,
@@ -321,7 +333,7 @@ private fun PaletteCard(
                 ),
             )
             Text(
-                text = palette.tagline,
+                text = stringResource(palette.taglineRes()),
                 style = typography.sansSmall.copy(
                     color = colors.inkSubtle,
                     fontSize = 11.sp,

@@ -28,6 +28,16 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.component_countdown_invalid_target
+import dev.weft.undercurrent.core.resources.component_countdown_missing_target
+import dev.weft.undercurrent.core.resources.component_countdown_overdue_suffix
+import dev.weft.undercurrent.core.resources.component_countdown_to_go_suffix
+import dev.weft.undercurrent.core.resources.component_countdown_unit_days
+import dev.weft.undercurrent.core.resources.component_countdown_unit_hours
+import dev.weft.undercurrent.core.resources.component_countdown_unit_minutes
+import dev.weft.undercurrent.core.resources.component_countdown_unit_seconds
+import dev.weft.undercurrent.core.resources.component_countdown_unit_weeks
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
@@ -39,6 +49,7 @@ import kotlin.math.abs
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // Calendar — month grid with selectable + marked days
@@ -274,16 +285,26 @@ internal class CountdownComponent : WeftComponent<CountdownProps>(
         val tp = UndercurrentTheme.typography
         val now = Clock.System.now()
         val target = parseInstant(props.target)
+        val invalidTarget = stringResource(Res.string.component_countdown_invalid_target)
+        val overdueSuffix = stringResource(Res.string.component_countdown_overdue_suffix)
+        val toGoSuffix = stringResource(Res.string.component_countdown_to_go_suffix)
         val (primary, secondary, isPast) = if (target == null) {
-            Triple("—", "Invalid target", false)
+            Triple(stringResource(Res.string.component_countdown_missing_target), invalidTarget, false)
         } else {
             val seconds = (target - now).inWholeSeconds
             val absSec = abs(seconds)
-            val (n, unit) = bestUnit(absSec)
+            val (n, unitKey) = bestUnit(absSec)
+            val unit = when (unitKey) {
+                "weeks" -> stringResource(Res.string.component_countdown_unit_weeks)
+                "days" -> stringResource(Res.string.component_countdown_unit_days)
+                "hours" -> stringResource(Res.string.component_countdown_unit_hours)
+                "minutes" -> stringResource(Res.string.component_countdown_unit_minutes)
+                else -> stringResource(Res.string.component_countdown_unit_seconds)
+            }
             val past = seconds < 0L
             Triple(
                 n.toString(),
-                "$unit ${if (past) "overdue" else "to go"}",
+                "$unit ${if (past) overdueSuffix else toGoSuffix}",
                 past,
             )
         }

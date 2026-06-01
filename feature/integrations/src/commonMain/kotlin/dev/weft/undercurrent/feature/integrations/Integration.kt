@@ -56,7 +56,8 @@ object Integrations {
     val Linear: Integration = Integration(
         id = "linear",
         displayName = "Linear",
-        tagline = "Issues, projects, and comments via natural language.",
+        // Localized in the UI via Integration.taglineRes() (IntegrationsScreen).
+        tagline = "",
         mcpUrl = "https://mcp.linear.app/mcp",
         oauth = OAuthConfig(
             clientId = LINEAR_OAUTH_CLIENT_ID,

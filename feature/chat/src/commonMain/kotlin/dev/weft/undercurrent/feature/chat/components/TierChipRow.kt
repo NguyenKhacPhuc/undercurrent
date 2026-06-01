@@ -25,6 +25,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.ModelTier
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.chat_tier_auto
+import dev.weft.undercurrent.core.resources.chat_tier_auto_label
+import dev.weft.undercurrent.core.resources.chat_tier_default_format
+import dev.weft.undercurrent.core.resources.chat_tier_last_model_format
+import dev.weft.undercurrent.core.resources.chat_tier_router_decides
+import dev.weft.undercurrent.core.resources.model_tier_cheap
+import dev.weft.undercurrent.core.resources.model_tier_heavy
+import dev.weft.undercurrent.core.resources.model_tier_standard
+import dev.weft.undercurrent.core.resources.model_tier_vision
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -41,8 +52,8 @@ internal fun TierChipRow(
     var menuOpen by remember { mutableStateOf(false) }
 
     val chipLabel = when {
-        override != null -> override.shortName().uppercase()
-        else -> "AUTO"
+        override != null -> stringResource(override.shortNameRes()).uppercase()
+        else -> stringResource(Res.string.chat_tier_auto)
     }
 
     Row(
@@ -93,9 +104,13 @@ internal fun TierChipRow(
                 DropdownMenuItem(
                     text = {
                         Column {
-                            Text("Auto", style = typography.sansHeader.copy(color = colors.ink))
+                            Text(stringResource(Res.string.chat_tier_auto_label), style = typography.sansHeader.copy(color = colors.ink))
                             Text(
-                                text = if (default != null) "Default: ${default.shortName()}" else "Router decides",
+                                text = if (default != null) {
+                                    stringResource(Res.string.chat_tier_default_format, stringResource(default.shortNameRes()))
+                                } else {
+                                    stringResource(Res.string.chat_tier_router_decides)
+                                },
                                 style = typography.sansSmall.copy(color = colors.inkMuted),
                             )
                         }
@@ -109,7 +124,7 @@ internal fun TierChipRow(
                     DropdownMenuItem(
                         text = {
                             Text(
-                                tier.shortName(),
+                                stringResource(tier.shortNameRes()),
                                 style = typography.sansHeader.copy(color = colors.ink),
                             )
                         },
@@ -124,7 +139,7 @@ internal fun TierChipRow(
         if (lastModelId != null) {
             Spacer(Modifier.width(10.dp))
             Text(
-                text = "· $lastModelId chosen this turn",
+                text = stringResource(Res.string.chat_tier_last_model_format, lastModelId),
                 style = typography.sansSmall.copy(color = colors.inkSubtle),
                 maxLines = 1,
             )
@@ -132,11 +147,11 @@ internal fun TierChipRow(
     }
 }
 
-private fun ModelTier.shortName(): String = when (this) {
-    ModelTier.Cheap -> "Cheap"
-    ModelTier.Standard -> "Standard"
-    ModelTier.Vision -> "Vision"
-    ModelTier.Heavy -> "Heavy"
+private fun ModelTier.shortNameRes() = when (this) {
+    ModelTier.Cheap -> Res.string.model_tier_cheap
+    ModelTier.Standard -> Res.string.model_tier_standard
+    ModelTier.Vision -> Res.string.model_tier_vision
+    ModelTier.Heavy -> Res.string.model_tier_heavy
 }
 
 @Preview

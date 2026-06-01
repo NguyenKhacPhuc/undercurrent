@@ -40,7 +40,17 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.component_heart_rate_bpm
+import dev.weft.undercurrent.core.resources.component_heart_rate_need_more_readings
+import dev.weft.undercurrent.core.resources.component_nutrition_calories
+import dev.weft.undercurrent.core.resources.component_nutrition_serving_size
+import dev.weft.undercurrent.core.resources.component_nutrition_servings_per_container
+import dev.weft.undercurrent.core.resources.component_sleep_score
+import dev.weft.undercurrent.core.resources.component_workout_reps
+import dev.weft.undercurrent.core.resources.component_workout_weight
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // WorkoutSet — exercise name + sets/reps/weight rows
@@ -103,8 +113,8 @@ internal class WorkoutSetComponent : WeftComponent<WorkoutSetProps>(
             HorizontalDivider(color = cs.divider, modifier = Modifier.padding(vertical = 10.dp))
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
                 Text("#", style = tp.sansSmall.copy(letterSpacing = 0.5.sp), color = cs.inkSubtle, modifier = Modifier.width(28.dp))
-                Text("REPS", style = tp.sansSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 1.2.sp), color = cs.inkSubtle, modifier = Modifier.weight(1f))
-                Text("WEIGHT", style = tp.sansSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 1.2.sp), color = cs.inkSubtle, modifier = Modifier.weight(1f))
+                Text(stringResource(Res.string.component_workout_reps), style = tp.sansSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 1.2.sp), color = cs.inkSubtle, modifier = Modifier.weight(1f))
+                Text(stringResource(Res.string.component_workout_weight), style = tp.sansSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 1.2.sp), color = cs.inkSubtle, modifier = Modifier.weight(1f))
                 Box(modifier = Modifier.size(20.dp))
             }
             props.rows.forEachIndexed { i, row ->
@@ -207,7 +217,7 @@ internal class NutritionFactsComponent : WeftComponent<NutritionFactsProps>(
             )
             if (props.servingsPerContainer.isNotBlank()) {
                 Text(
-                    text = "${props.servingsPerContainer} servings per container",
+                    text = stringResource(Res.string.component_nutrition_servings_per_container, props.servingsPerContainer),
                     style = tp.sansSmall,
                     color = cs.ink,
                 )
@@ -215,7 +225,7 @@ internal class NutritionFactsComponent : WeftComponent<NutritionFactsProps>(
             if (props.servingSize.isNotBlank()) {
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
                     Text(
-                        text = "Serving size",
+                        text = stringResource(Res.string.component_nutrition_serving_size),
                         style = tp.sansLabel.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
                         color = cs.ink,
                         modifier = Modifier.weight(1f),
@@ -230,7 +240,7 @@ internal class NutritionFactsComponent : WeftComponent<NutritionFactsProps>(
             Box(modifier = Modifier.fillMaxWidth().height(8.dp).padding(vertical = 3.dp).background(cs.ink))
             Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 4.dp)) {
                 Text(
-                    text = "Calories",
+                    text = stringResource(Res.string.component_nutrition_calories),
                     style = tp.sansHeader.copy(fontWeight = FontWeight.SemiBold, fontSize = 18.sp),
                     color = cs.ink,
                     modifier = Modifier.weight(1f),
@@ -456,7 +466,7 @@ internal class SleepRingComponent : WeftComponent<SleepRingProps>(
                     )
                     if (props.score >= 0) {
                         Text(
-                            text = "Score · ${props.score}",
+                            text = stringResource(Res.string.component_sleep_score, props.score),
                             style = tp.sansSmall.copy(
                                 letterSpacing = 0.5.sp,
                                 fontWeight = FontWeight.Medium,
@@ -539,7 +549,7 @@ internal class HeartRateChartComponent : WeftComponent<HeartRateChartProps>(
                     .background(cs.surfaceMuted),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("Need ≥2 readings.", style = tp.sansSmall, color = cs.inkMuted)
+                Text(stringResource(Res.string.component_heart_rate_need_more_readings), style = tp.sansSmall, color = cs.inkMuted)
             }
             return
         }
@@ -551,7 +561,7 @@ internal class HeartRateChartComponent : WeftComponent<HeartRateChartProps>(
                     color = cs.accent,
                 )
                 Text(
-                    text = " BPM",
+                    text = " " + stringResource(Res.string.component_heart_rate_bpm),
                     style = tp.sansLabel.copy(
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.8.sp,

@@ -47,6 +47,34 @@ import dev.weft.undercurrent.core.model.ModelTier
 import dev.weft.undercurrent.core.model.ProviderKind
 import dev.weft.undercurrent.core.model.apiConsoleUrl
 import dev.weft.undercurrent.core.model.keyPlaceholder
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.common_cancel
+import dev.weft.undercurrent.core.resources.model_tier_cheap
+import dev.weft.undercurrent.core.resources.model_tier_heavy
+import dev.weft.undercurrent.core.resources.model_tier_standard
+import dev.weft.undercurrent.core.resources.model_tier_vision
+import dev.weft.undercurrent.core.resources.providers_active_key_format
+import dev.weft.undercurrent.core.resources.providers_api_key_label
+import dev.weft.undercurrent.core.resources.providers_checking
+import dev.weft.undercurrent.core.resources.providers_default_tag
+import dev.weft.undercurrent.core.resources.providers_get_key
+import dev.weft.undercurrent.core.resources.providers_hide
+import dev.weft.undercurrent.core.resources.providers_models_customization
+import dev.weft.undercurrent.core.resources.providers_models_subtitle
+import dev.weft.undercurrent.core.resources.providers_no_key
+import dev.weft.undercurrent.core.resources.providers_remove
+import dev.weft.undercurrent.core.resources.providers_remove_confirm_body_format
+import dev.weft.undercurrent.core.resources.providers_remove_confirm_title_format
+import dev.weft.undercurrent.core.resources.providers_remove_key
+import dev.weft.undercurrent.core.resources.providers_save_key
+import dev.weft.undercurrent.core.resources.providers_section_default_tier
+import dev.weft.undercurrent.core.resources.providers_section_providers
+import dev.weft.undercurrent.core.resources.providers_show
+import dev.weft.undercurrent.core.resources.providers_stored_key_format
+import dev.weft.undercurrent.core.resources.providers_tier_auto
+import dev.weft.undercurrent.core.resources.providers_tip_about_tiers
+import dev.weft.undercurrent.core.resources.providers_tip_about_tiers_title
+import dev.weft.undercurrent.core.resources.providers_title
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.SectionLabel
 import dev.weft.undercurrent.core.ui.TipBox
@@ -56,6 +84,8 @@ import dev.weft.undercurrent.core.domain.ModelInfo
 import dev.weft.undercurrent.core.domain.ModelPool
 import dev.weft.undercurrent.core.domain.ValidationResult
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -98,14 +128,14 @@ fun ProvidersScreen(
     onOpenConsole: (url: String) -> Unit,
     onBack: () -> Unit,
 ) {
-    ScreenScaffold(title = "Provider", onBack = onBack) {
+    ScreenScaffold(title = stringResource(Res.string.providers_title), onBack = onBack) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().weight(1f),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item("providers-label") {
-                SectionLabel(text = "Providers")
+                SectionLabel(text = stringResource(Res.string.providers_section_providers))
             }
             items(ProviderKind.entries) { provider ->
                 ProviderCard(
@@ -125,7 +155,7 @@ fun ProvidersScreen(
                 )
             }
             item("default-spacer") { Spacer(Modifier.height(20.dp)) }
-            item("default-label") { SectionLabel(text = "Default model tier") }
+            item("default-label") { SectionLabel(text = stringResource(Res.string.providers_section_default_tier)) }
             item("default-control") {
                 TierSegmented(
                     selected = defaultTier,
@@ -135,9 +165,8 @@ fun ProvidersScreen(
             item("default-tip") {
                 Spacer(Modifier.height(6.dp))
                 TipBox(
-                    title = "About tiers",
-                    text = "Cheap is fast and short. Standard is the default. " +
-                        "Heavy is for hard problems. Auto picks per turn.",
+                    title = stringResource(Res.string.providers_tip_about_tiers_title),
+                    text = stringResource(Res.string.providers_tip_about_tiers),
                 )
             }
         }
@@ -228,10 +257,11 @@ private fun ProviderCard(
     }
 }
 
+@Composable
 private fun subtitleFor(active: Boolean, last4: String?): String = when {
-    last4 == null -> "No key saved"
-    active -> "Active · •••• last4=$last4"
-    else -> "•••• last4=$last4"
+    last4 == null -> stringResource(Res.string.providers_no_key)
+    active -> stringResource(Res.string.providers_active_key_format, last4)
+    else -> stringResource(Res.string.providers_stored_key_format, last4)
 }
 
 @Composable
@@ -263,12 +293,12 @@ private fun ExpandedBody(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "API KEY",
+                text = stringResource(Res.string.providers_api_key_label),
                 style = typography.sansLabel.copy(color = colors.inkSubtle),
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = "Get a key  →",
+                text = stringResource(Res.string.providers_get_key),
                 style = typography.sansLabel.copy(
                     color = colors.ink,
                     fontWeight = FontWeight.SemiBold,
@@ -317,7 +347,7 @@ private fun ExpandedBody(
                 }
             }
             Text(
-                text = if (keyVisible) "Hide" else "Show",
+                text = if (keyVisible) stringResource(Res.string.providers_hide) else stringResource(Res.string.providers_show),
                 style = typography.sansLabel.copy(color = colors.inkMuted),
                 modifier = Modifier
                     .clickable { keyVisible = !keyVisible }
@@ -335,7 +365,7 @@ private fun ExpandedBody(
         Row(verticalAlignment = Alignment.CenterVertically) {
             val checking = saveStatus is SaveStatus.Checking
             InlineAction(
-                label = if (checking) "Checking…" else "Save key",
+                label = if (checking) stringResource(Res.string.providers_checking) else stringResource(Res.string.providers_save_key),
                 enabled = keyInput.isNotBlank() && !checking,
                 isDestructive = false,
                 onClick = {
@@ -359,7 +389,7 @@ private fun ExpandedBody(
             if (storedKeyLast4 != null) {
                 Spacer(Modifier.width(20.dp))
                 InlineAction(
-                    label = "Remove key",
+                    label = stringResource(Res.string.providers_remove_key),
                     enabled = !checking,
                     isDestructive = true,
                     onClick = { confirmRemove = true },
@@ -377,12 +407,12 @@ private fun ExpandedBody(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Models customization",
+                    text = stringResource(Res.string.providers_models_customization),
                     style = typography.sansHeader.copy(color = colors.ink, fontSize = 16.sp),
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "4 tiers: Cheap · Standard · Vision · Heavy",
+                    text = stringResource(Res.string.providers_models_subtitle),
                     style = typography.sansSmall.copy(color = colors.inkMuted),
                 )
             }
@@ -408,22 +438,18 @@ private fun ExpandedBody(
     if (confirmRemove) {
         AlertDialog(
             onDismissRequest = { confirmRemove = false },
-            title = { Text("Remove ${provider.displayName} key?") },
+            title = { Text(stringResource(Res.string.providers_remove_confirm_title_format, provider.displayName)) },
             text = {
-                Text(
-                    "The stored key will be deleted from this device. " +
-                        "Since ${provider.displayName} is your active provider, " +
-                        "you'll be returned to the key-paste screen to add a new one.",
-                )
+                Text(stringResource(Res.string.providers_remove_confirm_body_format, provider.displayName))
             },
             confirmButton = {
                 TextButton(onClick = {
                     confirmRemove = false
                     onKeyRemoved()
-                }) { Text("Remove", color = UndercurrentTheme.colors.error) }
+                }) { Text(stringResource(Res.string.providers_remove), color = UndercurrentTheme.colors.error) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmRemove = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmRemove = false }) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }
@@ -523,7 +549,7 @@ private fun ModelDropdown(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = tier.shortLabel(),
+            text = stringResource(tier.shortLabelRes()),
             style = typography.sansSmall.copy(color = colors.inkMuted),
             modifier = Modifier.width(72.dp),
         )
@@ -545,9 +571,10 @@ private fun ModelDropdown(
                     )
                     val note = selectedModel.limitationNote(tier)
                     if (note != null || isDefault) {
+                        val defaultTag = stringResource(Res.string.providers_default_tag)
                         Text(
                             text = listOfNotNull(
-                                if (isDefault) "default" else null,
+                                if (isDefault) defaultTag else null,
                                 note,
                             ).joinToString(" · "),
                             style = typography.sansSmall.copy(color = colors.inkSubtle),
@@ -572,8 +599,9 @@ private fun ModelDropdown(
                                     text = model.shortName,
                                     style = typography.serifBody.copy(color = colors.ink),
                                 )
+                                val defaultTag = stringResource(Res.string.providers_default_tag)
                                 val note = listOfNotNull(
-                                    if (model.id == defaultModel.id) "default" else null,
+                                    if (model.id == defaultModel.id) defaultTag else null,
                                     model.limitationNote(tier),
                                 ).joinToString(" · ")
                                 if (note.isNotEmpty()) {
@@ -595,11 +623,11 @@ private fun ModelDropdown(
     }
 }
 
-private fun ModelTier.shortLabel(): String = when (this) {
-    ModelTier.Cheap -> "Cheap"
-    ModelTier.Standard -> "Standard"
-    ModelTier.Vision -> "Vision"
-    ModelTier.Heavy -> "Heavy"
+private fun ModelTier.shortLabelRes(): StringResource = when (this) {
+    ModelTier.Cheap -> Res.string.model_tier_cheap
+    ModelTier.Standard -> Res.string.model_tier_standard
+    ModelTier.Vision -> Res.string.model_tier_vision
+    ModelTier.Heavy -> Res.string.model_tier_heavy
 }
 
 @Composable
@@ -608,10 +636,10 @@ private fun TierSegmented(
     onSelected: (ModelTier?) -> Unit,
 ) {
     val options = listOf<Pair<String, ModelTier?>>(
-        "Auto" to null,
-        "Cheap" to ModelTier.Cheap,
-        "Standard" to ModelTier.Standard,
-        "Heavy" to ModelTier.Heavy,
+        stringResource(Res.string.providers_tier_auto) to null,
+        stringResource(Res.string.model_tier_cheap) to ModelTier.Cheap,
+        stringResource(Res.string.model_tier_standard) to ModelTier.Standard,
+        stringResource(Res.string.model_tier_heavy) to ModelTier.Heavy,
     )
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         options.forEachIndexed { idx, (label, tier) ->

@@ -32,9 +32,12 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.component_donut_unnamed_segment
 import kotlinx.serialization.Serializable
 import kotlin.math.max
 import kotlin.math.min
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // LineChart — a single-series line chart drawn on Canvas
@@ -357,6 +360,7 @@ internal class DonutComponent : WeftComponent<DonutProps>(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
+                    val unnamedSegment = stringResource(Res.string.component_donut_unnamed_segment)
                     props.segments.forEachIndexed { i, seg ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
@@ -366,7 +370,7 @@ internal class DonutComponent : WeftComponent<DonutProps>(
                                     .background(palette[i]),
                             )
                             Text(
-                                text = "  ${seg.label.ifBlank { "(unnamed)" }}",
+                                text = "  ${seg.label.ifBlank { unnamedSegment }}",
                                 style = tp.sansSmall,
                                 color = cs.ink,
                                 modifier = Modifier.padding(start = 4.dp),

@@ -27,6 +27,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.creator_subtitle
+import dev.weft.undercurrent.core.resources.creator_thinking
+import dev.weft.undercurrent.core.resources.creator_title_fallback
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Dedicated wizard surface for a [CreatorSession]. Unlike the chat
@@ -95,12 +100,12 @@ fun CreatorScreen(
             )
             Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
                 Text(
-                    text = kind?.screenTitle ?: "Creator",
+                    text = kind?.screenTitle ?: stringResource(Res.string.creator_title_fallback),
                     style = tp.sansHeader.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
                     color = cs.ink,
                 )
                 Text(
-                    text = "Walk through the questions to finish.",
+                    text = stringResource(Res.string.creator_subtitle),
                     style = tp.sansSmall,
                     color = cs.inkMuted,
                 )
@@ -146,7 +151,7 @@ private fun CreatorThinking(error: String?) {
                 )
             }
             Text(
-                text = "Preparing the first question…",
+                text = stringResource(Res.string.creator_thinking),
                 style = tp.sansLabel.copy(fontSize = 14.sp),
                 color = cs.inkMuted,
             )
