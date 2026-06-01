@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.ProviderKind
 import dev.weft.undercurrent.core.ui.ScreenScaffold
+import dev.weft.undercurrent.feature.auth.AccountSectionRoute
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -31,6 +32,7 @@ fun SettingsScreen(
     onShowUsage: () -> Unit,
     onShowIntegrations: () -> Unit,
     onBack: () -> Unit,
+    onSignedOut: () -> Unit = {},
 ) {
     ScreenScaffold(title = "Settings", onBack = onBack) {
         LazyColumn(
@@ -38,6 +40,9 @@ fun SettingsScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            item {
+                AccountSectionRoute(onSignedOut = onSignedOut)
+            }
             item {
                 SettingsLinkRow(
                     label = "Provider",

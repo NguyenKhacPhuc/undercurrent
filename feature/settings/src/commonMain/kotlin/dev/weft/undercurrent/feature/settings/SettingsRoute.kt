@@ -10,7 +10,7 @@ import dev.weft.undercurrent.core.navigation.Screen
 import org.koin.compose.koinInject
 
 @Composable
-public fun SettingsRoute() {
+public fun SettingsRoute(onSignedOut: () -> Unit = {}) {
     val nav: NavigationViewModel = koinInject()
     val providerPrefs: ProviderPrefsRepository = koinInject()
     val activeProvider by providerPrefs.activeProvider.collectAsState()
@@ -20,5 +20,6 @@ public fun SettingsRoute() {
         onShowUsage = { nav.dispatch(NavigationIntent.Navigate(Screen.Usage)) },
         onShowIntegrations = { nav.dispatch(NavigationIntent.Navigate(Screen.Integrations)) },
         onBack = { nav.dispatch(NavigationIntent.Navigate(Screen.Chat)) },
+        onSignedOut = onSignedOut,
     )
 }
