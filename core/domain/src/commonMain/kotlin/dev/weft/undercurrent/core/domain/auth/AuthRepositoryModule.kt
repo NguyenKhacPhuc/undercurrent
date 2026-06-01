@@ -4,6 +4,7 @@ import dev.weft.undercurrent.core.domain.AuthException
 import dev.weft.undercurrent.core.domain.AuthRepository
 import dev.weft.undercurrent.core.domain.SessionTokenStore
 import dev.weft.undercurrent.core.domain.auth.dto.AuthErrorEnvelope
+import dev.weft.undercurrent.core.ext.ioDispatcher
 import dev.weft.undercurrent.data.network.PlatformHttpClientEngineFactory
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
@@ -16,7 +17,6 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.util.network.UnresolvedAddressException
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
@@ -48,22 +48,10 @@ val authRepositoryModule = module {
             httpClient = get(named(AUTH_HTTP_CLIENT_QUALIFIER)),
             baseUrl = get(named(BE_BASE_URL_QUALIFIER)),
             sessionTokenStore = get(),
-            ioDispatcher = authIoDispatcher,
+            ioDispatcher = ioDispatcher,
         )
     }
 }
-
-/**
- * Platform-supplied I/O dispatcher used by [AuthRepositoryImpl].
- *
- * `Dispatchers.IO` is not public from `commonMain` on Apple native
- * targets in `kotlinx-coroutines` 1.9.x, so the actual lives in the
- * platform source sets. Android → `Dispatchers.IO`. iOS → `Dispatchers.Default`
- * (Apple's pool is shared and there's no separate I/O thread pool —
- * Ktor's Darwin engine drives I/O on its own NSURLSession queue
- * regardless of the dispatcher passed to `flowOn`).
- */
-internal expect val authIoDispatcher: CoroutineDispatcher
 
 /**
  * Builds the default [HttpClient] used by [AuthRepositoryImpl].
