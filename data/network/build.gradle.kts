@@ -28,10 +28,6 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // AuthClient interface + DTOs + SessionTokenStore (mobile-auth-wiring/04).
-            api(projects.core.domain)
-            // Flow<T>.asResult() wrapper used by HttpAuthClient (PR #5).
-            implementation(projects.core.ext)
             // Ktor multiplatform HTTP client.
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.logging)
@@ -42,10 +38,6 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             // Logging — already wired by the iOS app entrypoint (InitKoin).
             implementation(libs.napier)
-        }
-        commonTest.dependencies {
-            // MockEngine for HttpAuthClient tests (mobile-auth-wiring/04).
-            implementation(libs.ktor.client.mock)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)

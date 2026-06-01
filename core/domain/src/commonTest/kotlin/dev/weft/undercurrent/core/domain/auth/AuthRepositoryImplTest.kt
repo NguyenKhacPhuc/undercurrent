@@ -1,4 +1,6 @@
-package dev.weft.undercurrent.data.network.auth
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
+package dev.weft.undercurrent.core.domain.auth
 
 import app.cash.turbine.test
 import dev.weft.undercurrent.core.domain.AuthException
@@ -16,15 +18,14 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.respondOk
 import io.ktor.client.network.sockets.SocketTimeoutException
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
-import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.Json
 
 private class FakeStore(initial: String? = null) : SessionTokenStore {
     private var token: String? = initial
@@ -33,11 +34,15 @@ private class FakeStore(initial: String? = null) : SessionTokenStore {
     override suspend fun clear() { this.token = null }
 }
 
-private fun jsonClient(engine: MockEngine): HttpClient = HttpClient(engine) {
-    install(ContentNegotiation) {
-        json(Json { ignoreUnknownKeys = true; isLenient = true })
-    }
-}
+private fun client(engine: MockEngine): HttpClient = defaultAuthHttpClient(engine)
+
+private fun repo(engine: MockEngine, store: SessionTokenStore = FakeStore()): AuthRepositoryImpl =
+    AuthRepositoryImpl(
+        httpClient = client(engine),
+        baseUrl = BASE,
+        sessionTokenStore = store,
+        ioDispatcher = UnconfinedTestDispatcher(),
+    )
 
 private val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
 private const val BASE = "https://be.test"
@@ -47,7 +52,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
     Given("signUp() against a 201 BE response") {
         Then("emits [Loading, Success(AuthResponse)]") {
             runTest {
-                var seenRequest: io.ktor.client.request.HttpRequestData? = null
+                lateinit var seenRequest: io.ktor.client.request.HttpRequestData
                 val engine = MockEngine { request ->
                     seenRequest = request
                     respond(
@@ -56,7 +61,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore())
+                repo(engine)
                     .signUp("Phuc", "phuc@example.com", "hunter2-correct")
                     .test {
                         awaitItem() shouldBe Result.Loading
@@ -67,9 +72,9 @@ class AuthRepositoryImplTest : BehaviorSpec({
                         awaitComplete()
                     }
 
-                seenRequest!!.method shouldBe HttpMethod.Post
-                seenRequest!!.url.encodedPath shouldBe "/v1/auth/sign-up"
-                (seenRequest!!.body as TextContent).text shouldContain "\"email\":\"phuc@example.com\""
+                seenRequest.method shouldBe HttpMethod.Post
+                seenRequest.url.encodedPath shouldBe "/v1/auth/sign-up"
+                (seenRequest.body as TextContent).text shouldContain "\"email\":\"phuc@example.com\""
             }
         }
     }
@@ -84,7 +89,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore())
+                repo(engine)
                     .signUp("Phuc", "no-at", "hunter2-correct")
                     .test {
                         awaitItem() shouldBe Result.Loading
@@ -110,7 +115,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore())
+                repo(engine)
                     .signUp("Phuc", "phuc@example.com", "hunter2-correct")
                     .test {
                         awaitItem() shouldBe Result.Loading
@@ -135,7 +140,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore())
+                repo(engine)
                     .signIn("x@y.com", "hunter2-correct")
                     .test {
                         awaitItem() shouldBe Result.Loading
@@ -156,7 +161,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore())
+                repo(engine)
                     .signIn("x@y.com", "wrong")
                     .test {
                         awaitItem() shouldBe Result.Loading
@@ -180,7 +185,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore())
+                repo(engine)
                     .signIn("x@y.com", "wrong")
                     .test {
                         awaitItem() shouldBe Result.Loading
@@ -199,7 +204,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
             runTest {
                 var calls = 0
                 val engine = MockEngine { calls++; respondOk() }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore(initial = null))
+                repo(engine, store = FakeStore(initial = null))
                     .getMe()
                     .test {
                         awaitItem() shouldBe Result.Loading
@@ -226,7 +231,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore(initial = "tk-123"))
+                repo(engine, store = FakeStore(initial = "tk-123"))
                     .getMe()
                     .test {
                         awaitItem() shouldBe Result.Loading
@@ -247,7 +252,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore(initial = "tk-x"))
+                repo(engine, store = FakeStore(initial = "tk-x"))
                     .getMe()
                     .test {
                         awaitItem() shouldBe Result.Loading
@@ -265,7 +270,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
             runTest {
                 var calls = 0
                 val engine = MockEngine { calls++; respondOk() }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore(initial = null))
+                repo(engine, store = FakeStore(initial = null))
                     .signOut()
                     .test {
                         awaitItem() shouldBe Result.Loading
@@ -285,7 +290,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
                     request.url.encodedPath shouldBe "/v1/auth/sign-out"
                     respond("", HttpStatusCode.NoContent)
                 }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore(initial = "tk-out"))
+                repo(engine, store = FakeStore(initial = "tk-out"))
                     .signOut()
                     .test {
                         awaitItem() shouldBe Result.Loading
@@ -300,7 +305,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
         Then("still emits Success(Unit) — best-effort per Inception D4") {
             runTest {
                 val engine = MockEngine { throw SocketTimeoutException("test") }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore(initial = "tk-out"))
+                repo(engine, store = FakeStore(initial = "tk-out"))
                     .signOut()
                     .test {
                         awaitItem() shouldBe Result.Loading
@@ -315,7 +320,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
         Then("emits Error(AuthException.Network)") {
             runTest {
                 val engine = MockEngine { throw SocketTimeoutException("test") }
-                AuthRepositoryImpl(jsonClient(engine), BASE, FakeStore())
+                repo(engine)
                     .signIn("x@y.com", "hunter2-correct")
                     .test {
                         awaitItem() shouldBe Result.Loading

@@ -13,16 +13,26 @@ kotlin {
             // Domain types — Persona, MiniApp, ThemePrefs, ProviderKind, …
             api(projects.core.model)
             // Result + asResult — used by AuthRepository's Flow<Result<T>>
-            // surface and by ConversationGrouping helpers. `api` because
-            // Result appears in public method signatures of repositories.
+            // surface. `api` because Result appears in public method
+            // signatures of repositories.
             api(projects.core.ext)
-            // kotlinx.datetime — used by ConversationGrouping for date math.
-            implementation(libs.kotlinx.datetime)
+            // safeApiCallRaw + PlatformHttpClientEngineFactory — used by
+            // AuthRepositoryImpl + the default auth HttpClient factory.
+            implementation(projects.data.network)
             // KMP DataStore-Preferences core. `api` because the public
             // surface of every repository takes a `DataStore<Preferences>`
             // in its constructor — consumers (DI modules) need to see the
             // type without pulling datastore-preferences-core themselves.
             api(libs.androidx.datastore.preferences.core)
+            // Ktor — auth repository implementation talks to the BE.
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.kotlinx.serialization.json)
+        }
+        commonTest.dependencies {
+            // MockEngine for AuthRepositoryImpl tests (mobile-auth-wiring/04).
+            implementation(libs.ktor.client.mock)
         }
         androidMain.dependencies {
             implementation("dev.weft:weft-runtime")

@@ -30,10 +30,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
-import dev.weft.undercurrent.core.ui.TokenDivider
-import dev.weft.undercurrent.core.domain.formatLastActivity
-import dev.weft.undercurrent.core.domain.groupConversationsByRecency
 import dev.weft.undercurrent.core.domain.ConversationSummary
+import dev.weft.undercurrent.core.ext.formatLastActivity
+import dev.weft.undercurrent.core.ext.groupByRecency
+import dev.weft.undercurrent.core.ui.TokenDivider
 
 /**
  * Side drawer for the chat surface. Holds three regions:
@@ -112,7 +112,7 @@ fun AppDrawer(
                     }
                 } else {
                     val recent = conversations.take(RECENT_LIMIT)
-                    val grouped = groupConversationsByRecency(recent)
+                    val grouped = groupByRecency(recent) { it.lastMessageAtMs }
                     grouped.forEach { (bucket, items) ->
                         item(bucket) {
                             Text(
