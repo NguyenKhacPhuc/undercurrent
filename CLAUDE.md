@@ -388,9 +388,13 @@ adb logcat | grep Undercurrent
 ## Conventions
 
 - **No emojis in code or commits** unless the user explicitly asks.
-- **No excessive comments.** Don't narrate the obvious. Why-comments
-  for non-obvious choices, KDoc on public APIs intended for host
-  consumers, nothing else.
+- **Default to zero comments.** Read the code first; comment only when
+  the *why* is non-obvious (hidden constraint, subtle invariant,
+  workaround). A one-line KDoc on a public API consumed cross-module is
+  fine — multi-paragraph treatises on internal symbols are not. Never
+  restate what the code does, reference the current PR / task / story,
+  or section-header inside a single file. If removing a comment doesn't
+  confuse a future reader, the comment shouldn't exist.
 - **`internal` by default** for classes that don't cross module
   boundaries. Public is the exception.
 - **DataStore for prefs, KeyVault for secrets, SQLDelight (via Weft)

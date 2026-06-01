@@ -4,25 +4,13 @@ import dev.weft.undercurrent.core.domain.AuthRepository
 import dev.weft.undercurrent.core.domain.SessionTokenStore
 import dev.weft.undercurrent.core.domain.auth.dto.AuthResponse
 import dev.weft.undercurrent.core.ext.Result
+import dev.weft.undercurrent.core.ui.toUserMessage
 import dev.weft.undercurrent.data.network.common.ApiException
-import dev.weft.undercurrent.data.network.common.HttpException
-import dev.weft.undercurrent.data.network.common.NetworkException
+import dev.weft.undercurrent.data.network.common.ErrorCodes
 import dev.weft.undercurrent.shared.mvi.MviViewModel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
 
-/**
- * MVI ViewModel for the first-launch sign-in / register screen.
- *
- * Wraps the two write endpoints (`signUp`, `signIn`) on [AuthRepository];
- * on success, persists the bearer via [sessionTokenStore] and emits
- * [SignInEffect.SignedIn] so the Route can re-trigger
- * `AppViewModel.resume()` and let the boot cascade route the user
- * forward to the existing provider/key onboarding step (per `decisions#D7`).
- *
- * In-flight calls toggle the base [MviViewModel.loading] flag via
- * [withLoading] — the Route reads that as a sibling StateFlow and
- * renders a full-screen overlay until the BE response (success or
- * error) returns.
- */
 class SignInViewModel(
     private val authRepository: AuthRepository,
     private val sessionTokenStore: SessionTokenStore,
@@ -31,33 +19,30 @@ class SignInViewModel(
 ) {
     override fun dispatch(intent: SignInIntent) = launch {
         when (intent) {
-            SignInIntent.SwitchMode -> update { s ->
-                s.copy(
-                    mode = when (s.mode) {
+            SignInIntent.SwitchMode -> update { state ->
+                state.copy(
+                    mode = when (state.mode) {
                         SignInState.Mode.SignIn -> SignInState.Mode.Register
                         SignInState.Mode.Register -> SignInState.Mode.SignIn
                     },
-                    // Toggling clears displayName + any stale errors so the
-                    // new form starts in a clean state. Email + password are
-                    // preserved per Q2's UX guess.
                     displayName = "",
                     topError = null,
                     fieldErrors = emptyMap(),
                     showSwitchToSignInShortcut = false,
                 )
             }
-            SignInIntent.SwitchToSignInWithEmail -> update { s ->
-                s.copy(
+            SignInIntent.SwitchToSignInWithEmail -> update { state ->
+                state.copy(
                     mode = SignInState.Mode.SignIn,
                     topError = null,
                     fieldErrors = emptyMap(),
                     showSwitchToSignInShortcut = false,
                 )
             }
-            is SignInIntent.EmailChanged -> update { s -> s.copy(email = intent.value) }
-            is SignInIntent.PasswordChanged -> update { s -> s.copy(password = intent.value) }
-            is SignInIntent.DisplayNameChanged -> update { s -> s.copy(displayName = intent.value) }
-            SignInIntent.ClearTopError -> update { s -> s.copy(topError = null) }
+            is SignInIntent.EmailChanged -> update { state -> state.copy(email = intent.value) }
+            is SignInIntent.PasswordChanged -> update { state -> state.copy(password = intent.value) }
+            is SignInIntent.DisplayNameChanged -> update { state -> state.copy(displayName = intent.value) }
+            SignInIntent.ClearTopError -> update { state -> state.copy(topError = null) }
             SignInIntent.Continue -> handleContinue()
         }
     }
@@ -65,8 +50,8 @@ class SignInViewModel(
     private suspend fun handleContinue() {
         val snapshot = state.value
         if (!snapshot.canSubmit) return
-        update { s ->
-            s.copy(
+        update { state ->
+            state.copy(
                 topError = null,
                 fieldErrors = emptyMap(),
                 showSwitchToSignInShortcut = false,
@@ -85,58 +70,42 @@ class SignInViewModel(
     }
 
     private suspend fun handleSignIn(email: String, password: String) {
-        authRepository.signIn(email, password).collect { result ->
-            when (result) {
-                Result.Loading -> Unit
-                is Result.Success -> onAuthSuccess(result.data)
-                is Result.Error -> update { s -> s.copy(topError = mapSignInError(result.exception)) }
+        authRepository.signIn(email, password)
+            .onEach { result ->
+                when (result) {
+                    Result.Loading -> Unit
+                    is Result.Success -> onAuthSuccess(result.data)
+                    is Result.Error -> update { state -> state.copy(topError = mapSignInError(result.exception)) }
+                }
             }
-        }
+            .collect()
     }
 
     private suspend fun handleRegister(displayName: String, email: String, password: String) {
-        authRepository.signUp(displayName, email, password).collect { result ->
-            when (result) {
-                Result.Loading -> Unit
-                is Result.Success -> onAuthSuccess(result.data)
-                is Result.Error -> applyRegisterError(result.exception)
+        authRepository.signUp(displayName, email, password)
+            .onEach { result ->
+                when (result) {
+                    Result.Loading -> Unit
+                    is Result.Success -> onAuthSuccess(result.data)
+                    is Result.Error -> applyRegisterError(result.exception)
+                }
             }
-        }
+            .collect()
     }
 
-    /**
-     * Translates a Register-side failure into the right combination of
-     * `topError` / `fieldErrors` / `showSwitchToSignInShortcut`. The
-     * mapping mirrors `api-contract.md`'s 4xx codes:
-     *
-     *  - 400 + `details` populated → per-field errors, no top-error.
-     *  - 400 + no `details` → top-error with the BE message.
-     *  - 409 `email_already_registered` → top-error AND the
-     *    "Switch to Sign In with this email" affordance.
-     *  - Other ApiException → top-error with the BE message.
-     *  - NetworkException → Network so the UI shows Retry.
-     */
     private fun applyRegisterError(e: Throwable) {
+        val api = e as? ApiException
         when {
-            e is ApiException && e.httpStatus == 400 && !e.details.isNullOrEmpty() -> {
-                update { s -> s.copy(fieldErrors = e.details.orEmpty(), topError = null) }
-            }
-            e is ApiException && e.code == EMAIL_ALREADY_REGISTERED_CODE -> {
-                update { s ->
-                    s.copy(
-                        topError = TopError.Message(e.apiMessage),
+            api != null && api.httpStatus == 400 && !api.details.isNullOrEmpty() ->
+                update { state -> state.copy(fieldErrors = api.details.orEmpty(), topError = null) }
+            api != null && api.code == ErrorCodes.EMAIL_ALREADY_REGISTERED ->
+                update { state ->
+                    state.copy(
+                        topError = TopError.Message(api.apiMessage),
                         showSwitchToSignInShortcut = true,
                     )
                 }
-            }
-            e is ApiException -> update { s -> s.copy(topError = TopError.Message(e.apiMessage)) }
-            e is NetworkException -> update { s -> s.copy(topError = TopError.Network) }
-            e is HttpException -> update { s ->
-                s.copy(topError = TopError.Message("Server error (${e.httpStatus})."))
-            }
-            else -> update { s ->
-                s.copy(topError = TopError.Message(e.message ?: "Unknown error."))
-            }
+            else -> update { state -> state.copy(topError = e.toTopError()) }
         }
     }
 
@@ -145,22 +114,17 @@ class SignInViewModel(
         emit(SignInEffect.SignedIn)
     }
 
-    /**
-     * Maps an exception thrown by `authRepository.signIn()` to the form's
-     * top-error slot. Codes mirror the BE error envelope documented in
-     * `api-contract.md`; everything unrecognized falls through to a
-     * generic message so the user is never left with a silent failure.
-     */
-    private fun mapSignInError(e: Throwable): TopError = when {
-        e is ApiException && e.httpStatus == 401 -> TopError.InvalidCredentials
-        e is ApiException && e.httpStatus == 429 -> TopError.RateLimited
-        e is ApiException -> TopError.Message(e.apiMessage)
-        e is NetworkException -> TopError.Network
-        e is HttpException -> TopError.Message("Server error (${e.httpStatus}).")
-        else -> TopError.Message(e.message ?: "Unknown error.")
+    private fun mapSignInError(e: Throwable): TopError {
+        val api = e as? ApiException
+        return when {
+            api != null && api.httpStatus == 401 -> TopError.InvalidCredentials
+            api != null && api.httpStatus == 429 -> TopError.RateLimited
+            else -> e.toTopError()
+        }
     }
+}
 
-    private companion object {
-        const val EMAIL_ALREADY_REGISTERED_CODE: String = "email_already_registered"
-    }
+private fun Throwable.toTopError(): TopError = when (this) {
+    is dev.weft.undercurrent.data.network.common.NetworkException -> TopError.Network
+    else -> TopError.Message(toUserMessage() ?: "Unknown error.")
 }

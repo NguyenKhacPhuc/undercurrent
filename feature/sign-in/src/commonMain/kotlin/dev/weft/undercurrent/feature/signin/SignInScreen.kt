@@ -11,45 +11,26 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.ui.LabeledField
+import dev.weft.undercurrent.core.ui.PrimaryButton
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-/**
- * Stateless sign-in / register form. State in, callbacks out — no
- * Koin lookups, no flow collection. Routes the user through:
- *
- *  - Mode toggle (Sign In / Register) at the top
- *  - Email + password fields (always)
- *  - Display-name field (Register only)
- *  - Top-error region above the form (per-error variant)
- *  - Per-field error region under each field (Register 400-with-details)
- *  - Continue button (disabled until [SignInState.canSubmit])
- *  - "Switch to Sign In with this email" shortcut when surfaced
- *    by a Register 409 (`email_already_registered`)
- *
- * Wrapped by [SignInRoute] which injects [SignInViewModel] and turns
- * [SignInEffect.SignedIn] into a host-level resume.
- */
 @Composable
 fun SignInScreen(
     state: SignInState,
@@ -58,6 +39,22 @@ fun SignInScreen(
 ) {
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.topError) {
+        val err = state.topError ?: return@LaunchedEffect
+        val message = when (err) {
+            TopError.InvalidCredentials -> "Invalid email or password."
+            TopError.RateLimited -> "Too many failed attempts. Try again later."
+            TopError.Network -> "Couldn't reach the server. Check your connection."
+            is TopError.Message -> err.message
+        }
+        val action = if (err is TopError.Network) "Retry" else null
+        val result = snackbarHostState.showSnackbar(message = message, actionLabel = action)
+        if (result == SnackbarResult.ActionPerformed || result == SnackbarResult.Dismissed) {
+            onIntent(SignInIntent.ClearTopError)
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -83,25 +80,15 @@ fun SignInScreen(
 
             ModeToggle(
                 mode = state.mode,
-                enabled = true,
                 onSwitch = { onIntent(SignInIntent.SwitchMode) },
             )
             Spacer(Modifier.height(24.dp))
-
-            state.topError?.let { err ->
-                TopErrorBanner(
-                    error = err,
-                    onDismiss = { onIntent(SignInIntent.ClearTopError) },
-                )
-                Spacer(Modifier.height(16.dp))
-            }
 
             if (state.mode == SignInState.Mode.Register) {
                 LabeledField(
                     label = "Display name",
                     value = state.displayName,
                     onValueChange = { onIntent(SignInIntent.DisplayNameChanged(it)) },
-                    enabled = true,
                     fieldError = state.fieldErrors["displayName"],
                 )
                 Spacer(Modifier.height(16.dp))
@@ -110,7 +97,6 @@ fun SignInScreen(
                 label = "Email",
                 value = state.email,
                 onValueChange = { onIntent(SignInIntent.EmailChanged(it)) },
-                enabled = true,
                 keyboardType = KeyboardType.Email,
                 fieldError = state.fieldErrors["email"],
             )
@@ -119,7 +105,6 @@ fun SignInScreen(
                 label = "Password",
                 value = state.password,
                 onValueChange = { onIntent(SignInIntent.PasswordChanged(it)) },
-                enabled = true,
                 keyboardType = KeyboardType.Password,
                 visualTransformation = PasswordVisualTransformation(),
                 fieldError = state.fieldErrors["password"],
@@ -131,25 +116,24 @@ fun SignInScreen(
                     text = "Switch to Sign In with this email",
                     style = typography.sansLabel.copy(color = colors.accent),
                     modifier = Modifier
-                        .clickable {
-                            onIntent(SignInIntent.SwitchToSignInWithEmail)
-                        }
+                        .clickable { onIntent(SignInIntent.SwitchToSignInWithEmail) }
                         .padding(vertical = 4.dp),
                 )
                 Spacer(Modifier.height(16.dp))
             }
 
-            ContinueButton(
+            PrimaryButton(
                 label = if (state.mode == SignInState.Mode.SignIn) "Sign In" else "Create account",
                 enabled = state.canSubmit,
                 onClick = { onIntent(SignInIntent.Continue) },
             )
         }
 
-        // Full-screen overlay during an in-flight signUp / signIn. Blocks
-        // form input (the overlay catches the gesture) and gives a clear
-        // visual signal that work is happening. Driven by the base
-        // MviViewModel.loading flag — every VM gets this for free.
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+
         if (loading) {
             LoadingOverlay()
         }
@@ -159,7 +143,6 @@ fun SignInScreen(
 @Composable
 private fun ModeToggle(
     mode: SignInState.Mode,
-    enabled: Boolean,
     onSwitch: () -> Unit,
 ) {
     val colors = UndercurrentTheme.colors
@@ -178,7 +161,7 @@ private fun ModeToggle(
                 modifier = Modifier
                     .weight(1f)
                     .background(if (selected) colors.background else colors.surface)
-                    .clickable(enabled = enabled && !selected) { onSwitch() }
+                    .clickable(enabled = !selected) { onSwitch() }
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -194,137 +177,16 @@ private fun ModeToggle(
 }
 
 @Composable
-private fun LabeledField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    enabled: Boolean,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    visualTransformation: VisualTransformation = VisualTransformation.None,
-    fieldError: String? = null,
-) {
-    val colors = UndercurrentTheme.colors
-    val typography = UndercurrentTheme.typography
-    val shapes = UndercurrentTheme.shapes
-    Column {
-        Text(
-            text = label,
-            style = typography.sansLabel.copy(color = colors.inkSubtle),
-        )
-        Spacer(Modifier.height(6.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shapes.medium)
-                .border(
-                    width = 1.dp,
-                    color = if (fieldError != null) colors.error else colors.divider,
-                    shape = shapes.medium,
-                )
-                .background(colors.surface)
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-        ) {
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier.fillMaxWidth(),
-                textStyle = typography.serifBody.copy(color = colors.ink),
-                cursorBrush = SolidColor(colors.accent),
-                singleLine = true,
-                enabled = enabled,
-                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-                visualTransformation = visualTransformation,
-            )
-        }
-        fieldError?.let {
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = it,
-                style = typography.sansLabel.copy(color = colors.error),
-            )
-        }
-    }
-}
-
-@Composable
-private fun TopErrorBanner(error: TopError, onDismiss: () -> Unit) {
-    val colors = UndercurrentTheme.colors
-    val typography = UndercurrentTheme.typography
-    val shapes = UndercurrentTheme.shapes
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shapes.medium)
-            .background(colors.surfaceMuted)
-            .padding(16.dp),
-    ) {
-        Text(
-            text = when (error) {
-                TopError.InvalidCredentials -> "Invalid email or password."
-                TopError.RateLimited -> "Too many failed attempts. Try again later."
-                TopError.Network -> "Couldn't reach the server. Check your connection."
-                is TopError.Message -> error.message
-            },
-            style = typography.serifBody.copy(color = colors.error),
-        )
-        if (error is TopError.Network) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Retry",
-                style = typography.sansLabel.copy(color = colors.error),
-                modifier = Modifier
-                    .clickable { onDismiss() }
-                    .padding(vertical = 4.dp),
-            )
-        }
-    }
-}
-
-/**
- * Full-screen modal-ish overlay shown while an async dispatch is in
- * flight. Captures pointer input so the form below doesn't respond
- * (a stray re-tap on Continue wouldn't dispatch anyway since
- * `canSubmit` is checked again in the VM, but blocking touches is
- * the clearer UX signal).
- */
-@Composable
 private fun LoadingOverlay() {
     val colors = UndercurrentTheme.colors
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background.copy(alpha = 0.75f))
-            .pointerInput(Unit) { /* swallow taps */ },
+            .pointerInput(Unit) { },
         contentAlignment = Alignment.Center,
     ) {
         CircularProgressIndicator(color = colors.accent)
-    }
-}
-
-@Composable
-private fun ContinueButton(
-    label: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    val colors = UndercurrentTheme.colors
-    val typography = UndercurrentTheme.typography
-    val shapes = UndercurrentTheme.shapes
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shapes.medium)
-            .background(if (enabled) colors.accent else colors.divider)
-            .clickable(enabled = enabled) { onClick() }
-            .alpha(if (enabled) 1f else 0.6f)
-            .padding(vertical = 14.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            style = typography.sansLabel.copy(color = colors.surface),
-            textAlign = TextAlign.Center,
-        )
     }
 }
 
@@ -352,25 +214,10 @@ private fun SignInScreenPreviewRegisterWithErrors() {
                 displayName = "Phuc",
                 email = "not-an-email",
                 password = "short",
-                topError = TopError.Message("One or more fields are invalid"),
                 fieldErrors = mapOf(
                     "email" to "must be a valid email address",
                     "password" to "must be at least 8 characters",
                 ),
-            ),
-        )
-    }
-}
-
-@Preview
-@Composable
-private fun SignInScreenPreviewNetworkError() {
-    UndercurrentTheme {
-        SignInScreen(
-            state = SignInState(
-                email = "phuc@example.com",
-                password = "hunter2-correct",
-                topError = TopError.Network,
             ),
         )
     }

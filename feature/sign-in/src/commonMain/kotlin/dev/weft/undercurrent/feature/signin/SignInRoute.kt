@@ -4,25 +4,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
-/**
- * Stateful entry point for the first-launch sign-in / register flow.
- * Injects [SignInViewModel], collects [SignInState] + the base VM's
- * `loading` flag, and turns [SignInEffect.SignedIn] into the
- * [onSignedIn] callback supplied by the host. ScreenRouter wires
- * `onSignedIn` to `AppViewModel.resume()` so the boot cascade rolls
- * forward to the existing provider/key onboarding step (per
- * `decisions#D7`).
- */
 @Composable
 fun SignInRoute(onSignedIn: () -> Unit = {}) {
-    val vm: SignInViewModel = koinInject()
-    val state by vm.state.collectAsState()
-    val loading by vm.loading.collectAsState()
+    val viewModel: SignInViewModel = koinViewModel()
+    val state by viewModel.state.collectAsState()
+    val loading by viewModel.loading.collectAsState()
 
     LaunchedEffect(Unit) {
-        vm.effects.collect { effect ->
+        viewModel.effects.collect { effect ->
             when (effect) {
                 SignInEffect.SignedIn -> onSignedIn()
             }
@@ -32,6 +23,6 @@ fun SignInRoute(onSignedIn: () -> Unit = {}) {
     SignInScreen(
         state = state,
         loading = loading,
-        onIntent = { vm.dispatch(it) },
+        onIntent = { viewModel.dispatch(it) },
     )
 }
