@@ -32,6 +32,7 @@ class SignInViewModel(
                     showSwitchToSignInShortcut = false,
                 )
             }
+
             SignInIntent.SwitchToSignInWithEmail -> update { state ->
                 state.copy(
                     mode = SignInState.Mode.SignIn,
@@ -40,6 +41,7 @@ class SignInViewModel(
                     showSwitchToSignInShortcut = false,
                 )
             }
+
             is SignInIntent.EmailChanged -> update { state -> state.copy(email = intent.value) }
             is SignInIntent.PasswordChanged -> update { state -> state.copy(password = intent.value) }
             is SignInIntent.DisplayNameChanged -> update { state -> state.copy(displayName = intent.value) }
@@ -99,6 +101,7 @@ class SignInViewModel(
         when {
             api != null && api.httpStatus == HttpStatus.BAD_REQUEST && !api.details.isNullOrEmpty() ->
                 update { state -> state.copy(fieldErrors = api.details.orEmpty(), topError = null) }
+
             api != null && api.code == ErrorCodes.EMAIL_ALREADY_REGISTERED ->
                 update { state ->
                     state.copy(
@@ -106,6 +109,7 @@ class SignInViewModel(
                         showSwitchToSignInShortcut = true,
                     )
                 }
+
             else -> update { state -> state.copy(topError = e.toTopError()) }
         }
     }

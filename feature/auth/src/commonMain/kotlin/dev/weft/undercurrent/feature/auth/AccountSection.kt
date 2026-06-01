@@ -21,7 +21,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.domain.auth.dto.AccountDto
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.account_load_error
+import dev.weft.undercurrent.core.resources.account_loading
+import dev.weft.undercurrent.core.resources.account_section_label
+import dev.weft.undercurrent.core.resources.account_sign_out
+import dev.weft.undercurrent.core.resources.common_retry
 import dev.weft.undercurrent.core.ui.PrimaryButton
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -33,7 +40,7 @@ fun AccountSection(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AccountCard(view = state.view, onRetry = { onIntent(AccountIntent.Refresh) })
         PrimaryButton(
-            label = "Sign Out",
+            label = stringResource(Res.string.account_sign_out),
             onClick = { onIntent(AccountIntent.SignOut) },
         )
     }
@@ -55,7 +62,7 @@ private fun AccountCard(
             .border(1.dp, colors.divider, shapes.medium)
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
-        Text("Account", style = typography.sansLabel.copy(color = colors.inkSubtle))
+        Text(stringResource(Res.string.account_section_label), style = typography.sansLabel.copy(color = colors.inkSubtle))
         Spacer(Modifier.height(8.dp))
         when (view) {
             AccountState.View.Loading -> LoadingRow()
@@ -74,7 +81,7 @@ private fun LoadingRow() {
         }
         Spacer(Modifier.size(12.dp))
         Text(
-            text = "Loading account…",
+            text = stringResource(Res.string.account_loading),
             style = UndercurrentTheme.typography.serifBody.copy(color = colors.inkMuted),
         )
     }
@@ -97,12 +104,12 @@ private fun LoadErrorRow(onRetry: () -> Unit) {
     val typography = UndercurrentTheme.typography
     Column {
         Text(
-            text = "Couldn't load account.",
+            text = stringResource(Res.string.account_load_error),
             style = typography.serifBody.copy(color = colors.error),
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Retry",
+            text = stringResource(Res.string.common_retry),
             style = typography.sansLabel.copy(color = colors.accent),
             modifier = Modifier
                 .clickable(onClick = onRetry)

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sign-in / register screen (feature/auth) -->
+    <string name="auth_sign_in_title">Welcome back</string>
+    <string name="auth_register_title">Create your account</string>
+    <string name="auth_sign_in_subtitle">Sign in with your email and password.</string>
+    <string name="auth_register_subtitle">Pick a display name, email, and password.</string>
+    <string name="auth_mode_sign_in">Sign In</string>
+    <string name="auth_mode_register">Register</string>
+    <string name="auth_field_display_name">Display name</string>
+    <string name="auth_field_email">Email</string>
+    <string name="auth_field_password">Password</string>
+    <string name="auth_switch_to_sign_in_with_email">Switch to Sign In with this email</string>
+    <string name="auth_cta_sign_in">Sign In</string>
+    <string name="auth_cta_register">Create account</string>
+
+    <!-- Auth error messages -->
+    <string name="auth_error_invalid_credentials">Invalid email or password.</string>
+    <string name="auth_error_rate_limited">Too many failed attempts. Try again later.</string>
+    <string name="auth_error_network">Couldn\'t reach the server. Check your connection.</string>
+
+    <!-- Common -->
+    <string name="common_retry">Retry</string>
+
+    <!-- Settings account section (feature/auth) -->
+    <string name="account_section_label">Account</string>
+    <string name="account_loading">Loading account…</string>
+    <string name="account_load_error">Couldn\'t load account.</string>
+    <string name="account_sign_out">Sign Out</string>
+</resources>
