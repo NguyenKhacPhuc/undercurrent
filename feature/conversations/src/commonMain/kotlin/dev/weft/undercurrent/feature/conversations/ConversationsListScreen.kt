@@ -31,8 +31,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
-import dev.weft.undercurrent.core.ext.formatLastActivity
-import dev.weft.undercurrent.core.ext.groupConversationsByRecency
+import dev.weft.undercurrent.core.domain.formatLastActivity
+import dev.weft.undercurrent.core.domain.groupConversationsByRecency
 import dev.weft.undercurrent.core.ui.ScaffoldTextAction
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.SectionLabel

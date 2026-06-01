@@ -1,6 +1,6 @@
 package dev.weft.undercurrent.data.network.auth
 
-import dev.weft.undercurrent.core.domain.AuthClient
+import dev.weft.undercurrent.core.domain.AuthRepository
 import dev.weft.undercurrent.core.domain.SessionTokenStore
 import dev.weft.undercurrent.data.network.PlatformHttpClientEngineFactory
 import io.ktor.client.HttpClient
@@ -12,7 +12,7 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 /**
- * Koin module wiring the [AuthClient] used by mobile-auth-wiring.
+ * Koin module wiring the [AuthRepository] used by mobile-auth-wiring.
  *
  * Consumers must register, before loading this module:
  *  - `single<String>(named(BE_BASE_URL_QUALIFIER)) { … }` — BE base URL
@@ -28,8 +28,8 @@ import org.koin.dsl.module
  * flow and a different error envelope, so reusing the integrations
  * machinery would mismatch.
  */
-val authClientModule = module {
-    single<AuthClient>(named(AUTH_CLIENT_QUALIFIER)) {
+val authRepositoryModule = module {
+    single<AuthRepository>(named(AUTH_REPOSITORY_QUALIFIER)) {
         val baseUrl = get<String>(named(BE_BASE_URL_QUALIFIER))
         val client = HttpClient(get<PlatformHttpClientEngineFactory>().create()) {
             install(ContentNegotiation) {
@@ -46,15 +46,15 @@ val authClientModule = module {
                 connectTimeoutMillis = CONNECT_TIMEOUT_MS
             }
         }
-        HttpAuthClient(httpClient = client, baseUrl = baseUrl, sessionTokenStore = get())
+        AuthRepositoryImpl(httpClient = client, baseUrl = baseUrl, sessionTokenStore = get())
     }
 }
 
 /** Koin qualifier for the BE base URL. */
 const val BE_BASE_URL_QUALIFIER: String = "mobileAuthWiring.beBaseUrl"
 
-/** Koin qualifier for the [AuthClient] binding. */
-const val AUTH_CLIENT_QUALIFIER: String = "mobileAuthWiring.authClient"
+/** Koin qualifier for the [AuthRepository] binding. */
+const val AUTH_REPOSITORY_QUALIFIER: String = "mobileAuthWiring.authRepository"
 
 private const val REQUEST_TIMEOUT_MS: Long = 10_000L
 private const val CONNECT_TIMEOUT_MS: Long = 10_000L

@@ -12,6 +12,12 @@ kotlin {
         commonMain.dependencies {
             // Domain types — Persona, MiniApp, ThemePrefs, ProviderKind, …
             api(projects.core.model)
+            // Result + asResult — used by AuthRepository's Flow<Result<T>>
+            // surface and by ConversationGrouping helpers. `api` because
+            // Result appears in public method signatures of repositories.
+            api(projects.core.ext)
+            // kotlinx.datetime — used by ConversationGrouping for date math.
+            implementation(libs.kotlinx.datetime)
             // KMP DataStore-Preferences core. `api` because the public
             // surface of every repository takes a `DataStore<Preferences>`
             // in its constructor — consumers (DI modules) need to see the

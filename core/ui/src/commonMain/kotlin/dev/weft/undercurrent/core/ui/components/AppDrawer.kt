@@ -31,8 +31,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.ui.TokenDivider
-import dev.weft.undercurrent.core.ext.formatLastActivity
-import dev.weft.undercurrent.core.ext.groupConversationsByRecency
+import dev.weft.undercurrent.core.domain.formatLastActivity
+import dev.weft.undercurrent.core.domain.groupConversationsByRecency
 import dev.weft.undercurrent.core.domain.ConversationSummary
 
 /**

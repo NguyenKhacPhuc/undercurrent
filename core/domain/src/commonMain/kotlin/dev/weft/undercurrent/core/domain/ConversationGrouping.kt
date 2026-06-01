@@ -1,6 +1,4 @@
-package dev.weft.undercurrent.core.ext
-
-import dev.weft.undercurrent.core.domain.ConversationSummary
+package dev.weft.undercurrent.core.domain
 import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn

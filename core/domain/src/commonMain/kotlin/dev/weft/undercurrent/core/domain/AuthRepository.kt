@@ -1,10 +1,11 @@
 package dev.weft.undercurrent.core.domain
 
+import dev.weft.undercurrent.core.ext.Result
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 /**
- * Client surface for the BE auth endpoints. Wraps the 4 endpoints
+ * Repository surface for the BE auth endpoints. Wraps the 4 endpoints
  * (`/v1/auth/sign-up`, `/v1/auth/sign-in`, `/v1/me`, `/v1/auth/sign-out`)
  * documented in `inception/260601-0040-mobile-auth-wiring/api-contract.md`.
  *
@@ -24,7 +25,7 @@ import kotlinx.serialization.Serializable
  *    per Inception D4) and a `Success(Unit)` still emits so callers can
  *    proceed to wipe the local token.
  */
-interface AuthClient {
+interface AuthRepository {
     fun signUp(displayName: String, email: String, password: String): Flow<Result<AuthResponse>>
     fun signIn(email: String, password: String): Flow<Result<AuthResponse>>
     fun getMe(): Flow<Result<MeResponse>>

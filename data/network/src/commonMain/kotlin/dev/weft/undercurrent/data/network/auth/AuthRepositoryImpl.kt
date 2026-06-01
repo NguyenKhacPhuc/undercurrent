@@ -1,11 +1,11 @@
 package dev.weft.undercurrent.data.network.auth
 
-import dev.weft.undercurrent.core.domain.AuthClient
 import dev.weft.undercurrent.core.domain.AuthException
+import dev.weft.undercurrent.core.domain.AuthRepository
 import dev.weft.undercurrent.core.domain.AuthResponse
 import dev.weft.undercurrent.core.domain.MeResponse
-import dev.weft.undercurrent.core.domain.Result
 import dev.weft.undercurrent.core.domain.SessionTokenStore
+import dev.weft.undercurrent.core.ext.Result
 import dev.weft.undercurrent.core.ext.asResult
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -26,7 +26,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
 /**
- * Ktor-backed [AuthClient]. Talks to the BE at [baseUrl] using the
+ * Ktor-backed [AuthRepository]. Talks to the BE at [baseUrl] using the
  * shared [httpClient]. Reads/writes the bearer via [sessionTokenStore]
  * for authed endpoints.
  *
@@ -38,11 +38,11 @@ import kotlinx.serialization.json.Json
  *
  * The ViewModel layer translates `AuthException` shape → UI state.
  */
-class HttpAuthClient(
+class AuthRepositoryImpl(
     private val httpClient: HttpClient,
     private val baseUrl: String,
     private val sessionTokenStore: SessionTokenStore,
-) : AuthClient {
+) : AuthRepository {
 
     override fun signUp(
         displayName: String,
