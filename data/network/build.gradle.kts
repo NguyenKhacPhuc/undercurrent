@@ -30,6 +30,8 @@ kotlin {
         commonMain.dependencies {
             // AuthClient interface + DTOs + SessionTokenStore (mobile-auth-wiring/04).
             api(projects.core.domain)
+            // Flow<T>.asResult() wrapper used by HttpAuthClient (PR #5).
+            implementation(projects.core.ext)
             // Ktor multiplatform HTTP client.
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.logging)

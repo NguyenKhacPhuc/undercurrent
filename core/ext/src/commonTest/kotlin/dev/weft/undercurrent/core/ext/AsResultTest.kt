@@ -1,6 +1,7 @@
 package dev.weft.undercurrent.core.ext
 
 import app.cash.turbine.test
+import dev.weft.undercurrent.core.domain.Result
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf

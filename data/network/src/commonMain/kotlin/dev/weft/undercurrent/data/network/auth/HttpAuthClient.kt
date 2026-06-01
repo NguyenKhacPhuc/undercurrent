@@ -1,15 +1,14 @@
 package dev.weft.undercurrent.data.network.auth
 
 import dev.weft.undercurrent.core.domain.AuthClient
+import dev.weft.undercurrent.core.domain.AuthException
 import dev.weft.undercurrent.core.domain.AuthResponse
-import dev.weft.undercurrent.core.domain.AuthResult
 import dev.weft.undercurrent.core.domain.MeResponse
+import dev.weft.undercurrent.core.domain.Result
 import dev.weft.undercurrent.core.domain.SessionTokenStore
+import dev.weft.undercurrent.core.ext.asResult
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.network.sockets.ConnectTimeoutException
-import io.ktor.client.network.sockets.SocketTimeoutException
-import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -19,7 +18,9 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import io.ktor.util.network.UnresolvedAddressException
+import io.ktor.http.isSuccess
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -29,14 +30,13 @@ import kotlinx.serialization.json.Json
  * shared [httpClient]. Reads/writes the bearer via [sessionTokenStore]
  * for authed endpoints.
  *
- * Maps every observable BE outcome to an [AuthResult] variant:
- *  - 2xx → [AuthResult.Success]
- *  - 400 `invalid_request` → [AuthResult.InvalidRequest] (with field errors)
- *  - 401 `unauthenticated` → [AuthResult.Unauthenticated]
- *  - 409 `email_already_registered` → [AuthResult.EmailAlreadyRegistered]
- *  - 429 `rate_limited` → [AuthResult.RateLimited]
- *  - any network exception → [AuthResult.NetworkError]
- *  - anything else → [AuthResult.UnknownError]
+ * On any non-2xx response from the BE, throws [AuthException.Http]
+ * (carrying the structured envelope data). On transport/timeout/decode
+ * failure, throws [AuthException.Network]. The [asResult] extension
+ * wraps each method's `Flow<T>` as `Flow<Result<T>>`, so callers
+ * never see the exception — only `Result.Error(AuthException.X)`.
+ *
+ * The ViewModel layer translates `AuthException` shape → UI state.
  */
 class HttpAuthClient(
     private val httpClient: HttpClient,
@@ -44,83 +44,76 @@ class HttpAuthClient(
     private val sessionTokenStore: SessionTokenStore,
 ) : AuthClient {
 
-    override suspend fun signUp(
+    override fun signUp(
         displayName: String,
         email: String,
         password: String,
-    ): AuthResult<AuthResponse> = withMappedExceptions {
+    ): Flow<Result<AuthResponse>> = flow {
         val response = httpClient.post("$baseUrl/v1/auth/sign-up") {
             contentType(ContentType.Application.Json)
             setBody(SignUpRequest(displayName = displayName, email = email, password = password))
         }
-        when (response.status) {
-            HttpStatusCode.Created -> AuthResult.Success(response.body<AuthResponse>())
-            HttpStatusCode.BadRequest -> response.toInvalidRequest()
-            HttpStatusCode.Conflict -> AuthResult.EmailAlreadyRegistered
-            else -> response.toUnknownError()
-        }
-    }
+        emit(response.requireSuccess<AuthResponse>())
+    }.toAuthFlow()
 
-    override suspend fun signIn(email: String, password: String): AuthResult<AuthResponse> =
-        withMappedExceptions {
-            val response = httpClient.post("$baseUrl/v1/auth/sign-in") {
-                contentType(ContentType.Application.Json)
-                setBody(SignInRequest(email = email, password = password))
-            }
-            when (response.status) {
-                HttpStatusCode.OK -> AuthResult.Success(response.body<AuthResponse>())
-                HttpStatusCode.BadRequest -> response.toInvalidRequest()
-                HttpStatusCode.Unauthorized -> AuthResult.Unauthenticated
-                HttpStatusCode.TooManyRequests -> AuthResult.RateLimited
-                else -> response.toUnknownError()
-            }
+    override fun signIn(email: String, password: String): Flow<Result<AuthResponse>> = flow {
+        val response = httpClient.post("$baseUrl/v1/auth/sign-in") {
+            contentType(ContentType.Application.Json)
+            setBody(SignInRequest(email = email, password = password))
         }
+        emit(response.requireSuccess<AuthResponse>())
+    }.toAuthFlow()
 
-    override suspend fun getMe(): AuthResult<MeResponse> = withMappedExceptions {
-        val token = sessionTokenStore.read() ?: return@withMappedExceptions AuthResult.Unauthenticated
+    override fun getMe(): Flow<Result<MeResponse>> = flow {
+        val token = sessionTokenStore.read() ?: throw AuthException.Http(
+            status = HttpStatusCode.Unauthorized.value,
+            errorCode = "unauthenticated",
+            errorMessage = "No session token stored on this device",
+            fieldErrors = null,
+        )
         val response = httpClient.get("$baseUrl/v1/me") { bearerAuth(token) }
-        when (response.status) {
-            HttpStatusCode.OK -> AuthResult.Success(response.body<MeResponse>())
-            HttpStatusCode.Unauthorized -> AuthResult.Unauthenticated
-            else -> response.toUnknownError()
+        emit(response.requireSuccess<MeResponse>())
+    }.toAuthFlow()
+
+    override fun signOut(): Flow<Result<Unit>> = flow {
+        val token = sessionTokenStore.read()
+        if (token != null) {
+            // Best-effort per Inception D4. Swallow all failures so the
+            // local wipe always completes; the BE session expires naturally
+            // within 30 days even if this call dropped.
+            try {
+                httpClient.post("$baseUrl/v1/auth/sign-out") { bearerAuth(token) }
+            } catch (e: Exception) {
+                // intentional swallow
+            }
         }
-    }
+        emit(Unit)
+    }.toAuthFlow()
 
-    override suspend fun signOut(): AuthResult<Unit> = withMappedExceptions {
-        val token = sessionTokenStore.read() ?: return@withMappedExceptions AuthResult.Success(Unit)
-        val response = httpClient.post("$baseUrl/v1/auth/sign-out") { bearerAuth(token) }
-        when (response.status) {
-            // BE spec says ALWAYS 204 — but accept any 2xx for robustness.
-            in HttpStatusCode.OK..HttpStatusCode.NoContent -> AuthResult.Success(Unit)
-            else -> AuthResult.Success(Unit) // sign-out is best-effort per Inception D4
+    /**
+     * Bridge: `flow { … throw AuthException … }.toAuthFlow()` →
+     * `Flow<Result<T>>` where any other Exception is rewrapped as
+     * [AuthException.Network] before the standard `asResult` mapping.
+     */
+    private fun <T> Flow<T>.toAuthFlow(): Flow<Result<T>> = flow {
+        try {
+            collect { emit(it) }
+        } catch (e: AuthException) {
+            throw e
+        } catch (e: Exception) {
+            throw AuthException.Network(e)
         }
-    }
+    }.asResult()
 
-    private suspend inline fun <T> withMappedExceptions(
-        block: () -> AuthResult<T>,
-    ): AuthResult<T> = try {
-        block()
-    } catch (e: HttpRequestTimeoutException) {
-        AuthResult.NetworkError
-    } catch (e: ConnectTimeoutException) {
-        AuthResult.NetworkError
-    } catch (e: SocketTimeoutException) {
-        AuthResult.NetworkError
-    } catch (e: UnresolvedAddressException) {
-        AuthResult.NetworkError
-    } catch (e: SerializationException) {
-        AuthResult.UnknownError(httpCode = null, message = "Malformed server response")
-    }
-
-    private suspend fun HttpResponse.toInvalidRequest(): AuthResult<Nothing> {
+    private suspend inline fun <reified T> HttpResponse.requireSuccess(): T {
+        if (status.isSuccess()) return body<T>()
         val envelope = parseErrorEnvelope(bodyAsText())
-        val fieldErrors = envelope?.error?.details ?: emptyMap()
-        return AuthResult.InvalidRequest(fieldErrors)
-    }
-
-    private suspend fun HttpResponse.toUnknownError(): AuthResult<Nothing> {
-        val envelope = parseErrorEnvelope(bodyAsText())
-        return AuthResult.UnknownError(httpCode = status.value, message = envelope?.error?.message)
+        throw AuthException.Http(
+            status = status.value,
+            errorCode = envelope?.error?.code,
+            errorMessage = envelope?.error?.message,
+            fieldErrors = envelope?.error?.details,
+        )
     }
 
     private fun parseErrorEnvelope(body: String): ErrorEnvelope? = try {

@@ -1,17 +1,19 @@
 package dev.weft.undercurrent.data.network.auth
 
+import app.cash.turbine.test
+import dev.weft.undercurrent.core.domain.AuthException
 import dev.weft.undercurrent.core.domain.AuthResponse
-import dev.weft.undercurrent.core.domain.AuthResult
 import dev.weft.undercurrent.core.domain.MeResponse
+import dev.weft.undercurrent.core.domain.Result
 import dev.weft.undercurrent.core.domain.SessionTokenStore
 import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
-import io.ktor.client.engine.mock.respondError
 import io.ktor.client.engine.mock.respondOk
 import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -31,7 +33,7 @@ private class FakeStore(initial: String? = null) : SessionTokenStore {
     override suspend fun clear() { this.token = null }
 }
 
-private fun jsonClient(handler: MockEngine): HttpClient = HttpClient(handler) {
+private fun jsonClient(engine: MockEngine): HttpClient = HttpClient(engine) {
     install(ContentNegotiation) {
         json(Json { ignoreUnknownKeys = true; isLenient = true })
     }
@@ -43,33 +45,37 @@ private const val BASE = "https://be.test"
 class HttpAuthClientTest : BehaviorSpec({
 
     Given("signUp() against a 201 BE response") {
-        Then("returns Success with the parsed AuthResponse") {
+        Then("emits [Loading, Success(AuthResponse)]") {
             runTest {
-                var seen: io.ktor.client.request.HttpRequestData? = null
+                var seenRequest: io.ktor.client.request.HttpRequestData? = null
                 val engine = MockEngine { request ->
-                    seen = request
+                    seenRequest = request
                     respond(
                         content = """{"account":{"id":"acct.abc","displayName":"Phuc","email":"phuc@example.com","createdAtMs":1},"session":{"token":"tk-1","expiresAtMs":2}}""",
                         status = HttpStatusCode.Created,
                         headers = jsonHeaders,
                     )
                 }
-                val result = HttpAuthClient(jsonClient(engine), BASE, FakeStore())
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore())
                     .signUp("Phuc", "phuc@example.com", "hunter2-correct")
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        val ok = awaitItem()
+                        ok.shouldBeInstanceOf<Result.Success<AuthResponse>>()
+                        ok.data.account.id shouldBe "acct.abc"
+                        ok.data.session.token shouldBe "tk-1"
+                        awaitComplete()
+                    }
 
-                seen!!.method shouldBe HttpMethod.Post
-                seen!!.url.encodedPath shouldBe "/v1/auth/sign-up"
-                (seen!!.body as TextContent).text shouldContain "\"email\":\"phuc@example.com\""
-
-                result.shouldBeInstanceOf<AuthResult.Success<AuthResponse>>()
-                (result as AuthResult.Success).value.account.id shouldBe "acct.abc"
-                result.value.session.token shouldBe "tk-1"
+                seenRequest!!.method shouldBe HttpMethod.Post
+                seenRequest!!.url.encodedPath shouldBe "/v1/auth/sign-up"
+                (seenRequest!!.body as TextContent).text shouldContain "\"email\":\"phuc@example.com\""
             }
         }
     }
 
-    Given("signUp() against a 400 BE response") {
-        Then("returns InvalidRequest with field errors") {
+    Given("signUp() against a 400 BE response with field details") {
+        Then("emits [Loading, Error(AuthException.Http(status=400, fieldErrors=…))]") {
             runTest {
                 val engine = MockEngine {
                     respond(
@@ -78,15 +84,24 @@ class HttpAuthClientTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                val result = HttpAuthClient(jsonClient(engine), BASE, FakeStore())
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore())
                     .signUp("Phuc", "no-at", "hunter2-correct")
-                result shouldBe AuthResult.InvalidRequest(mapOf("email" to "bad"))
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        val err = awaitItem()
+                        err.shouldBeInstanceOf<Result.Error>()
+                        val ex = err.exception.shouldBeInstanceOf<AuthException.Http>()
+                        ex.status shouldBe 400
+                        ex.errorCode shouldBe "invalid_request"
+                        ex.fieldErrors!! shouldContainExactly mapOf("email" to "bad")
+                        awaitComplete()
+                    }
             }
         }
     }
 
     Given("signUp() against a 409 BE response") {
-        Then("returns EmailAlreadyRegistered") {
+        Then("emits Error(AuthException.Http(status=409, errorCode=email_already_registered))") {
             runTest {
                 val engine = MockEngine {
                     respond(
@@ -95,15 +110,22 @@ class HttpAuthClientTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                val result = HttpAuthClient(jsonClient(engine), BASE, FakeStore())
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore())
                     .signUp("Phuc", "phuc@example.com", "hunter2-correct")
-                result shouldBe AuthResult.EmailAlreadyRegistered
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        val err = awaitItem().shouldBeInstanceOf<Result.Error>()
+                        val ex = err.exception.shouldBeInstanceOf<AuthException.Http>()
+                        ex.status shouldBe 409
+                        ex.errorCode shouldBe "email_already_registered"
+                        awaitComplete()
+                    }
             }
         }
     }
 
     Given("signIn() against a 200 BE response") {
-        Then("returns Success") {
+        Then("emits [Loading, Success(AuthResponse)]") {
             runTest {
                 val engine = MockEngine { request ->
                     request.url.encodedPath shouldBe "/v1/auth/sign-in"
@@ -113,15 +135,19 @@ class HttpAuthClientTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                val result = HttpAuthClient(jsonClient(engine), BASE, FakeStore())
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore())
                     .signIn("x@y.com", "hunter2-correct")
-                result.shouldBeInstanceOf<AuthResult.Success<AuthResponse>>()
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        awaitItem().shouldBeInstanceOf<Result.Success<AuthResponse>>()
+                        awaitComplete()
+                    }
             }
         }
     }
 
     Given("signIn() against a 401 BE response") {
-        Then("returns Unauthenticated") {
+        Then("emits Error(AuthException.Http(status=401))") {
             runTest {
                 val engine = MockEngine {
                     respond(
@@ -130,15 +156,22 @@ class HttpAuthClientTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                val result = HttpAuthClient(jsonClient(engine), BASE, FakeStore())
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore())
                     .signIn("x@y.com", "wrong")
-                result shouldBe AuthResult.Unauthenticated
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        val ex = awaitItem().shouldBeInstanceOf<Result.Error>()
+                            .exception.shouldBeInstanceOf<AuthException.Http>()
+                        ex.status shouldBe 401
+                        ex.errorCode shouldBe "unauthenticated"
+                        awaitComplete()
+                    }
             }
         }
     }
 
     Given("signIn() against a 429 BE response") {
-        Then("returns RateLimited") {
+        Then("emits Error(AuthException.Http(status=429))") {
             runTest {
                 val engine = MockEngine {
                     respond(
@@ -147,28 +180,42 @@ class HttpAuthClientTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                val result = HttpAuthClient(jsonClient(engine), BASE, FakeStore())
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore())
                     .signIn("x@y.com", "wrong")
-                result shouldBe AuthResult.RateLimited
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        val ex = awaitItem().shouldBeInstanceOf<Result.Error>()
+                            .exception.shouldBeInstanceOf<AuthException.Http>()
+                        ex.status shouldBe 429
+                        ex.errorCode shouldBe "rate_limited"
+                        awaitComplete()
+                    }
             }
         }
     }
 
     Given("getMe() with no stored token") {
-        Then("short-circuits to Unauthenticated without making an HTTP call") {
+        Then("emits Error(AuthException.Http(status=401)) without making an HTTP call") {
             runTest {
                 var calls = 0
                 val engine = MockEngine { calls++; respondOk() }
-                val result = HttpAuthClient(jsonClient(engine), BASE, FakeStore(initial = null))
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore(initial = null))
                     .getMe()
-                result shouldBe AuthResult.Unauthenticated
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        val ex = awaitItem().shouldBeInstanceOf<Result.Error>()
+                            .exception.shouldBeInstanceOf<AuthException.Http>()
+                        ex.status shouldBe 401
+                        ex.errorCode shouldBe "unauthenticated"
+                        awaitComplete()
+                    }
                 calls shouldBe 0
             }
         }
     }
 
     Given("getMe() with a stored token and 200 response") {
-        Then("attaches the bearer and returns Success") {
+        Then("attaches the bearer and emits Success") {
             runTest {
                 val engine = MockEngine { request ->
                     request.headers[HttpHeaders.Authorization] shouldBe "Bearer tk-123"
@@ -179,15 +226,19 @@ class HttpAuthClientTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                val result = HttpAuthClient(jsonClient(engine), BASE, FakeStore(initial = "tk-123"))
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore(initial = "tk-123"))
                     .getMe()
-                result.shouldBeInstanceOf<AuthResult.Success<MeResponse>>()
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        awaitItem().shouldBeInstanceOf<Result.Success<MeResponse>>()
+                        awaitComplete()
+                    }
             }
         }
     }
 
     Given("getMe() with a stored token and 401 response") {
-        Then("returns Unauthenticated") {
+        Then("emits Error(AuthException.Http(status=401))") {
             runTest {
                 val engine = MockEngine {
                     respond(
@@ -196,48 +247,82 @@ class HttpAuthClientTest : BehaviorSpec({
                         headers = jsonHeaders,
                     )
                 }
-                val result = HttpAuthClient(jsonClient(engine), BASE, FakeStore(initial = "tk-x"))
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore(initial = "tk-x"))
                     .getMe()
-                result shouldBe AuthResult.Unauthenticated
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        val ex = awaitItem().shouldBeInstanceOf<Result.Error>()
+                            .exception.shouldBeInstanceOf<AuthException.Http>()
+                        ex.status shouldBe 401
+                        awaitComplete()
+                    }
             }
         }
     }
 
     Given("signOut() with no stored token") {
-        Then("returns Success without making an HTTP call") {
+        Then("emits Success(Unit) without making an HTTP call") {
             runTest {
                 var calls = 0
                 val engine = MockEngine { calls++; respondOk() }
-                val result = HttpAuthClient(jsonClient(engine), BASE, FakeStore(initial = null))
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore(initial = null))
                     .signOut()
-                result shouldBe AuthResult.Success(Unit)
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        awaitItem() shouldBe Result.Success(Unit)
+                        awaitComplete()
+                    }
                 calls shouldBe 0
             }
         }
     }
 
     Given("signOut() with a token and 204 response") {
-        Then("returns Success with the bearer attached") {
+        Then("attaches the bearer and emits Success(Unit)") {
             runTest {
                 val engine = MockEngine { request ->
                     request.headers[HttpHeaders.Authorization] shouldBe "Bearer tk-out"
                     request.url.encodedPath shouldBe "/v1/auth/sign-out"
                     respond("", HttpStatusCode.NoContent)
                 }
-                val result = HttpAuthClient(jsonClient(engine), BASE, FakeStore(initial = "tk-out"))
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore(initial = "tk-out"))
                     .signOut()
-                result shouldBe AuthResult.Success(Unit)
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        awaitItem() shouldBe Result.Success(Unit)
+                        awaitComplete()
+                    }
+            }
+        }
+    }
+
+    Given("signOut() with a token and a network failure") {
+        Then("still emits Success(Unit) — best-effort per Inception D4") {
+            runTest {
+                val engine = MockEngine { throw SocketTimeoutException("test") }
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore(initial = "tk-out"))
+                    .signOut()
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        awaitItem() shouldBe Result.Success(Unit)
+                        awaitComplete()
+                    }
             }
         }
     }
 
     Given("a network exception during signIn()") {
-        Then("returns NetworkError") {
+        Then("emits Error(AuthException.Network)") {
             runTest {
                 val engine = MockEngine { throw SocketTimeoutException("test") }
-                val result = HttpAuthClient(jsonClient(engine), BASE, FakeStore())
+                HttpAuthClient(jsonClient(engine), BASE, FakeStore())
                     .signIn("x@y.com", "hunter2-correct")
-                result shouldBe AuthResult.NetworkError
+                    .test {
+                        awaitItem() shouldBe Result.Loading
+                        val err = awaitItem().shouldBeInstanceOf<Result.Error>()
+                        err.exception.shouldBeInstanceOf<AuthException.Network>()
+                        awaitComplete()
+                    }
             }
         }
     }
