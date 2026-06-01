@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -51,100 +53,106 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 fun SignInScreen(
     state: SignInState,
+    loading: Boolean = false,
     onIntent: (SignInIntent) -> Unit = {},
 ) {
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
-    val shapes = UndercurrentTheme.shapes
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background)
-            .padding(horizontal = 24.dp)
-            .padding(top = 48.dp, bottom = 32.dp),
-    ) {
-        Text(
-            text = if (state.mode == SignInState.Mode.SignIn) "Welcome back" else "Create your account",
-            style = typography.sansHeader.copy(color = colors.ink),
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = when (state.mode) {
-                SignInState.Mode.SignIn -> "Sign in with your email and password."
-                SignInState.Mode.Register -> "Pick a display name, email, and password."
-            },
-            style = typography.serifBody.copy(color = colors.inkSubtle),
-        )
-        Spacer(Modifier.height(24.dp))
-
-        ModeToggle(
-            mode = state.mode,
-            enabled = !state.submitting,
-            onSwitch = { onIntent(SignInIntent.SwitchMode) },
-        )
-        Spacer(Modifier.height(24.dp))
-
-        state.topError?.let { err ->
-            TopErrorBanner(
-                error = err,
-                onDismiss = { onIntent(SignInIntent.ClearTopError) },
-            )
-            Spacer(Modifier.height(16.dp))
-        }
-
-        if (state.mode == SignInState.Mode.Register) {
-            LabeledField(
-                label = "Display name",
-                value = state.displayName,
-                onValueChange = { onIntent(SignInIntent.DisplayNameChanged(it)) },
-                enabled = !state.submitting,
-                fieldError = state.fieldErrors["displayName"],
-            )
-            Spacer(Modifier.height(16.dp))
-        }
-        LabeledField(
-            label = "Email",
-            value = state.email,
-            onValueChange = { onIntent(SignInIntent.EmailChanged(it)) },
-            enabled = !state.submitting,
-            keyboardType = KeyboardType.Email,
-            fieldError = state.fieldErrors["email"],
-        )
-        Spacer(Modifier.height(16.dp))
-        LabeledField(
-            label = "Password",
-            value = state.password,
-            onValueChange = { onIntent(SignInIntent.PasswordChanged(it)) },
-            enabled = !state.submitting,
-            keyboardType = KeyboardType.Password,
-            visualTransformation = PasswordVisualTransformation(),
-            fieldError = state.fieldErrors["password"],
-        )
-        Spacer(Modifier.height(24.dp))
-
-        if (state.showSwitchToSignInShortcut) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.background)
+                .padding(horizontal = 24.dp)
+                .padding(top = 48.dp, bottom = 32.dp),
+        ) {
             Text(
-                text = "Switch to Sign In with this email",
-                style = typography.sansLabel.copy(color = colors.accent),
-                modifier = Modifier
-                    .clickable(enabled = !state.submitting) {
-                        onIntent(SignInIntent.SwitchToSignInWithEmail)
-                    }
-                    .padding(vertical = 4.dp),
+                text = if (state.mode == SignInState.Mode.SignIn) "Welcome back" else "Create your account",
+                style = typography.sansHeader.copy(color = colors.ink),
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = when (state.mode) {
+                    SignInState.Mode.SignIn -> "Sign in with your email and password."
+                    SignInState.Mode.Register -> "Pick a display name, email, and password."
+                },
+                style = typography.serifBody.copy(color = colors.inkSubtle),
+            )
+            Spacer(Modifier.height(24.dp))
+
+            ModeToggle(
+                mode = state.mode,
+                enabled = true,
+                onSwitch = { onIntent(SignInIntent.SwitchMode) },
+            )
+            Spacer(Modifier.height(24.dp))
+
+            state.topError?.let { err ->
+                TopErrorBanner(
+                    error = err,
+                    onDismiss = { onIntent(SignInIntent.ClearTopError) },
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+
+            if (state.mode == SignInState.Mode.Register) {
+                LabeledField(
+                    label = "Display name",
+                    value = state.displayName,
+                    onValueChange = { onIntent(SignInIntent.DisplayNameChanged(it)) },
+                    enabled = true,
+                    fieldError = state.fieldErrors["displayName"],
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+            LabeledField(
+                label = "Email",
+                value = state.email,
+                onValueChange = { onIntent(SignInIntent.EmailChanged(it)) },
+                enabled = true,
+                keyboardType = KeyboardType.Email,
+                fieldError = state.fieldErrors["email"],
             )
             Spacer(Modifier.height(16.dp))
+            LabeledField(
+                label = "Password",
+                value = state.password,
+                onValueChange = { onIntent(SignInIntent.PasswordChanged(it)) },
+                enabled = true,
+                keyboardType = KeyboardType.Password,
+                visualTransformation = PasswordVisualTransformation(),
+                fieldError = state.fieldErrors["password"],
+            )
+            Spacer(Modifier.height(24.dp))
+
+            if (state.showSwitchToSignInShortcut) {
+                Text(
+                    text = "Switch to Sign In with this email",
+                    style = typography.sansLabel.copy(color = colors.accent),
+                    modifier = Modifier
+                        .clickable {
+                            onIntent(SignInIntent.SwitchToSignInWithEmail)
+                        }
+                        .padding(vertical = 4.dp),
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+
+            ContinueButton(
+                label = if (state.mode == SignInState.Mode.SignIn) "Sign In" else "Create account",
+                enabled = state.canSubmit,
+                onClick = { onIntent(SignInIntent.Continue) },
+            )
         }
 
-        ContinueButton(
-            label = when {
-                state.submitting -> "…"
-                state.mode == SignInState.Mode.SignIn -> "Sign In"
-                else -> "Create account"
-            },
-            enabled = state.canSubmit,
-            onClick = { onIntent(SignInIntent.Continue) },
-        )
+        // Full-screen overlay during an in-flight signUp / signIn. Blocks
+        // form input (the overlay catches the gesture) and gives a clear
+        // visual signal that work is happening. Driven by the base
+        // MviViewModel.loading flag — every VM gets this for free.
+        if (loading) {
+            LoadingOverlay()
+        }
     }
 }
 
@@ -272,6 +280,27 @@ private fun TopErrorBanner(error: TopError, onDismiss: () -> Unit) {
     }
 }
 
+/**
+ * Full-screen modal-ish overlay shown while an async dispatch is in
+ * flight. Captures pointer input so the form below doesn't respond
+ * (a stray re-tap on Continue wouldn't dispatch anyway since
+ * `canSubmit` is checked again in the VM, but blocking touches is
+ * the clearer UX signal).
+ */
+@Composable
+private fun LoadingOverlay() {
+    val colors = UndercurrentTheme.colors
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.background.copy(alpha = 0.75f))
+            .pointerInput(Unit) { /* swallow taps */ },
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator(color = colors.accent)
+    }
+}
+
 @Composable
 private fun ContinueButton(
     label: String,
@@ -360,6 +389,20 @@ private fun SignInScreenPreviewSwitchShortcut() {
                 topError = TopError.Message("An account with this email already exists"),
                 showSwitchToSignInShortcut = true,
             ),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun SignInScreenPreviewLoading() {
+    UndercurrentTheme {
+        SignInScreen(
+            state = SignInState(
+                email = "phuc@example.com",
+                password = "hunter2-correct",
+            ),
+            loading = true,
         )
     }
 }

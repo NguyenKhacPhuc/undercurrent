@@ -8,7 +8,6 @@ import dev.weft.undercurrent.data.network.common.ApiException
 import dev.weft.undercurrent.data.network.common.HttpException
 import dev.weft.undercurrent.data.network.common.NetworkException
 import dev.weft.undercurrent.shared.mvi.MviViewModel
-import kotlinx.coroutines.flow.collect
 
 /**
  * MVI ViewModel for the first-launch sign-in / register screen.
@@ -18,6 +17,11 @@ import kotlinx.coroutines.flow.collect
  * [SignInEffect.SignedIn] so the Route can re-trigger
  * `AppViewModel.resume()` and let the boot cascade route the user
  * forward to the existing provider/key onboarding step (per `decisions#D7`).
+ *
+ * In-flight calls toggle the base [MviViewModel.loading] flag via
+ * [withLoading] — the Route reads that as a sibling StateFlow and
+ * renders a full-screen overlay until the BE response (success or
+ * error) returns.
  */
 class SignInViewModel(
     private val authRepository: AuthRepository,
@@ -63,19 +67,20 @@ class SignInViewModel(
         if (!snapshot.canSubmit) return
         update { s ->
             s.copy(
-                submitting = true,
                 topError = null,
                 fieldErrors = emptyMap(),
                 showSwitchToSignInShortcut = false,
             )
         }
-        when (snapshot.mode) {
-            SignInState.Mode.SignIn -> handleSignIn(snapshot.email, snapshot.password)
-            SignInState.Mode.Register -> handleRegister(
-                displayName = snapshot.displayName,
-                email = snapshot.email,
-                password = snapshot.password,
-            )
+        withLoading {
+            when (snapshot.mode) {
+                SignInState.Mode.SignIn -> handleSignIn(snapshot.email, snapshot.password)
+                SignInState.Mode.Register -> handleRegister(
+                    displayName = snapshot.displayName,
+                    email = snapshot.email,
+                    password = snapshot.password,
+                )
+            }
         }
     }
 
@@ -84,9 +89,7 @@ class SignInViewModel(
             when (result) {
                 Result.Loading -> Unit
                 is Result.Success -> onAuthSuccess(result.data)
-                is Result.Error -> update { s ->
-                    s.copy(submitting = false, topError = mapSignInError(result.exception))
-                }
+                is Result.Error -> update { s -> s.copy(topError = mapSignInError(result.exception)) }
             }
         }
     }
@@ -116,40 +119,29 @@ class SignInViewModel(
     private fun applyRegisterError(e: Throwable) {
         when {
             e is ApiException && e.httpStatus == 400 && !e.details.isNullOrEmpty() -> {
-                val details = e.details.orEmpty()
-                update { s -> s.copy(submitting = false, fieldErrors = details, topError = null) }
+                update { s -> s.copy(fieldErrors = e.details.orEmpty(), topError = null) }
             }
             e is ApiException && e.code == EMAIL_ALREADY_REGISTERED_CODE -> {
                 update { s ->
                     s.copy(
-                        submitting = false,
                         topError = TopError.Message(e.apiMessage),
                         showSwitchToSignInShortcut = true,
                     )
                 }
             }
-            e is ApiException -> update { s ->
-                s.copy(submitting = false, topError = TopError.Message(e.apiMessage))
-            }
-            e is NetworkException -> update { s ->
-                s.copy(submitting = false, topError = TopError.Network)
-            }
+            e is ApiException -> update { s -> s.copy(topError = TopError.Message(e.apiMessage)) }
+            e is NetworkException -> update { s -> s.copy(topError = TopError.Network) }
             e is HttpException -> update { s ->
-                s.copy(submitting = false, topError = TopError.Message("Server error (${e.httpStatus})."))
+                s.copy(topError = TopError.Message("Server error (${e.httpStatus})."))
             }
             else -> update { s ->
-                s.copy(submitting = false, topError = TopError.Message(e.message ?: "Unknown error."))
+                s.copy(topError = TopError.Message(e.message ?: "Unknown error."))
             }
         }
     }
 
-    private companion object {
-        const val EMAIL_ALREADY_REGISTERED_CODE: String = "email_already_registered"
-    }
-
     private suspend fun onAuthSuccess(response: AuthResponse) {
         sessionTokenStore.save(response.session.token)
-        update { s -> s.copy(submitting = false) }
         emit(SignInEffect.SignedIn)
     }
 
@@ -166,5 +158,9 @@ class SignInViewModel(
         e is NetworkException -> TopError.Network
         e is HttpException -> TopError.Message("Server error (${e.httpStatus}).")
         else -> TopError.Message(e.message ?: "Unknown error.")
+    }
+
+    private companion object {
+        const val EMAIL_ALREADY_REGISTERED_CODE: String = "email_already_registered"
     }
 }

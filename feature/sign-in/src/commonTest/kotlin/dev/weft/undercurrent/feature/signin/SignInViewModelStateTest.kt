@@ -24,7 +24,9 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -229,7 +231,7 @@ class SignInViewModelStateTest : BehaviorSpec({
                 advanceUntilIdle()
                 verify(exactly(0)) { repo.signIn(any(), any()) }
                 verifySuspend(exactly(0)) { store.save(any()) }
-                vm.state.value.submitting shouldBe false
+                vm.loading.value shouldBe false
             }
         }
     }
@@ -256,14 +258,51 @@ class SignInViewModelStateTest : BehaviorSpec({
                 verify(exactly(1)) { repo.signIn("phuc@example.com", "hunter2-correct") }
                 verifySuspend(exactly(1)) { store.save("tk-success") }
                 val s = vm.state.value
-                s.submitting shouldBe false
+                vm.loading.value shouldBe false
                 s.topError shouldBe null
             }
         }
     }
 
+    Given("Sign-In Continue with a flow that hangs after Result.Loading") {
+        Then("vm.loading observes the false→true→false transition across the call") {
+            runTest {
+                // Channel-backed flow lets us hold the call open after Loading
+                // emits and assert that vm.loading flipped to true. Without
+                // this, every test seeded with flowOf(Loading, Success/Error)
+                // races straight through and the loading=true window is
+                // never observable.
+                val resultChannel = Channel<Result<AuthResponse>>(Channel.UNLIMITED)
+                resultChannel.send(Result.Loading)
+                val (vm, _, _) = signInVm { r ->
+                    every { r.signIn(any(), any()) } returns resultChannel.receiveAsFlow()
+                }
+
+                vm.loading.test {
+                    awaitItem() shouldBe false   // initial
+                    fillSignIn(vm)
+                    vm.dispatch(SignInIntent.Continue)
+                    advanceUntilIdle()
+                    awaitItem() shouldBe true    // withLoading set it
+                    // Resolve the call so withLoading's `finally` flips it back.
+                    resultChannel.send(
+                        Result.Success(
+                            AuthResponse(
+                                account = AccountDto("acct.a", "A", "a@b.c", 1L),
+                                session = SessionDto("tk", 2L),
+                            ),
+                        ),
+                    )
+                    resultChannel.close()
+                    advanceUntilIdle()
+                    awaitItem() shouldBe false   // back to idle
+                }
+            }
+        }
+    }
+
     Given("Sign-In Continue with a 401 BE response") {
-        Then("topError becomes InvalidCredentials and submitting flips off") {
+        Then("topError becomes InvalidCredentials and loading flips off") {
             runTest {
                 val err = ApiException(
                     code = "unauthenticated",
@@ -277,9 +316,8 @@ class SignInViewModelStateTest : BehaviorSpec({
                 fillSignIn(vm)
                 vm.dispatch(SignInIntent.Continue)
                 advanceUntilIdle()
-                val s = vm.state.value
-                s.submitting shouldBe false
-                s.topError shouldBe TopError.InvalidCredentials
+                vm.loading.value shouldBe false
+                vm.state.value.topError shouldBe TopError.InvalidCredentials
                 verifySuspend(exactly(0)) { store.save(any()) }
             }
         }
@@ -396,7 +434,7 @@ class SignInViewModelStateTest : BehaviorSpec({
 
                 verify(exactly(1)) { repo.signUp("Phuc", "phuc@example.com", "hunter2-correct") }
                 verifySuspend(exactly(1)) { store.save("tk-new") }
-                vm.state.value.submitting shouldBe false
+                vm.loading.value shouldBe false
             }
         }
     }

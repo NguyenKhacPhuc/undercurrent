@@ -8,8 +8,6 @@ package dev.weft.undercurrent.feature.signin
  *   [SignInIntent.SwitchMode]; the shared fields ([email], [password])
  *   are preserved across the toggle; [displayName] is only meaningful
  *   in [Mode.Register].
- * - [submitting]: an in-flight `signUp` / `signIn` call. Disables the
- *   form and the Continue button.
  * - [topError] / [fieldErrors]: errors to render. `topError` is the
  *   generic "above the form" slot (network failure, BE message without
  *   per-field details, "Invalid email or password" on 401). `fieldErrors`
@@ -18,13 +16,16 @@ package dev.weft.undercurrent.feature.signin
  * - [showSwitchToSignInShortcut]: surfaced by the ViewModel when the BE
  *   answers Register with `email_already_registered`. The UI renders a
  *   one-tap action that dispatches [SignInIntent.SwitchToSignInWithEmail].
+ *
+ * The in-flight `signUp` / `signIn` signal lives on `MviViewModel.loading`
+ * (not here) — every VM gets that for free, and the screen renders a
+ * full-screen overlay against it. See `SignInRoute`.
  */
 data class SignInState(
     val mode: Mode = Mode.SignIn,
     val email: String = "",
     val password: String = "",
     val displayName: String = "",
-    val submitting: Boolean = false,
     val topError: TopError? = null,
     val fieldErrors: Map<String, String> = emptyMap(),
     val showSwitchToSignInShortcut: Boolean = false,
@@ -33,7 +34,7 @@ data class SignInState(
 
     /** All required fields for the active [mode] are filled and pass client-side validation. */
     val canSubmit: Boolean
-        get() = !submitting && when (mode) {
+        get() = when (mode) {
             Mode.SignIn -> emailLooksValid(email) && password.isNotEmpty()
             Mode.Register ->
                 displayNameValid(displayName) &&
