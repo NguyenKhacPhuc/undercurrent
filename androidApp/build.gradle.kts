@@ -47,6 +47,8 @@ dependencies {
     implementation(projects.data.datastore)
     implementation(projects.data.sqldelight)
     implementation(projects.data.weft)
+    // Network — androidNetworkModule (Ktor OkHttp engine) registered into Koin
+    implementation(projects.data.network)
 
     // Feature modules — used by the App() router + AppViewModel wiring
     implementation(projects.feature.chat)

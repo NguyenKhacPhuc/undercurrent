@@ -1,6 +1,5 @@
 package dev.weft.undercurrent.core.ext
 
-import dev.weft.undercurrent.core.domain.ConversationSummary
 import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -10,25 +9,16 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /**
- * Shared date-grouping helpers for conversation lists. Used by both
- * [ConversationsListScreen] (full-screen browse) and the side drawer's
- * recents list (when that one migrates). Kept in one place so the
- * bucketing logic stays consistent.
- *
- * KMP — commonMain. Moved from
- * `app/.../features/conversations/ConversationGrouping.kt`. Adjustments:
- *   - `java.util.Calendar` → `kotlinx.datetime` (timezone-correct
- *     start-of-day via `LocalDate.atStartOfDayIn(tz)`)
- *   - `java.text.SimpleDateFormat` → manual `MMM d, yyyy` formatter
- *     using `kotlinx.datetime.Month` constants (locale-agnostic, but
- *     this format only fires for conversations older than a week so
- *     the loss of locale awareness is acceptable for now)
- *   - `System.currentTimeMillis()` → `kotlin.time.Clock.System.now()`
+ * Buckets [items] into ("Today" / "Yesterday" / "Earlier this week" /
+ * "Earlier this month" / "Older") groups based on the per-item
+ * timestamp returned by [timestampOf] (epoch ms). Generic so this lives
+ * in `core/ext` and doesn't bleed `core/domain` types into `core/ui`.
  */
 @OptIn(ExperimentalTime::class)
-fun groupConversationsByRecency(
-    conversations: List<ConversationSummary>,
-): List<Pair<String, List<ConversationSummary>>> {
+fun <T> groupByRecency(
+    items: List<T>,
+    timestampOf: (T) -> Long,
+): List<Pair<String, List<T>>> {
     val tz = TimeZone.currentSystemDefault()
     val nowMs = Clock.System.now().toEpochMilliseconds()
     val todayStart = startOfDay(nowMs, tz)
@@ -36,14 +26,14 @@ fun groupConversationsByRecency(
     val weekStart = todayStart - 7 * MS_PER_DAY
     val monthStart = todayStart - 30 * MS_PER_DAY
 
-    val today = mutableListOf<ConversationSummary>()
-    val yesterday = mutableListOf<ConversationSummary>()
-    val thisWeek = mutableListOf<ConversationSummary>()
-    val thisMonth = mutableListOf<ConversationSummary>()
-    val older = mutableListOf<ConversationSummary>()
+    val today = mutableListOf<T>()
+    val yesterday = mutableListOf<T>()
+    val thisWeek = mutableListOf<T>()
+    val thisMonth = mutableListOf<T>()
+    val older = mutableListOf<T>()
 
-    for (c in conversations) {
-        val ts = c.lastMessageAtMs
+    for (c in items) {
+        val ts = timestampOf(c)
         when {
             ts >= todayStart -> today += c
             ts >= yesterdayStart -> yesterday += c
@@ -63,8 +53,8 @@ fun groupConversationsByRecency(
 }
 
 /**
- * Friendly relative time for a single conversation row. "just now" /
- * "5m ago" / "3h ago" / "2d ago" / "Mar 14, 2026".
+ * Friendly relative time for a single timestamp. "just now" / "5m ago"
+ * / "3h ago" / "2d ago" / "Mar 14, 2026".
  */
 @OptIn(ExperimentalTime::class)
 fun formatLastActivity(epochMs: Long): String {

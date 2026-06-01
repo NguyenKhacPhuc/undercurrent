@@ -15,14 +15,9 @@ import kotlinx.coroutines.flow.onStart
  *  - [Success] — wraps each emitted value
  *  - [Error] — emitted if the upstream throws (the upstream completes after)
  *
- * Distinct from the BE-auth-specific `AuthResult` in `core/domain`, which
- * carries typed error codes per endpoint and has no Loading state. Both can
- * coexist — `AuthResult` is for the BE port; `Result` is for any Flow that
- * wants a loading state.
- *
- * Also distinct from `kotlin.Result` (success/failure only, no Loading,
- * shadows on import). Reach for that one when you want exception-free
- * call-site error handling instead of a Flow surface.
+ * Distinct from `kotlin.Result` (success/failure only, no Loading, shadows
+ * on import). Reach for that one when you want exception-free call-site
+ * error handling instead of a Flow surface.
  */
 sealed interface Result<out T> {
 

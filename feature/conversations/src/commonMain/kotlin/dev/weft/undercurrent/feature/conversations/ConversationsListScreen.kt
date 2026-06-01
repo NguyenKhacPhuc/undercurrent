@@ -32,7 +32,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.ext.formatLastActivity
-import dev.weft.undercurrent.core.ext.groupConversationsByRecency
+import dev.weft.undercurrent.core.ext.groupByRecency
 import dev.weft.undercurrent.core.ui.ScaffoldTextAction
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.SectionLabel
@@ -139,7 +139,7 @@ fun ConversationsListScreen(
                 },
             )
         } else {
-            val grouped = remember(conversations) { groupConversationsByRecency(conversations) }
+            val grouped = remember(conversations) { groupByRecency(conversations) { it.lastMessageAtMs } }
             LazyColumn(modifier = Modifier.fillMaxSize().weight(1f)) {
                 grouped.forEach { (bucket, items) ->
                     item(bucket) { SectionLabel(text = bucket) }
