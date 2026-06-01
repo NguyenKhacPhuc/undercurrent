@@ -26,6 +26,11 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project): Unit = with(target) {
         apply(plugin = "org.jetbrains.kotlin.multiplatform")
         apply(plugin = "com.android.library")
+        // Mokkery — KMP mocking via Kotlin compiler plugin. Applied to
+        // every KMP library so commonTest can call `mock<T>()` directly
+        // without per-module opt-in. The compiler plugin no-ops modules
+        // that don't use mocks; cost is negligible.
+        apply(plugin = "dev.mokkery")
 
         val kotlin = extensions.getByType<KotlinMultiplatformExtension>()
         kotlin.applyDefaultHierarchyTemplate()
@@ -62,10 +67,16 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
         }
 
         // commonTest gets the KMP-portable test stack — Kotest engine +
-        // matchers + Turbine + kotlinx-coroutines-test. Specs here
-        // compile against every target (Android + iOS) and run on
-        // each. Use hand-rolled fakes (not MockK — JVM-only) for
-        // collaborator stubs.
+        // matchers + Turbine + kotlinx-coroutines-test + Mokkery's
+        // runtime. Specs here compile against every target (Android +
+        // iOS) and run on each.
+        //
+        // Mokkery is a Kotlin compiler plugin (applied above) that
+        // generates mock implementations of interfaces at compile time,
+        // similar in spirit to MockK but K/N-native. Use `mock<T>()`,
+        // `every { ... } returns ...`, `verify { ... }` etc. directly
+        // in commonTest. Full JVM `mockk` still lives in androidUnitTest
+        // (below) for tests that specifically need a MockK-only feature.
         kotlin.sourceSets.named("commonTest") {
             dependencies {
                 implementation(libs.findLibrary("kotlin-test").get())
@@ -73,20 +84,16 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
                 implementation(libs.findLibrary("kotest-framework-engine").get())
                 implementation(libs.findLibrary("kotest-assertions-core").get())
                 implementation(libs.findLibrary("turbine").get())
+                implementation(libs.findLibrary("mokkery-runtime").get())
             }
         }
 
         // androidUnitTest adds the JVM-only pieces on top:
         //   - kotest-runner-junit5 — bridges Kotest specs into the
         //     JUnit 5 test platform Gradle runs.
-        //   - mockk — JVM byte-code mocking. Use here for
-        //     collaborator-interaction tests where `coVerify` /
-        //     `coVerifyOrder` earns its keep.
-        //
-        // Convention: pure state-projection tests live in commonTest
-        // with hand-rolled fakes so iOS runs them; dispatch-side-
-        // effect assertions (mock verification) live in
-        // androidUnitTest because MockK is JVM-only.
+        //   - mockk — full JVM byte-code mocking. Use here when a test
+        //     specifically needs a feature Mokkery doesn't ship
+        //     (advanced spy/argument-capture flows).
         kotlin.sourceSets.named("androidUnitTest") {
             dependencies {
                 implementation(libs.findLibrary("kotest-runner-junit5").get())

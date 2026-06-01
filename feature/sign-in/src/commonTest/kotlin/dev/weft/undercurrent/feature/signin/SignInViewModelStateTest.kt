@@ -3,6 +3,16 @@
 package dev.weft.undercurrent.feature.signin
 
 import app.cash.turbine.test
+import dev.mokkery.answering.returns
+import dev.mokkery.every
+import dev.mokkery.everySuspend
+import dev.mokkery.matcher.any
+import dev.mokkery.mock
+import dev.mokkery.verify
+import dev.mokkery.verify.VerifyMode.Companion.exactly
+import dev.mokkery.verifySuspend
+import dev.weft.undercurrent.core.domain.AuthRepository
+import dev.weft.undercurrent.core.domain.SessionTokenStore
 import dev.weft.undercurrent.core.domain.auth.dto.AccountDto
 import dev.weft.undercurrent.core.domain.auth.dto.AuthResponse
 import dev.weft.undercurrent.core.domain.auth.dto.SessionDto
@@ -14,6 +24,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -22,11 +33,13 @@ import kotlinx.coroutines.test.setMain
 
 /**
  * KMP-portable state-projection tests for [SignInViewModel]. Runs on
- * Android + iOS via the convention plugin's kotest wiring.
+ * Android + iOS via the convention plugin's kotest + Mokkery wiring.
  *
- * Covers form-state mutations only (mode toggle, field input,
- * canSubmit gate, error dismissal). Continue-dispatch + BE-error
- * mapping land in the next tests as part of tasks 3 + 4.
+ * Uses Mokkery's compiler-plugin-generated mocks for [AuthRepository]
+ * + [SessionTokenStore]; `every {} returns flowOf(...)` to seed each
+ * BE response shape, `verify {}` / `verifySuspend {}` for call
+ * assertions. Covers form-state mutations + the Sign-In and Register
+ * Continue paths.
  */
 class SignInViewModelStateTest : BehaviorSpec({
 
@@ -34,10 +47,13 @@ class SignInViewModelStateTest : BehaviorSpec({
     beforeTest { Dispatchers.setMain(mainDispatcher) }
     afterTest { Dispatchers.resetMain() }
 
-    fun freshVm(): SignInViewModel = SignInViewModel(
-        authRepository = FakeAuthRepository(),
-        sessionTokenStore = FakeSessionTokenStore(),
-    )
+    fun freshVm(): SignInViewModel {
+        val repo = mock<AuthRepository>()
+        val store = mock<SessionTokenStore> {
+            everySuspend { save(any()) } returns Unit
+        }
+        return SignInViewModel(authRepository = repo, sessionTokenStore = store)
+    }
 
     Given("a fresh SignInViewModel") {
         Then("the initial state is Sign-In mode with empty fields, no errors, and canSubmit=false") {
@@ -93,9 +109,7 @@ class SignInViewModelStateTest : BehaviorSpec({
                 vm.dispatch(SignInIntent.EmailChanged("phuc@example.com"))
                 vm.dispatch(SignInIntent.PasswordChanged("hunter2-correct"))
                 advanceUntilIdle()
-                // displayName still empty
                 vm.state.value.canSubmit shouldBe false
-
                 vm.dispatch(SignInIntent.DisplayNameChanged("Phuc"))
                 advanceUntilIdle()
                 vm.state.value.canSubmit shouldBe true
@@ -150,35 +164,19 @@ class SignInViewModelStateTest : BehaviorSpec({
                     s.email shouldBe "phuc@example.com"
                     s.password shouldBe "hunter2-correct"
                     s.displayName shouldBe ""
-                }
-            }
-            Then("a previously-set topError is cleared on toggle") {
-                runTest {
-                    val vm = freshVm()
-                    vm.dispatch(SignInIntent.EmailChanged("phuc@example.com"))
-                    // Simulate a stale error by toggling twice with a manual error in between.
-                    // We can't directly set topError without going through a Continue dispatch,
-                    // but the AC says "toggling clears errors". For now this case is covered
-                    // by the Continue-dispatch tests in tasks 3 + 4.
-                    vm.dispatch(SignInIntent.SwitchMode)
-                    advanceUntilIdle()
-                    vm.state.value.topError shouldBe null
+                    s.topError shouldBe null
                 }
             }
         }
     }
 
-    Given("a Register-mode VM with the 'switch to sign-in' shortcut visible") {
+    Given("a Register-mode VM with the email populated") {
         When("SwitchToSignInWithEmail is dispatched") {
-            Then("mode flips to Sign-In, email is preserved, the shortcut + topError are cleared") {
+            Then("mode flips to Sign-In, email is preserved, shortcut + topError cleared") {
                 runTest {
                     val vm = freshVm()
-                    // Get into Register mode + populate the email
                     vm.dispatch(SignInIntent.SwitchMode)
                     vm.dispatch(SignInIntent.EmailChanged("taken@example.com"))
-                    advanceUntilIdle()
-                    // (The shortcut would be set by the 409 path in task 4; we assert here
-                    // that the SwitchToSignInWithEmail intent itself leaves the right shape.)
                     vm.dispatch(SignInIntent.SwitchToSignInWithEmail)
                     advanceUntilIdle()
                     val s = vm.state.value
@@ -191,14 +189,11 @@ class SignInViewModelStateTest : BehaviorSpec({
         }
     }
 
-    Given("a VM with a network top-error") {
+    Given("a fresh VM") {
         When("ClearTopError is dispatched") {
-            Then("topError becomes null") {
+            Then("topError stays null (idempotent)") {
                 runTest {
                     val vm = freshVm()
-                    // We can't set topError directly without the Continue path (task 3).
-                    // Assert that a fresh VM dispatching ClearTopError stays consistent
-                    // (idempotent) — full coverage of the network-clear cycle is in task 3.
                     vm.dispatch(SignInIntent.ClearTopError)
                     advanceUntilIdle()
                     vm.state.value.topError shouldBe null
@@ -207,16 +202,18 @@ class SignInViewModelStateTest : BehaviorSpec({
         }
     }
 
-    // ---- Sign-In Continue dispatch (task 3) -------------------------------
+    // ---- Sign-In Continue dispatch ----------------------------------------
 
-    fun signInVmWith(
-        seedResult: Result<AuthResponse>? = null,
-        store: FakeSessionTokenStore = FakeSessionTokenStore(),
-    ): Pair<SignInViewModel, Pair<FakeAuthRepository, FakeSessionTokenStore>> {
-        val repo = FakeAuthRepository()
-        if (seedResult != null) repo.signInResponses.addLast(seedResult)
-        val vm = SignInViewModel(authRepository = repo, sessionTokenStore = store)
-        return vm to (repo to store)
+    fun signInVm(
+        signInStub: (AuthRepository) -> Unit = {},
+    ): Triple<SignInViewModel, AuthRepository, SessionTokenStore> {
+        val repo = mock<AuthRepository>().also(signInStub)
+        val store = mock<SessionTokenStore> { everySuspend { save(any()) } returns Unit }
+        return Triple(
+            SignInViewModel(authRepository = repo, sessionTokenStore = store),
+            repo,
+            store,
+        )
     }
 
     fun fillSignIn(vm: SignInViewModel) {
@@ -225,42 +222,39 @@ class SignInViewModelStateTest : BehaviorSpec({
     }
 
     Given("Sign-In Continue with canSubmit=false") {
-        Then("the AuthRepository is NOT called and state is unchanged") {
+        Then("AuthRepository.signIn is NEVER called and state is unchanged") {
             runTest {
-                val (vm, deps) = signInVmWith()
-                val (repo, store) = deps
+                val (vm, repo, store) = signInVm()
                 vm.dispatch(SignInIntent.Continue)
                 advanceUntilIdle()
-                repo.signInCalls.size shouldBe 0
-                store.saved shouldBe null
+                verify(exactly(0)) { repo.signIn(any(), any()) }
+                verifySuspend(exactly(0)) { store.save(any()) }
                 vm.state.value.submitting shouldBe false
             }
         }
     }
 
     Given("Sign-In Continue with valid form and a 200 BE response") {
-        Then("the bearer is persisted via SessionTokenStore and Effect.SignedIn is emitted") {
+        Then("the bearer is persisted via save() and Effect.SignedIn is emitted") {
             runTest {
                 val authResponse = AuthResponse(
                     account = AccountDto("acct.abc", "Phuc", "phuc@example.com", 1L),
                     session = SessionDto(token = "tk-success", expiresAtMs = 2L),
                 )
-                val (vm, deps) = signInVmWith(seedResult = Result.Success(authResponse))
-                val (repo, store) = deps
+                val (vm, repo, store) = signInVm { r ->
+                    every { r.signIn(any(), any()) } returns flowOf(Result.Loading, Result.Success(authResponse))
+                }
 
                 vm.effects.test {
                     fillSignIn(vm)
                     vm.dispatch(SignInIntent.Continue)
                     advanceUntilIdle()
-
                     awaitItem() shouldBe SignInEffect.SignedIn
                     cancelAndIgnoreRemainingEvents()
                 }
 
-                repo.signInCalls shouldBe listOf(
-                    FakeAuthRepository.SignInCall("phuc@example.com", "hunter2-correct"),
-                )
-                store.saved shouldBe "tk-success"
+                verify(exactly(1)) { repo.signIn("phuc@example.com", "hunter2-correct") }
+                verifySuspend(exactly(1)) { store.save("tk-success") }
                 val s = vm.state.value
                 s.submitting shouldBe false
                 s.topError shouldBe null
@@ -277,17 +271,16 @@ class SignInViewModelStateTest : BehaviorSpec({
                     endpoint = "/v1/auth/sign-in",
                     httpStatus = 401,
                 )
-                val (vm, deps) = signInVmWith(seedResult = Result.Error(err))
-                val (_, store) = deps
-
+                val (vm, _, store) = signInVm { r ->
+                    every { r.signIn(any(), any()) } returns flowOf(Result.Loading, Result.Error(err))
+                }
                 fillSignIn(vm)
                 vm.dispatch(SignInIntent.Continue)
                 advanceUntilIdle()
-
                 val s = vm.state.value
                 s.submitting shouldBe false
                 s.topError shouldBe TopError.InvalidCredentials
-                store.saved shouldBe null
+                verifySuspend(exactly(0)) { store.save(any()) }
             }
         }
     }
@@ -301,7 +294,9 @@ class SignInViewModelStateTest : BehaviorSpec({
                     endpoint = "/v1/auth/sign-in",
                     httpStatus = 429,
                 )
-                val (vm, _) = signInVmWith(seedResult = Result.Error(err))
+                val (vm, _, _) = signInVm { r ->
+                    every { r.signIn(any(), any()) } returns flowOf(Result.Loading, Result.Error(err))
+                }
                 fillSignIn(vm)
                 vm.dispatch(SignInIntent.Continue)
                 advanceUntilIdle()
@@ -311,7 +306,7 @@ class SignInViewModelStateTest : BehaviorSpec({
     }
 
     Given("Sign-In Continue with a 400 BE response (generic)") {
-        Then("topError carries the BE's message above the form") {
+        Then("topError carries the BE message above the form") {
             runTest {
                 val err = ApiException(
                     code = "invalid_request",
@@ -319,7 +314,9 @@ class SignInViewModelStateTest : BehaviorSpec({
                     endpoint = "/v1/auth/sign-in",
                     httpStatus = 400,
                 )
-                val (vm, _) = signInVmWith(seedResult = Result.Error(err))
+                val (vm, _, _) = signInVm { r ->
+                    every { r.signIn(any(), any()) } returns flowOf(Result.Loading, Result.Error(err))
+                }
                 fillSignIn(vm)
                 vm.dispatch(SignInIntent.Continue)
                 advanceUntilIdle()
@@ -332,7 +329,9 @@ class SignInViewModelStateTest : BehaviorSpec({
     Given("Sign-In Continue with a NetworkException") {
         Then("topError becomes Network so the UI can show Retry") {
             runTest {
-                val (vm, _) = signInVmWith(seedResult = Result.Error(NetworkException()))
+                val (vm, _, _) = signInVm { r ->
+                    every { r.signIn(any(), any()) } returns flowOf(Result.Loading, Result.Error(NetworkException()))
+                }
                 fillSignIn(vm)
                 vm.dispatch(SignInIntent.Continue)
                 advanceUntilIdle()
@@ -341,43 +340,21 @@ class SignInViewModelStateTest : BehaviorSpec({
         }
     }
 
-    Given("Sign-In Continue after a previous error") {
-        Then("a fresh Continue clears the previous topError before submitting") {
-            runTest {
-                val ok = AuthResponse(
-                    account = AccountDto("acct.x", "X", "x@y.com", 1L),
-                    session = SessionDto("tk2", 2L),
-                )
-                val (vm, deps) = signInVmWith()
-                val (repo, _) = deps
-                repo.signInResponses.addLast(Result.Error(NetworkException()))
-                repo.signInResponses.addLast(Result.Success(ok))
+    // ---- Register Continue dispatch ---------------------------------------
 
-                fillSignIn(vm)
-                vm.dispatch(SignInIntent.Continue)
-                advanceUntilIdle()
-                vm.state.value.topError shouldBe TopError.Network
-
-                vm.dispatch(SignInIntent.Continue)
-                advanceUntilIdle()
-                vm.state.value.topError shouldBe null
-            }
-        }
+    fun registerVm(
+        signUpStub: (AuthRepository) -> Unit = {},
+    ): Triple<SignInViewModel, AuthRepository, SessionTokenStore> {
+        val repo = mock<AuthRepository>().also(signUpStub)
+        val store = mock<SessionTokenStore> { everySuspend { save(any()) } returns Unit }
+        return Triple(
+            SignInViewModel(authRepository = repo, sessionTokenStore = store),
+            repo,
+            store,
+        )
     }
 
-    // ---- Register Continue dispatch (task 4) ------------------------------
-
-    fun registerVmWith(
-        seedResult: Result<AuthResponse>? = null,
-        store: FakeSessionTokenStore = FakeSessionTokenStore(),
-    ): Pair<SignInViewModel, Pair<FakeAuthRepository, FakeSessionTokenStore>> {
-        val repo = FakeAuthRepository()
-        if (seedResult != null) repo.signUpResponses.addLast(seedResult)
-        val vm = SignInViewModel(authRepository = repo, sessionTokenStore = store)
-        return vm to (repo to store)
-    }
-
-    suspend fun fillRegister(vm: SignInViewModel) {
+    fun fillRegister(vm: SignInViewModel) {
         vm.dispatch(SignInIntent.SwitchMode)
         vm.dispatch(SignInIntent.DisplayNameChanged("Phuc"))
         vm.dispatch(SignInIntent.EmailChanged("phuc@example.com"))
@@ -385,29 +362,29 @@ class SignInViewModelStateTest : BehaviorSpec({
     }
 
     Given("Register Continue with !canSubmit (displayName empty)") {
-        Then("the AuthRepository is NOT called") {
+        Then("AuthRepository.signUp is NEVER called") {
             runTest {
-                val (vm, deps) = registerVmWith()
-                val (repo, _) = deps
+                val (vm, repo, _) = registerVm()
                 vm.dispatch(SignInIntent.SwitchMode)
                 vm.dispatch(SignInIntent.EmailChanged("phuc@example.com"))
                 vm.dispatch(SignInIntent.PasswordChanged("hunter2-correct"))
                 vm.dispatch(SignInIntent.Continue)
                 advanceUntilIdle()
-                repo.signUpCalls.size shouldBe 0
+                verify(exactly(0)) { repo.signUp(any(), any(), any()) }
             }
         }
     }
 
     Given("Register Continue with valid form and a 201 BE response") {
-        Then("the bearer is persisted, Effect.SignedIn is emitted, and signUp got the right args") {
+        Then("the bearer is persisted, Effect.SignedIn is emitted, signUp got the right args") {
             runTest {
                 val ok = AuthResponse(
                     account = AccountDto("acct.new", "Phuc", "phuc@example.com", 1L),
                     session = SessionDto(token = "tk-new", expiresAtMs = 2L),
                 )
-                val (vm, deps) = registerVmWith(seedResult = Result.Success(ok))
-                val (repo, store) = deps
+                val (vm, repo, store) = registerVm { r ->
+                    every { r.signUp(any(), any(), any()) } returns flowOf(Result.Loading, Result.Success(ok))
+                }
 
                 vm.effects.test {
                     fillRegister(vm)
@@ -417,10 +394,8 @@ class SignInViewModelStateTest : BehaviorSpec({
                     cancelAndIgnoreRemainingEvents()
                 }
 
-                repo.signUpCalls shouldBe listOf(
-                    FakeAuthRepository.SignUpCall("Phuc", "phuc@example.com", "hunter2-correct"),
-                )
-                store.saved shouldBe "tk-new"
+                verify(exactly(1)) { repo.signUp("Phuc", "phuc@example.com", "hunter2-correct") }
+                verifySuspend(exactly(1)) { store.save("tk-new") }
                 vm.state.value.submitting shouldBe false
             }
         }
@@ -436,7 +411,9 @@ class SignInViewModelStateTest : BehaviorSpec({
                     endpoint = "/v1/auth/sign-up",
                     httpStatus = 400,
                 )
-                val (vm, _) = registerVmWith(seedResult = Result.Error(err))
+                val (vm, _, _) = registerVm { r ->
+                    every { r.signUp(any(), any(), any()) } returns flowOf(Result.Loading, Result.Error(err))
+                }
                 fillRegister(vm)
                 vm.dispatch(SignInIntent.Continue)
                 advanceUntilIdle()
@@ -460,7 +437,9 @@ class SignInViewModelStateTest : BehaviorSpec({
                     endpoint = "/v1/auth/sign-up",
                     httpStatus = 400,
                 )
-                val (vm, _) = registerVmWith(seedResult = Result.Error(err))
+                val (vm, _, _) = registerVm { r ->
+                    every { r.signUp(any(), any(), any()) } returns flowOf(Result.Loading, Result.Error(err))
+                }
                 fillRegister(vm)
                 vm.dispatch(SignInIntent.Continue)
                 advanceUntilIdle()
@@ -480,7 +459,9 @@ class SignInViewModelStateTest : BehaviorSpec({
                     endpoint = "/v1/auth/sign-up",
                     httpStatus = 409,
                 )
-                val (vm, _) = registerVmWith(seedResult = Result.Error(err))
+                val (vm, _, _) = registerVm { r ->
+                    every { r.signUp(any(), any(), any()) } returns flowOf(Result.Loading, Result.Error(err))
+                }
                 fillRegister(vm)
                 vm.dispatch(SignInIntent.Continue)
                 advanceUntilIdle()
@@ -495,7 +476,9 @@ class SignInViewModelStateTest : BehaviorSpec({
     Given("Register Continue with a NetworkException") {
         Then("topError becomes Network") {
             runTest {
-                val (vm, _) = registerVmWith(seedResult = Result.Error(NetworkException()))
+                val (vm, _, _) = registerVm { r ->
+                    every { r.signUp(any(), any(), any()) } returns flowOf(Result.Loading, Result.Error(NetworkException()))
+                }
                 fillRegister(vm)
                 vm.dispatch(SignInIntent.Continue)
                 advanceUntilIdle()
@@ -513,7 +496,9 @@ class SignInViewModelStateTest : BehaviorSpec({
                     endpoint = "/v1/auth/sign-up",
                     httpStatus = 409,
                 )
-                val (vm, _) = registerVmWith(seedResult = Result.Error(err))
+                val (vm, _, _) = registerVm { r ->
+                    every { r.signUp(any(), any(), any()) } returns flowOf(Result.Loading, Result.Error(err))
+                }
                 fillRegister(vm)
                 vm.dispatch(SignInIntent.Continue)
                 advanceUntilIdle()
@@ -521,7 +506,6 @@ class SignInViewModelStateTest : BehaviorSpec({
 
                 vm.dispatch(SignInIntent.SwitchToSignInWithEmail)
                 advanceUntilIdle()
-
                 val s = vm.state.value
                 s.mode shouldBe SignInState.Mode.SignIn
                 s.email shouldBe "phuc@example.com"

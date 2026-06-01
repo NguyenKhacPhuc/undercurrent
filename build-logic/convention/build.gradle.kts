@@ -37,6 +37,12 @@ dependencies {
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.compose.gradlePlugin)
     compileOnly(libs.kotlin.compose.gradlePlugin)
+    // Mokkery's Gradle plugin marker — `implementation` (not compileOnly)
+    // because KmpLibraryConventionPlugin applies `dev.mokkery` itself
+    // rather than relying on the consumer module to bring it. The marker
+    // jar has to be on the convention plugin's runtime classpath for
+    // Gradle to resolve the plugin ID.
+    implementation(libs.mokkery.gradlePlugin)
 }
 
 gradlePlugin {
