@@ -10,6 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.chat_action_copy
+import dev.weft.undercurrent.core.resources.chat_action_regenerate
+import dev.weft.undercurrent.core.resources.chat_action_save_as_feature
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -22,12 +27,12 @@ internal fun AssistantActions(
         modifier = Modifier.padding(top = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        ActionLink(label = "Copy", onClick = onCopy)
+        ActionLink(label = stringResource(Res.string.chat_action_copy), onClick = onCopy)
         if (onRegenerate != null) {
-            ActionLink(label = "Regenerate", onClick = onRegenerate)
+            ActionLink(label = stringResource(Res.string.chat_action_regenerate), onClick = onRegenerate)
         }
         if (onSaveAsFeature != null) {
-            ActionLink(label = "Save as feature", onClick = onSaveAsFeature)
+            ActionLink(label = stringResource(Res.string.chat_action_save_as_feature), onClick = onSaveAsFeature)
         }
     }
 }

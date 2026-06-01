@@ -41,9 +41,22 @@ import dev.weft.undercurrent.core.model.apiConsoleUrl
 import dev.weft.undercurrent.core.model.hostName
 import dev.weft.undercurrent.core.model.keyPlaceholder
 import dev.weft.undercurrent.core.model.signupHint
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.keypaste_body_format
+import dev.weft.undercurrent.core.resources.keypaste_checking
+import dev.weft.undercurrent.core.resources.keypaste_connect
+import dev.weft.undercurrent.core.resources.keypaste_footer_format
+import dev.weft.undercurrent.core.resources.keypaste_get_key_format
+import dev.weft.undercurrent.core.resources.keypaste_hide
+import dev.weft.undercurrent.core.resources.keypaste_or
+import dev.weft.undercurrent.core.resources.keypaste_paste_label
+import dev.weft.undercurrent.core.resources.keypaste_show
+import dev.weft.undercurrent.core.resources.keypaste_subtitle
+import dev.weft.undercurrent.core.resources.keypaste_title
 import dev.weft.undercurrent.core.domain.KeyValidationRepository
 import dev.weft.undercurrent.core.domain.ValidationResult
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -76,7 +89,7 @@ fun KeyPasteScreen(
             horizontalAlignment = Alignment.Start,
         ) {
             Text(
-                text = "Connect your key.",
+                text = stringResource(Res.string.keypaste_title),
                 style = typography.serifBody.copy(
                     color = colors.ink,
                     fontSize = 38.sp,
@@ -86,7 +99,7 @@ fun KeyPasteScreen(
             )
             Spacer(Modifier.height(14.dp))
             Text(
-                text = "Your key. Your bill. Nothing in between.",
+                text = stringResource(Res.string.keypaste_subtitle),
                 style = typography.serifBody.copy(
                     color = colors.ink,
                     fontSize = 18.sp,
@@ -96,8 +109,7 @@ fun KeyPasteScreen(
             )
             Spacer(Modifier.height(10.dp))
             Text(
-                text = "Undercurrent talks to ${provider.displayName} from this " +
-                    "phone. We never see your conversations or your billing.",
+                text = stringResource(Res.string.keypaste_body_format, provider.displayName),
                 style = typography.serifBody.copy(
                     color = colors.inkMuted,
                     fontSize = 16.sp,
@@ -108,7 +120,7 @@ fun KeyPasteScreen(
             Spacer(Modifier.height(32.dp))
 
             PrimaryButton(
-                label = "Get an API key from ${provider.displayName} →",
+                label = stringResource(Res.string.keypaste_get_key_format, provider.displayName),
                 onClick = { onOpenConsole(provider.apiConsoleUrl()) },
             )
             Spacer(Modifier.height(8.dp))
@@ -126,7 +138,7 @@ fun KeyPasteScreen(
             Spacer(Modifier.height(20.dp))
 
             Text(
-                text = "PASTE YOUR KEY",
+                text = stringResource(Res.string.keypaste_paste_label),
                 style = typography.sansLabel.copy(color = colors.inkSubtle),
             )
             Spacer(Modifier.height(8.dp))
@@ -159,7 +171,7 @@ fun KeyPasteScreen(
                     }
                 }
                 Text(
-                    text = if (keyVisible) "Hide" else "Show",
+                    text = if (keyVisible) stringResource(Res.string.keypaste_hide) else stringResource(Res.string.keypaste_show),
                     style = typography.sansLabel.copy(color = colors.inkMuted),
                     modifier = Modifier
                         .clickable { keyVisible = !keyVisible }
@@ -171,7 +183,7 @@ fun KeyPasteScreen(
 
             val enabled = key.isNotBlank() && status !is Status.Validating
             SecondaryButton(
-                label = if (status is Status.Validating) "Checking…" else "Connect",
+                label = if (status is Status.Validating) stringResource(Res.string.keypaste_checking) else stringResource(Res.string.keypaste_connect),
                 enabled = enabled,
                 onClick = {
                     status = Status.Validating
@@ -198,8 +210,7 @@ fun KeyPasteScreen(
 
             Spacer(Modifier.height(24.dp))
             Text(
-                text = "Stored encrypted on this device. Only sent to " +
-                    "${provider.hostName()} when you message the assistant.",
+                text = stringResource(Res.string.keypaste_footer_format, provider.hostName()),
                 style = typography.sansSmall.copy(color = colors.inkSubtle),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
@@ -283,7 +294,7 @@ private fun OrDivider() {
                 .background(colors.divider),
         )
         Text(
-            text = "OR",
+            text = stringResource(Res.string.keypaste_or),
             style = typography.sansLabel.copy(color = colors.inkSubtle),
             modifier = Modifier.padding(horizontal = 14.dp),
         )

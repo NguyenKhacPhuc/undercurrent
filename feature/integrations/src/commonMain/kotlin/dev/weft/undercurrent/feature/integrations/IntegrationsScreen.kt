@@ -28,7 +28,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.integration_tagline_linear
+import dev.weft.undercurrent.core.resources.integrations_connect
+import dev.weft.undercurrent.core.resources.integrations_disconnect
+import dev.weft.undercurrent.core.resources.integrations_footer
+import dev.weft.undercurrent.core.resources.integrations_intro
+import dev.weft.undercurrent.core.resources.integrations_restart_action
+import dev.weft.undercurrent.core.resources.integrations_restart_banner
+import dev.weft.undercurrent.core.resources.integrations_title
 import dev.weft.undercurrent.core.ui.ScreenScaffold
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -80,7 +91,7 @@ fun IntegrationsScreen(
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
 
-    ScreenScaffold(title = "Integrations", onBack = onBack) {
+    ScreenScaffold(title = stringResource(Res.string.integrations_title), onBack = onBack) {
         Column(modifier = Modifier.fillMaxSize().weight(1f)) {
             if (pendingRestart) {
                 RestartBanner(onRestart = onRestart)
@@ -93,9 +104,7 @@ fun IntegrationsScreen(
             ) {
                 item("intro") {
                     Text(
-                        text = "Connect a service so I can read from and write to it on " +
-                            "your behalf. Each connection lives on this device — revoke " +
-                            "any time, here or at the provider.",
+                        text = stringResource(Res.string.integrations_intro),
                         style = typography.serifBody.copy(
                             color = colors.ink,
                             fontStyle = FontStyle.Italic,
@@ -124,8 +133,7 @@ fun IntegrationsScreen(
                 item("footer") {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Tokens are stored encrypted on this device. They never " +
-                            "transit through any server I control.",
+                        text = stringResource(Res.string.integrations_footer),
                         style = typography.sansSmall.copy(color = colors.inkSubtle),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                         textAlign = TextAlign.Center,
@@ -175,7 +183,7 @@ private fun IntegrationCard(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = integration.tagline,
+                    text = integration.taglineRes()?.let { stringResource(it) } ?: integration.tagline,
                     style = typography.serifBody.copy(
                         color = colors.inkMuted,
                         fontSize = 14.sp,
@@ -186,12 +194,12 @@ private fun IntegrationCard(
             Spacer(Modifier.padding(horizontal = 4.dp))
             when (status) {
                 IntegrationStatus.Connected -> ActionButton(
-                    label = "Disconnect",
+                    label = stringResource(Res.string.integrations_disconnect),
                     primary = false,
                     onClick = onDisconnect,
                 )
                 IntegrationStatus.Disconnected -> ActionButton(
-                    label = "Connect",
+                    label = stringResource(Res.string.integrations_connect),
                     primary = true,
                     onClick = onConnect,
                 )
@@ -268,7 +276,7 @@ private fun RestartBanner(onRestart: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "Restart Undercurrent to apply changes.",
+            text = stringResource(Res.string.integrations_restart_banner),
             style = typography.sansSmall.copy(
                 color = colors.background,
                 fontWeight = FontWeight.SemiBold,
@@ -277,7 +285,7 @@ private fun RestartBanner(onRestart: () -> Unit) {
         )
         Spacer(Modifier.padding(horizontal = 4.dp))
         Text(
-            text = "RESTART",
+            text = stringResource(Res.string.integrations_restart_action),
             style = typography.sansLabel.copy(
                 color = colors.background,
                 fontWeight = FontWeight.SemiBold,
@@ -287,4 +295,10 @@ private fun RestartBanner(onRestart: () -> Unit) {
                 .padding(horizontal = 12.dp, vertical = 6.dp),
         )
     }
+}
+
+/** Localized tagline for a built-in integration; null for unknown ids. */
+private fun Integration.taglineRes(): StringResource? = when (id) {
+    Integrations.Linear.id -> Res.string.integration_tagline_linear
+    else -> null
 }

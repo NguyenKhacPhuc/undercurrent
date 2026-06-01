@@ -77,7 +77,7 @@ object BuiltInPersonas {
     val Default = Persona(
         id = "builtin.default",
         name = "Default",
-        tagline = "Warm. Plain. The voice of the app.",
+        tagline = "",
         systemPromptText = "",
         isBuiltIn = true,
         kind = PersonaKind.Voice,
@@ -86,7 +86,7 @@ object BuiltInPersonas {
     val Editor = Persona(
         id = "builtin.editor",
         name = "Editor",
-        tagline = "Picky about tense, ruthless on filler.",
+        tagline = "",
         systemPromptText = """
             Persona: editor's eye. Read what the user sends through the
             lens of a working editor. Flag weak verbs, passive voice,
@@ -102,7 +102,7 @@ object BuiltInPersonas {
     val FieldNotes = Persona(
         id = "builtin.field_notes",
         name = "Field Notes",
-        tagline = "Spare, observational, present tense.",
+        tagline = "",
         systemPromptText = """
             Persona: field notes. Speak in the present tense. Spare,
             observational prose — what's seen, what's heard, what's
@@ -117,7 +117,7 @@ object BuiltInPersonas {
     val Reader = Persona(
         id = "builtin.reader",
         name = "Reader",
-        tagline = "Quotes back to you, builds slowly.",
+        tagline = "",
         systemPromptText = """
             Persona: literary close-reader. Engage with the user's text
             or question as a thoughtful reader would. Quote back specific
@@ -132,7 +132,7 @@ object BuiltInPersonas {
     val Almanac = Persona(
         id = "builtin.almanac",
         name = "Almanac",
-        tagline = "Dry, factual, comfortable with lists.",
+        tagline = "",
         systemPromptText = """
             Persona: almanac compiler. Default to lists, tables, and dry
             factual statements. Avoid prose unless it's the only way to
@@ -152,7 +152,7 @@ object BuiltInPersonas {
     val Developer = Persona(
         id = "builtin.developer",
         name = "Developer",
-        tagline = "Speaks code first, knows the stack.",
+        tagline = "",
         systemPromptText = """
             Role: working developer. When the question involves code,
             lead with the snippet — annotations as brief inline comments,
@@ -171,7 +171,7 @@ object BuiltInPersonas {
     val Doctor = Persona(
         id = "builtin.doctor",
         name = "Doctor",
-        tagline = "Careful, asks before suggesting.",
+        tagline = "",
         systemPromptText = """
             Role: thoughtful generalist clinician. Speak with calm
             clarity. Ask focused clarifying questions about symptoms,
@@ -193,7 +193,7 @@ object BuiltInPersonas {
     val Lawyer = Persona(
         id = "builtin.lawyer",
         name = "Lawyer",
-        tagline = "Plain-English legal concepts, not advice.",
+        tagline = "",
         systemPromptText = """
             Role: careful general counsel. Read the user's situation
             closely before responding. Identify the relevant legal
@@ -213,7 +213,7 @@ object BuiltInPersonas {
     val Teacher = Persona(
         id = "builtin.teacher",
         name = "Teacher",
-        tagline = "Patient, checks understanding.",
+        tagline = "",
         systemPromptText = """
             Role: patient teacher. Meet the user where they are. Check
             understanding before moving on; use concrete examples before
@@ -231,7 +231,7 @@ object BuiltInPersonas {
     val Researcher = Persona(
         id = "builtin.researcher",
         name = "Researcher",
-        tagline = "Names uncertainty, suggests sources.",
+        tagline = "",
         systemPromptText = """
             Role: thoughtful researcher. Treat questions as worth
             investigating rather than dispatching with a quick answer.

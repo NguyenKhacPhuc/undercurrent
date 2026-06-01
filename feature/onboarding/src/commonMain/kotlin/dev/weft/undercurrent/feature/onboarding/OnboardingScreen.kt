@@ -41,6 +41,40 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.BuiltInPersonas
 import dev.weft.undercurrent.core.model.Persona
 import dev.weft.undercurrent.core.model.ProviderKind
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.onboarding_cta_begin
+import dev.weft.undercurrent.core.resources.onboarding_cta_continue
+import dev.weft.undercurrent.core.resources.onboarding_cta_lets_go
+import dev.weft.undercurrent.core.resources.onboarding_helper_intro
+import dev.weft.undercurrent.core.resources.onboarding_helper_persona_selected
+import dev.weft.undercurrent.core.resources.onboarding_helper_provider_selected
+import dev.weft.undercurrent.core.resources.onboarding_intro_body_1
+import dev.weft.undercurrent.core.resources.onboarding_intro_body_2
+import dev.weft.undercurrent.core.resources.onboarding_intro_title
+import dev.weft.undercurrent.core.resources.onboarding_keys_privacy
+import dev.weft.undercurrent.core.resources.onboarding_memory_body_1
+import dev.weft.undercurrent.core.resources.onboarding_memory_body_2
+import dev.weft.undercurrent.core.resources.onboarding_memory_title
+import dev.weft.undercurrent.core.resources.onboarding_model_count_20_plus
+import dev.weft.undercurrent.core.resources.onboarding_model_count_40_plus
+import dev.weft.undercurrent.core.resources.onboarding_model_count_format
+import dev.weft.undercurrent.core.resources.onboarding_persona_body
+import dev.weft.undercurrent.core.resources.onboarding_persona_title
+import dev.weft.undercurrent.core.resources.onboarding_provider_body
+import dev.weft.undercurrent.core.resources.onboarding_provider_label
+import dev.weft.undercurrent.core.resources.onboarding_provider_title
+import dev.weft.undercurrent.core.resources.onboarding_skip_default_voice
+import dev.weft.undercurrent.core.resources.onboarding_voice_label
+import dev.weft.undercurrent.core.resources.provider_name_anthropic
+import dev.weft.undercurrent.core.resources.provider_name_deepseek
+import dev.weft.undercurrent.core.resources.provider_name_openai
+import dev.weft.undercurrent.core.resources.provider_name_openrouter
+import dev.weft.undercurrent.core.resources.provider_tagline_anthropic
+import dev.weft.undercurrent.core.resources.provider_tagline_deepseek
+import dev.weft.undercurrent.core.resources.provider_tagline_openai
+import dev.weft.undercurrent.core.resources.provider_tagline_openrouter
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -64,7 +98,7 @@ fun OnboardingScreen(
     onComplete: (provider: ProviderKind, voicePersonaId: String) -> Unit,
 ) {
     var step by remember { mutableIntStateOf(0) }
-    val pages = remember { onboardingPages() }
+    val pages = onboardingPages()
     var selectedProvider by remember { mutableStateOf(ProviderKind.Anthropic) }
     var selectedVoice by remember { mutableStateOf(BuiltInPersonas.Default) }
 
@@ -100,14 +134,14 @@ fun OnboardingScreen(
 
         val pageKind = pages[step].kind
         val ctaLabel = when (pageKind) {
-            OnboardingPageKind.Intro -> "Begin reading →"
-            OnboardingPageKind.ProviderPicker -> "Let's go →"
-            else -> "Keep going →"
+            OnboardingPageKind.Intro -> stringResource(Res.string.onboarding_cta_begin)
+            OnboardingPageKind.ProviderPicker -> stringResource(Res.string.onboarding_cta_lets_go)
+            else -> stringResource(Res.string.onboarding_cta_continue)
         }
         val helper = when (pageKind) {
-            OnboardingPageKind.Intro -> "Nothing happens until you tap."
-            OnboardingPageKind.PersonaPicker -> "· ${selectedVoice.name} selected"
-            OnboardingPageKind.ProviderPicker -> "· ${selectedProvider.displayName()} selected"
+            OnboardingPageKind.Intro -> stringResource(Res.string.onboarding_helper_intro)
+            OnboardingPageKind.PersonaPicker -> stringResource(Res.string.onboarding_helper_persona_selected, selectedVoice.name)
+            OnboardingPageKind.ProviderPicker -> stringResource(Res.string.onboarding_helper_provider_selected, stringResource(selectedProvider.displayNameRes()))
             else -> null
         }
 
@@ -129,7 +163,7 @@ fun OnboardingScreen(
         if (pageKind == OnboardingPageKind.PersonaPicker) {
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Skip — use the default voice",
+                text = stringResource(Res.string.onboarding_skip_default_voice),
                 style = typography.sansSmall.copy(color = colors.inkMuted),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -202,7 +236,7 @@ private fun OnboardingPageContent(
                 OnboardingPageKind.PersonaPicker -> {
                     Spacer(Modifier.height(24.dp))
                     Text(
-                        text = "VOICE",
+                        text = stringResource(Res.string.onboarding_voice_label),
                         style = typography.sansLabel.copy(color = colors.inkSubtle),
                     )
                     Spacer(Modifier.height(12.dp))
@@ -211,7 +245,7 @@ private fun OnboardingPageContent(
                 OnboardingPageKind.ProviderPicker -> {
                     Spacer(Modifier.height(28.dp))
                     Text(
-                        text = "PROVIDER",
+                        text = stringResource(Res.string.onboarding_provider_label),
                         style = typography.sansLabel.copy(color = colors.inkSubtle),
                     )
                     Spacer(Modifier.height(12.dp))
@@ -222,7 +256,7 @@ private fun OnboardingPageContent(
                     )
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        text = "Keys live on this device. Nothing else.",
+                        text = stringResource(Res.string.onboarding_keys_privacy),
                         style = typography.sansSmall.copy(
                             color = colors.inkMuted,
                             fontStyle = FontStyle.Italic,
@@ -375,7 +409,7 @@ private fun ProviderCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = provider.displayName(),
+                text = stringResource(provider.displayNameRes()),
                 style = typography.serifBody.copy(
                     color = colors.ink,
                     fontSize = 19.sp,
@@ -395,7 +429,7 @@ private fun ProviderCard(
         }
         Spacer(Modifier.height(10.dp))
         Text(
-            text = provider.tagline(),
+            text = stringResource(provider.taglineRes()),
             style = typography.serifBody.copy(
                 color = colors.inkMuted,
                 fontSize = 14.sp,
@@ -463,24 +497,25 @@ private fun PrimaryCta(label: String, onClick: () -> Unit) {
     }
 }
 
-private fun ProviderKind.displayName(): String = when (this) {
-    ProviderKind.Anthropic -> "Anthropic"
-    ProviderKind.OpenAI -> "OpenAI"
-    ProviderKind.OpenRouter -> "OpenRouter"
-    ProviderKind.DeepSeek -> "DeepSeek"
+private fun ProviderKind.displayNameRes(): StringResource = when (this) {
+    ProviderKind.Anthropic -> Res.string.provider_name_anthropic
+    ProviderKind.OpenAI -> Res.string.provider_name_openai
+    ProviderKind.OpenRouter -> Res.string.provider_name_openrouter
+    ProviderKind.DeepSeek -> Res.string.provider_name_deepseek
 }
 
-private fun ProviderKind.tagline(): String = when (this) {
-    ProviderKind.Anthropic -> "Claude family. Slow, deliberate, well-read."
-    ProviderKind.OpenAI -> "Familiar. Fast. The default everyone knows."
-    ProviderKind.OpenRouter -> "Many models behind one key. Mix and match."
-    ProviderKind.DeepSeek -> "Inexpensive, capable, and quiet."
+private fun ProviderKind.taglineRes(): StringResource = when (this) {
+    ProviderKind.Anthropic -> Res.string.provider_tagline_anthropic
+    ProviderKind.OpenAI -> Res.string.provider_tagline_openai
+    ProviderKind.OpenRouter -> Res.string.provider_tagline_openrouter
+    ProviderKind.DeepSeek -> Res.string.provider_tagline_deepseek
 }
 
+@Composable
 private fun modelCountLabel(n: Int): String = when {
-    n >= 40 -> "40+ MODELS"
-    n >= 20 -> "20+ MODELS"
-    else -> "$n MODELS"
+    n >= 40 -> stringResource(Res.string.onboarding_model_count_40_plus)
+    n >= 20 -> stringResource(Res.string.onboarding_model_count_20_plus)
+    else -> stringResource(Res.string.onboarding_model_count_format, n)
 }
 
 private enum class OnboardingPageKind { Intro, Memory, PersonaPicker, ProviderPicker }
@@ -491,45 +526,36 @@ private data class OnboardingPage(
     val body: List<String>,
 )
 
+@Composable
 private fun onboardingPages(): List<OnboardingPage> = listOf(
     OnboardingPage(
         kind = OnboardingPageKind.Intro,
-        title = "Hi.",
+        title = stringResource(Res.string.onboarding_intro_title),
         body = listOf(
-            "I'm Undercurrent. A small, private assistant that lives on this " +
-                "phone. I'll help you think, write, remember — quietly, without " +
-                "sending your conversations anywhere they don't need to go.",
-            "I work best when you bring your own provider — Anthropic, OpenAI, " +
-                "OpenRouter, DeepSeek. You'll paste a key in a minute. Until " +
-                "then, this is just paper.",
+            stringResource(Res.string.onboarding_intro_body_1),
+            stringResource(Res.string.onboarding_intro_body_2),
         ),
     ),
     OnboardingPage(
         kind = OnboardingPageKind.Memory,
-        title = "Memory you can see.",
+        title = stringResource(Res.string.onboarding_memory_title),
         body = listOf(
-            "If I remember something about you — a project name, a preference, " +
-                "a way you like to be addressed — it'll show up in Memories. " +
-                "Delete any of it. Wipe all of it.",
-            "Conversations, traces, costs. Everything I've done is browsable. " +
-                "Nothing's hidden, nothing leaves.",
+            stringResource(Res.string.onboarding_memory_body_1),
+            stringResource(Res.string.onboarding_memory_body_2),
         ),
     ),
     OnboardingPage(
         kind = OnboardingPageKind.PersonaPicker,
-        title = "Pick a voice.",
+        title = stringResource(Res.string.onboarding_persona_title),
         body = listOf(
-            "Choose how I sound. Default works for most things — pick another " +
-                "if you'd like a particular register. You can change this " +
-                "anytime in Personas.",
+            stringResource(Res.string.onboarding_persona_body),
         ),
     ),
     OnboardingPage(
         kind = OnboardingPageKind.ProviderPicker,
-        title = "One last thing.",
+        title = stringResource(Res.string.onboarding_provider_title),
         body = listOf(
-            "Pick where the model lives. You can change this later — each " +
-                "provider keeps its own key on this device.",
+            stringResource(Res.string.onboarding_provider_body),
         ),
     ),
 )

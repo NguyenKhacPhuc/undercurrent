@@ -23,6 +23,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.usage_cache_savings_body_format
+import dev.weft.undercurrent.core.resources.usage_cache_savings_header_format
+import dev.weft.undercurrent.core.resources.usage_cache_savings_label
+import dev.weft.undercurrent.core.resources.usage_history_label
+import dev.weft.undercurrent.core.resources.usage_label_cache_reads
+import dev.weft.undercurrent.core.resources.usage_label_cache_writes
+import dev.weft.undercurrent.core.resources.usage_label_input
+import dev.weft.undercurrent.core.resources.usage_label_lifetime
+import dev.weft.undercurrent.core.resources.usage_label_output
+import dev.weft.undercurrent.core.resources.usage_label_today
+import dev.weft.undercurrent.core.resources.usage_last_model_format
+import dev.weft.undercurrent.core.resources.usage_title
+import dev.weft.undercurrent.core.resources.usage_tokens_label
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.SectionLabel
 import dev.weft.undercurrent.core.domain.UsageTotals
@@ -33,6 +47,7 @@ import kotlin.math.pow
 import kotlin.math.roundToLong
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -72,7 +87,7 @@ fun UsageScreen(
     }
     val todayUsd = totals.byDay[today] ?: 0.0
 
-    ScreenScaffold(title = "Usage", onBack = onBack) {
+    ScreenScaffold(title = stringResource(Res.string.usage_title), onBack = onBack) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().weight(1f),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
@@ -82,20 +97,20 @@ fun UsageScreen(
                 HeroBlock(todayUsd = todayUsd, lifetimeUsd = totals.lifetimeUsd)
             }
             item("tokens") {
-                SectionLabel(text = "Tokens", modifier = Modifier.padding(start = 0.dp, top = 0.dp, bottom = 0.dp))
+                SectionLabel(text = stringResource(Res.string.usage_tokens_label), modifier = Modifier.padding(start = 0.dp, top = 0.dp, bottom = 0.dp))
                 Spacer(Modifier.height(8.dp))
                 TokenBreakdown(totals = totals)
             }
             if (totals.lifetimeCacheReadTokens > 0) {
                 item("cache") {
-                    SectionLabel(text = "Cache savings", modifier = Modifier.padding(start = 0.dp, top = 0.dp, bottom = 0.dp))
+                    SectionLabel(text = stringResource(Res.string.usage_cache_savings_label), modifier = Modifier.padding(start = 0.dp, top = 0.dp, bottom = 0.dp))
                     Spacer(Modifier.height(8.dp))
                     CacheSavingsBlock(totals = totals)
                 }
             }
             if (totals.byDay.isNotEmpty()) {
                 item("history-label") {
-                    SectionLabel(text = "Last 14 days", modifier = Modifier.padding(start = 0.dp, top = 0.dp, bottom = 0.dp))
+                    SectionLabel(text = stringResource(Res.string.usage_history_label), modifier = Modifier.padding(start = 0.dp, top = 0.dp, bottom = 0.dp))
                 }
                 item("chart") { ByDayChart(byDay = totals.byDay) }
             }
@@ -103,7 +118,7 @@ fun UsageScreen(
                 item("last-model") {
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Last model: ${totals.lastCallModelId}",
+                        text = stringResource(Res.string.usage_last_model_format, totals.lastCallModelId!!),
                         style = UndercurrentTheme.typography.sansSmall.copy(
                             color = UndercurrentTheme.colors.inkSubtle,
                         ),
@@ -123,13 +138,13 @@ private fun HeroBlock(todayUsd: Double, lifetimeUsd: Double) {
     ) {
         StatColumn(
             modifier = Modifier.weight(1f),
-            label = "Today",
+            label = stringResource(Res.string.usage_label_today),
             value = "$${formatDecimal(todayUsd, 3)}",
             valueColor = colors.accent,
         )
         StatColumn(
             modifier = Modifier.weight(1f),
-            label = "Lifetime",
+            label = stringResource(Res.string.usage_label_lifetime),
             value = "$${formatDecimal(lifetimeUsd, 2)}",
             valueColor = colors.ink,
         )
@@ -173,13 +188,13 @@ private fun TokenBreakdown(totals: UsageTotals) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TokenRow(label = "Input", value = formatTokens(totals.lifetimeInputTokens))
-        TokenRow(label = "Output", value = formatTokens(totals.lifetimeOutputTokens))
+        TokenRow(label = stringResource(Res.string.usage_label_input), value = formatTokens(totals.lifetimeInputTokens))
+        TokenRow(label = stringResource(Res.string.usage_label_output), value = formatTokens(totals.lifetimeOutputTokens))
         if (totals.lifetimeCacheReadTokens > 0) {
-            TokenRow(label = "Cache reads", value = formatTokens(totals.lifetimeCacheReadTokens))
+            TokenRow(label = stringResource(Res.string.usage_label_cache_reads), value = formatTokens(totals.lifetimeCacheReadTokens))
         }
         if (totals.lifetimeCacheWriteTokens > 0) {
-            TokenRow(label = "Cache writes", value = formatTokens(totals.lifetimeCacheWriteTokens))
+            TokenRow(label = stringResource(Res.string.usage_label_cache_writes), value = formatTokens(totals.lifetimeCacheWriteTokens))
         }
     }
 }
@@ -223,7 +238,7 @@ private fun CacheSavingsBlock(totals: UsageTotals) {
             .padding(16.dp),
     ) {
         Text(
-            text = "~$${formatDecimal(savedUsd, 2)} saved",
+            text = stringResource(Res.string.usage_cache_savings_header_format, formatDecimal(savedUsd, 2)),
             style = typography.sansHeader.copy(
                 color = colors.accent,
                 fontSize = typography.sansHeader.fontSize * 1.4f,
@@ -231,8 +246,7 @@ private fun CacheSavingsBlock(totals: UsageTotals) {
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "${formatTokens(totals.lifetimeCacheReadTokens)} cache-read tokens, " +
-                "billed at ~10% of base input rate.",
+            text = stringResource(Res.string.usage_cache_savings_body_format, formatTokens(totals.lifetimeCacheReadTokens)),
             style = typography.sansSmall.copy(color = colors.inkMuted),
         )
     }

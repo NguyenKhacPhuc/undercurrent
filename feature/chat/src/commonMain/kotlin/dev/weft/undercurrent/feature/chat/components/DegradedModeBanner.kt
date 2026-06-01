@@ -15,10 +15,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.chat_degraded_retrying
+import dev.weft.undercurrent.core.resources.chat_degraded_title
+import dev.weft.undercurrent.core.resources.chat_degraded_waiting_format
 import dev.weft.undercurrent.feature.chat.DegradedMode
 import kotlinx.coroutines.delay
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -67,15 +72,15 @@ fun DegradedModeBanner(
             .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
         Text(
-            text = "Assistant unreachable",
+            text = stringResource(Res.string.chat_degraded_title),
             style = typography.sansLabel.copy(color = colors.error),
         )
         Spacer(Modifier.padding(1.dp))
         Text(
             text = if (remainingSec > 0L) {
-                "The LLM API has been failing — pausing for ${remainingSec}s before retrying."
+                stringResource(Res.string.chat_degraded_waiting_format, remainingSec)
             } else {
-                "Retrying on next send…"
+                stringResource(Res.string.chat_degraded_retrying)
             },
             style = typography.sansSmall.copy(color = colors.inkMuted),
         )

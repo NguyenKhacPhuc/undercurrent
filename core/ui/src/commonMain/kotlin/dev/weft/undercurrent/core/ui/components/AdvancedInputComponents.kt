@@ -35,7 +35,10 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.cd_rating_star
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // SegmentedToggle — pill segmented selector (single-select)
@@ -127,7 +130,7 @@ internal class RatingComponent : WeftComponent<RatingProps>(
                 val active = i < rating
                 Icon(
                     imageVector = undercurrentIcon(if (active) "star" else "star_outline"),
-                    contentDescription = "${i + 1} star",
+                    contentDescription = stringResource(Res.string.cd_rating_star, i + 1),
                     tint = if (active) cs.accent else cs.inkSubtle,
                     modifier = Modifier
                         .size(28.dp)

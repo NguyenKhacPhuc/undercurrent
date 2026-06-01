@@ -33,7 +33,23 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.domain.ConversationSummary
 import dev.weft.undercurrent.core.ext.formatLastActivity
 import dev.weft.undercurrent.core.ext.groupByRecency
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.common_cancel
+import dev.weft.undercurrent.core.resources.common_delete
+import dev.weft.undercurrent.core.resources.drawer_all_conversations
+import dev.weft.undercurrent.core.resources.drawer_app_name
+import dev.weft.undercurrent.core.resources.drawer_delete_dialog_message
+import dev.weft.undercurrent.core.resources.drawer_delete_dialog_title
+import dev.weft.undercurrent.core.resources.drawer_empty_conversations
+import dev.weft.undercurrent.core.resources.drawer_memories
+import dev.weft.undercurrent.core.resources.drawer_mini_apps
+import dev.weft.undercurrent.core.resources.drawer_new_chat
+import dev.weft.undercurrent.core.resources.drawer_personas
+import dev.weft.undercurrent.core.resources.drawer_settings
+import dev.weft.undercurrent.core.resources.drawer_traces
+import dev.weft.undercurrent.core.resources.drawer_untitled_conversation
 import dev.weft.undercurrent.core.ui.TokenDivider
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Side drawer for the chat surface. Holds three regions:
@@ -88,12 +104,12 @@ fun AppDrawer(
                     .padding(horizontal = 20.dp, vertical = 18.dp),
             ) {
                 Text(
-                    text = "Undercurrent",
+                    text = stringResource(Res.string.drawer_app_name),
                     style = typography.sansHeader.copy(color = colors.ink),
                 )
             }
 
-            DrawerActionRow(symbol = "+", label = "New chat", onClick = onNewChat)
+            DrawerActionRow(symbol = "+", label = stringResource(Res.string.drawer_new_chat), onClick = onNewChat)
             TokenDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             // Recent conversations.
@@ -105,7 +121,7 @@ fun AppDrawer(
                 if (conversations.isEmpty()) {
                     item("empty") {
                         Text(
-                            text = "No conversations yet",
+                            text = stringResource(Res.string.drawer_empty_conversations),
                             style = typography.sansSmall.copy(color = colors.inkSubtle),
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                         )
@@ -139,7 +155,7 @@ fun AppDrawer(
                         item("all-conversations") {
                             DrawerActionRow(
                                 symbol = "›",
-                                label = "All conversations",
+                                label = stringResource(Res.string.drawer_all_conversations),
                                 onClick = onShowAllConversations,
                                 muted = true,
                             )
@@ -150,32 +166,33 @@ fun AppDrawer(
 
             // Pinned bottom section.
             TokenDivider()
-            DrawerActionRow(symbol = "◐", label = "Personas", onClick = onShowPersonas)
-            DrawerActionRow(symbol = "✦", label = "Mini apps", onClick = onShowMiniApps)
-            DrawerActionRow(symbol = "★", label = "Memories", onClick = onShowMemories)
-            DrawerActionRow(symbol = "▶", label = "Traces", onClick = onShowTraces)
-            DrawerActionRow(symbol = "⚙", label = "Settings", onClick = onShowSettings)
+            DrawerActionRow(symbol = "◐", label = stringResource(Res.string.drawer_personas), onClick = onShowPersonas)
+            DrawerActionRow(symbol = "✦", label = stringResource(Res.string.drawer_mini_apps), onClick = onShowMiniApps)
+            DrawerActionRow(symbol = "★", label = stringResource(Res.string.drawer_memories), onClick = onShowMemories)
+            DrawerActionRow(symbol = "▶", label = stringResource(Res.string.drawer_traces), onClick = onShowTraces)
+            DrawerActionRow(symbol = "⚙", label = stringResource(Res.string.drawer_settings), onClick = onShowSettings)
             Spacer(Modifier.height(12.dp))
         }
     }
 
     pendingDelete?.let { target ->
+        val untitled = stringResource(Res.string.drawer_untitled_conversation)
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete this thread?") },
+            title = { Text(stringResource(Res.string.drawer_delete_dialog_title)) },
             text = {
-                val label = target.title.ifBlank { "(untitled)" }
-                Text("\"$label\" and all its messages will be permanently removed.")
+                val label = target.title.ifBlank { untitled }
+                Text(stringResource(Res.string.drawer_delete_dialog_message, label))
             },
             confirmButton = {
                 TextButton(onClick = {
                     val id = target.id
                     pendingDelete = null
                     onDeleteConversation(id)
-                }) { Text("Delete", color = colors.error) }
+                }) { Text(stringResource(Res.string.common_delete), color = colors.error) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }
@@ -257,9 +274,10 @@ private fun DrawerConversationRow(
         } else {
             Spacer(modifier = Modifier.size(width = 16.dp, height = 6.dp))
         }
+        val untitled = stringResource(Res.string.drawer_untitled_conversation)
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = summary.title.ifBlank { "(untitled)" },
+                text = summary.title.ifBlank { untitled },
                 style = typography.serifBody.copy(color = colors.ink),
                 maxLines = 1,
             )

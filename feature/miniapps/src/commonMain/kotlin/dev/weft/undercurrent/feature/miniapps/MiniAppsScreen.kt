@@ -38,7 +38,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.MiniApp
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.miniapps_empty_body
+import dev.weft.undercurrent.core.resources.miniapps_empty_cta
+import dev.weft.undercurrent.core.resources.miniapps_empty_title
+import dev.weft.undercurrent.core.resources.miniapps_footer_hint
+import dev.weft.undercurrent.core.resources.miniapps_intro
+import dev.weft.undercurrent.core.resources.miniapps_new_row_subtitle
+import dev.weft.undercurrent.core.resources.miniapps_new_row_title
+import dev.weft.undercurrent.core.resources.miniapps_no_preview
+import dev.weft.undercurrent.core.resources.miniapps_title
+import dev.weft.undercurrent.core.resources.miniapps_usage_count
 import dev.weft.undercurrent.core.ui.ScreenScaffold
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -110,7 +122,7 @@ fun MiniAppsScreen(
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
 
-    ScreenScaffold(title = "Mini apps", onBack = onBack) {
+    ScreenScaffold(title = stringResource(Res.string.miniapps_title), onBack = onBack) {
         if (miniApps.isEmpty()) {
             EmptyState(onStartCreator = onStartCreator)
         } else {
@@ -121,7 +133,7 @@ fun MiniAppsScreen(
             ) {
                 item("intro") {
                     Text(
-                        text = "Tap a mini-app to open it. Long-press to rename or delete.",
+                        text = stringResource(Res.string.miniapps_intro),
                         style = typography.serifBody.copy(
                             color = colors.ink,
                             fontStyle = FontStyle.Italic,
@@ -145,8 +157,7 @@ fun MiniAppsScreen(
                 item("footer") {
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "Build a new one from scratch above, or run a prompt in chat " +
-                            "and tap “Save as mini-app” on the reply.",
+                        text = stringResource(Res.string.miniapps_footer_hint),
                         style = typography.sansSmall.copy(color = colors.inkSubtle),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                         textAlign = TextAlign.Center,
@@ -185,7 +196,7 @@ private fun EmptyState(onStartCreator: () -> Unit) {
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "No mini-apps yet.",
+            text = stringResource(Res.string.miniapps_empty_title),
             style = typography.serifBody.copy(
                 color = colors.ink,
                 fontSize = 22.sp,
@@ -194,8 +205,7 @@ private fun EmptyState(onStartCreator: () -> Unit) {
         )
         Spacer(Modifier.height(10.dp))
         Text(
-            text = "Build one with a guided wizard, or run a prompt in chat and tap " +
-                "“Save as mini-app” on the reply.",
+            text = stringResource(Res.string.miniapps_empty_body),
             style = typography.serifBody.copy(
                 color = colors.inkMuted,
                 fontSize = 16.sp,
@@ -212,7 +222,7 @@ private fun EmptyState(onStartCreator: () -> Unit) {
                 .padding(horizontal = 18.dp, vertical = 12.dp),
         ) {
             Text(
-                text = "+ New mini-app",
+                text = stringResource(Res.string.miniapps_empty_cta),
                 style = typography.sansLabel.copy(
                     color = colors.onAccent,
                     fontWeight = FontWeight.SemiBold,
@@ -259,7 +269,7 @@ private fun NewMiniAppRow(onClick: () -> Unit) {
         }
         Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
             Text(
-                text = "New mini-app",
+                text = stringResource(Res.string.miniapps_new_row_title),
                 style = typography.sansLabel.copy(
                     color = colors.ink,
                     fontWeight = FontWeight.SemiBold,
@@ -267,7 +277,7 @@ private fun NewMiniAppRow(onClick: () -> Unit) {
                 ),
             )
             Text(
-                text = "Walk through a guided wizard to set one up.",
+                text = stringResource(Res.string.miniapps_new_row_subtitle),
                 style = typography.sansSmall.copy(color = colors.inkMuted),
             )
         }
@@ -331,7 +341,7 @@ private fun MiniAppCard(
             if (miniApp.usageCount > 0) {
                 Spacer(Modifier.size(8.dp))
                 Text(
-                    text = "${miniApp.usageCount}×",
+                    text = stringResource(Res.string.miniapps_usage_count, miniApp.usageCount),
                     style = typography.sansSmall.copy(
                         color = colors.inkSubtle,
                         fontWeight = FontWeight.SemiBold,
@@ -383,7 +393,7 @@ private fun NoPreviewPlaceholder() {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "Tap to open — preview will appear after first run.",
+            text = stringResource(Res.string.miniapps_no_preview),
             style = typography.sansSmall.copy(
                 color = colors.inkSubtle,
                 fontStyle = FontStyle.Italic,

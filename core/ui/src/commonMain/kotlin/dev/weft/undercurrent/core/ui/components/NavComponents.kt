@@ -35,7 +35,12 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.cd_clear
+import dev.weft.undercurrent.core.resources.cd_search
+import dev.weft.undercurrent.core.resources.component_pagination_page_of
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // SearchBar — text input with leading search icon + clear button
@@ -72,7 +77,7 @@ internal class SearchBarComponent : WeftComponent<SearchBarProps>(
         ) {
             Icon(
                 imageVector = undercurrentIcon("search"),
-                contentDescription = "Search",
+                contentDescription = stringResource(Res.string.cd_search),
                 tint = cs.inkMuted,
                 modifier = Modifier
                     .size(18.dp)
@@ -126,7 +131,7 @@ internal class SearchBarComponent : WeftComponent<SearchBarProps>(
                 ) {
                     Icon(
                         imageVector = undercurrentIcon("close"),
-                        contentDescription = "Clear",
+                        contentDescription = stringResource(Res.string.cd_clear),
                         tint = cs.background,
                         modifier = Modifier.size(14.dp),
                     )
@@ -300,7 +305,7 @@ internal class PaginationComponent : WeftComponent<PaginationProps>(
                 }
             } else {
                 Text(
-                    text = "Page $current of $total",
+                    text = stringResource(Res.string.component_pagination_page_of, current, total),
                     style = tp.sansLabel.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
                     color = cs.ink,
                     modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally),

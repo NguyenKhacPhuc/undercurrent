@@ -24,7 +24,11 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.cd_dismiss
+import dev.weft.undercurrent.core.resources.cd_tip
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // Trend — small arrow + delta + label
@@ -244,7 +248,7 @@ internal class TipCardComponent : WeftComponent<TipCardProps>(
         ) {
             Icon(
                 imageVector = undercurrentIcon(props.icon),
-                contentDescription = "tip",
+                contentDescription = stringResource(Res.string.cd_tip),
                 tint = cs.accent,
                 modifier = Modifier.size(22.dp).padding(top = 2.dp),
             )
@@ -280,7 +284,7 @@ internal class TipCardComponent : WeftComponent<TipCardProps>(
                 ) {
                     Icon(
                         imageVector = undercurrentIcon("close"),
-                        contentDescription = "Dismiss",
+                        contentDescription = stringResource(Res.string.cd_dismiss),
                         tint = cs.inkMuted,
                         modifier = Modifier.size(16.dp),
                     )

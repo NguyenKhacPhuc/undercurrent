@@ -26,9 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.chat_input_placeholder
 import dev.weft.undercurrent.feature.voice.WaveformBars
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -88,7 +91,7 @@ internal fun InputRow(
                     WaveformBars(rms = voiceRms)
                 } else {
                     Text(
-                        text = "Write a paragraph back…",
+                        text = stringResource(Res.string.chat_input_placeholder),
                         style = typography.serifBody.copy(color = colors.inkSubtle),
                     )
                 }

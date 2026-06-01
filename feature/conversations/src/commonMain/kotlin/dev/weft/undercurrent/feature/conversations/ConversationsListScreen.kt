@@ -33,11 +33,28 @@ import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.ext.formatLastActivity
 import dev.weft.undercurrent.core.ext.groupByRecency
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.common_cancel
+import dev.weft.undercurrent.core.resources.common_delete
+import dev.weft.undercurrent.core.resources.conversations_clear_all_action
+import dev.weft.undercurrent.core.resources.conversations_clear_all_dialog_body
+import dev.weft.undercurrent.core.resources.conversations_clear_all_dialog_title
+import dev.weft.undercurrent.core.resources.conversations_delete_dialog_body
+import dev.weft.undercurrent.core.resources.conversations_delete_dialog_title
+import dev.weft.undercurrent.core.resources.conversations_empty_body
+import dev.weft.undercurrent.core.resources.conversations_empty_title
+import dev.weft.undercurrent.core.resources.conversations_new_action
+import dev.weft.undercurrent.core.resources.conversations_no_matches_body
+import dev.weft.undercurrent.core.resources.conversations_no_matches_title
+import dev.weft.undercurrent.core.resources.conversations_search_placeholder
+import dev.weft.undercurrent.core.resources.conversations_title
+import dev.weft.undercurrent.core.resources.conversations_untitled
 import dev.weft.undercurrent.core.ui.ScaffoldTextAction
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.SectionLabel
 import dev.weft.undercurrent.core.ui.TokenDivider
 import dev.weft.undercurrent.core.domain.ConversationSummary
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -98,9 +115,9 @@ fun ConversationsListScreen(
     val conversations = state.conversations
 
     ScreenScaffold(
-        title = "Conversations",
+        title = stringResource(Res.string.conversations_title),
         onBack = onBack,
-        trailing = { ScaffoldTextAction(label = "+ New", onClick = onNewChat) },
+        trailing = { ScaffoldTextAction(label = stringResource(Res.string.conversations_new_action), onClick = onNewChat) },
     ) {
         // Search input — token-styled, same as chat input.
         Box(
@@ -123,7 +140,7 @@ fun ConversationsListScreen(
             )
             if (searchQuery.isEmpty()) {
                 Text(
-                    text = "Search threads…",
+                    text = stringResource(Res.string.conversations_search_placeholder),
                     style = typography.serifBody.copy(color = colors.inkSubtle),
                 )
             }
@@ -131,11 +148,15 @@ fun ConversationsListScreen(
 
         if (conversations.isEmpty()) {
             EmptyState(
-                title = if (searchQuery.isNotBlank()) "No matches" else "No conversations yet",
-                body = if (searchQuery.isNotBlank()) {
-                    "No threads have \"$searchQuery\" in the title or any message."
+                title = if (searchQuery.isNotBlank()) {
+                    stringResource(Res.string.conversations_no_matches_title)
                 } else {
-                    "Start chatting and your threads will show up here."
+                    stringResource(Res.string.conversations_empty_title)
+                },
+                body = if (searchQuery.isNotBlank()) {
+                    stringResource(Res.string.conversations_no_matches_body, searchQuery)
+                } else {
+                    stringResource(Res.string.conversations_empty_body)
                 },
             )
         } else {
@@ -159,7 +180,7 @@ fun ConversationsListScreen(
                         horizontalArrangement = Arrangement.End,
                     ) {
                         ScaffoldTextAction(
-                            label = "Clear all",
+                            label = stringResource(Res.string.conversations_clear_all_action),
                             onClick = { confirmingClearAll = true },
                             isDestructive = true,
                         )
@@ -170,22 +191,23 @@ fun ConversationsListScreen(
     }
 
     pendingDelete?.let { target ->
+        val untitled = stringResource(Res.string.conversations_untitled)
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete this thread?") },
+            title = { Text(stringResource(Res.string.conversations_delete_dialog_title)) },
             text = {
-                val label = target.title.ifBlank { "(untitled)" }
-                Text("\"$label\" and all its messages will be permanently removed.")
+                val label = target.title.ifBlank { untitled }
+                Text(stringResource(Res.string.conversations_delete_dialog_body, label))
             },
             confirmButton = {
                 TextButton(onClick = {
                     val id = target.id
                     pendingDelete = null
                     onDelete(id)
-                }) { Text("Delete", color = colors.error) }
+                }) { Text(stringResource(Res.string.common_delete), color = colors.error) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }
@@ -193,16 +215,16 @@ fun ConversationsListScreen(
     if (confirmingClearAll) {
         AlertDialog(
             onDismissRequest = { confirmingClearAll = false },
-            title = { Text("Clear all conversations?") },
-            text = { Text("Every thread and every message will be permanently removed.") },
+            title = { Text(stringResource(Res.string.conversations_clear_all_dialog_title)) },
+            text = { Text(stringResource(Res.string.conversations_clear_all_dialog_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmingClearAll = false
                     onClearAll()
-                }) { Text("Clear all", color = colors.error) }
+                }) { Text(stringResource(Res.string.conversations_clear_all_action), color = colors.error) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmingClearAll = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmingClearAll = false }) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }
@@ -236,9 +258,10 @@ private fun ConversationRow(
                     .background(colors.accent),
             )
         }
+        val untitled = stringResource(Res.string.conversations_untitled)
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = summary.title.ifBlank { "(untitled)" },
+                text = summary.title.ifBlank { untitled },
                 style = typography.serifBody.copy(color = colors.ink),
             )
             Spacer(modifier = Modifier.height(2.dp))
@@ -248,7 +271,7 @@ private fun ConversationRow(
             )
         }
         ScaffoldTextAction(
-            label = "Delete",
+            label = stringResource(Res.string.common_delete),
             onClick = onDelete,
             isDestructive = true,
         )

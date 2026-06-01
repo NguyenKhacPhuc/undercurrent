@@ -31,7 +31,11 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.cd_toggle_bookmark
+import dev.weft.undercurrent.core.resources.component_comment_reply
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // Post — social post card (author + body + actions)
@@ -326,7 +330,7 @@ internal class CommentComponent : WeftComponent<CommentProps>(
                         },
                     )
                     Text(
-                        text = "Reply",
+                        text = stringResource(Res.string.component_comment_reply),
                         style = tp.sansSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = cs.inkMuted,
                         modifier = Modifier.clickable {
@@ -627,7 +631,7 @@ internal class BookmarkRowComponent(private val imageLoader: ImageLoader) : Weft
             }
             Icon(
                 imageVector = undercurrentIcon(if (props.bookmarked) "bookmark" else "bookmark_outline"),
-                contentDescription = "Toggle bookmark",
+                contentDescription = stringResource(Res.string.cd_toggle_bookmark),
                 tint = if (props.bookmarked) cs.accent else cs.inkMuted,
                 modifier = Modifier
                     .size(20.dp)

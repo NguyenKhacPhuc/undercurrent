@@ -26,6 +26,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.common_cancel
+import dev.weft.undercurrent.core.resources.common_delete
+import dev.weft.undercurrent.core.resources.memories_clear_all
+import dev.weft.undercurrent.core.resources.memories_clear_confirm_action
+import dev.weft.undercurrent.core.resources.memories_clear_confirm_body
+import dev.weft.undercurrent.core.resources.memories_clear_confirm_title
+import dev.weft.undercurrent.core.resources.memories_count_format
+import dev.weft.undercurrent.core.resources.memories_empty_body
+import dev.weft.undercurrent.core.resources.memories_empty_title
+import dev.weft.undercurrent.core.resources.memories_title
+import dev.weft.undercurrent.core.resources.memory_scope_any
+import dev.weft.undercurrent.core.resources.memory_scope_permanent
+import dev.weft.undercurrent.core.resources.memory_scope_session
 import dev.weft.undercurrent.core.ui.ScaffoldTextAction
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.TokenDivider
@@ -36,6 +50,8 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -80,11 +96,11 @@ fun AgentMemoriesScreen(
     val typography = UndercurrentTheme.typography
 
     ScreenScaffold(
-        title = "Memories",
+        title = stringResource(Res.string.memories_title),
         onBack = onBack,
         trailing = {
             ScaffoldTextAction(
-                label = "Clear all",
+                label = stringResource(Res.string.memories_clear_all),
                 onClick = { confirmClear = true },
                 enabled = memories.isNotEmpty(),
                 isDestructive = true,
@@ -98,13 +114,12 @@ fun AgentMemoriesScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "Nothing remembered yet",
+                    text = stringResource(Res.string.memories_empty_title),
                     style = typography.sansHeader.copy(color = colors.ink),
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Anything the assistant wants to remember about you " +
-                        "will show up here, and you can delete it any time.",
+                    text = stringResource(Res.string.memories_empty_body),
                     style = typography.sansSmall.copy(color = colors.inkMuted),
                 )
             }
@@ -115,7 +130,7 @@ fun AgentMemoriesScreen(
                     .padding(horizontal = 20.dp, vertical = 8.dp),
             ) {
                 Text(
-                    text = "${memories.size} memor${if (memories.size == 1) "y" else "ies"}",
+                    text = stringResource(Res.string.memories_count_format, memories.size),
                     style = typography.sansSmall.copy(color = colors.inkMuted),
                 )
             }
@@ -136,16 +151,16 @@ fun AgentMemoriesScreen(
     if (confirmClear) {
         AlertDialog(
             onDismissRequest = { confirmClear = false },
-            title = { Text("Forget everything?") },
-            text = { Text("This deletes every memory the agent has stored. It can't be undone.") },
+            title = { Text(stringResource(Res.string.memories_clear_confirm_title)) },
+            text = { Text(stringResource(Res.string.memories_clear_confirm_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmClear = false
                     onClearAll()
-                }) { Text("Forget all", color = colors.error) }
+                }) { Text(stringResource(Res.string.memories_clear_confirm_action), color = colors.error) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmClear = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmClear = false }) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }
@@ -172,7 +187,7 @@ private fun MemoryRow(entry: MemoryEntry, onDelete: () -> Unit) {
                     .padding(horizontal = 8.dp, vertical = 2.dp),
             ) {
                 Text(
-                    text = entry.scope.label,
+                    text = stringResource(entry.scope.labelRes()),
                     style = typography.sansLabel.copy(color = chipInk),
                 )
             }
@@ -198,7 +213,7 @@ private fun MemoryRow(entry: MemoryEntry, onDelete: () -> Unit) {
         Row {
             Spacer(modifier = Modifier.weight(1f))
             ScaffoldTextAction(
-                label = "Delete",
+                label = stringResource(Res.string.common_delete),
                 onClick = onDelete,
                 isDestructive = true,
             )
@@ -206,12 +221,11 @@ private fun MemoryRow(entry: MemoryEntry, onDelete: () -> Unit) {
     }
 }
 
-private val MemoryScope.label: String
-    get() = when (this) {
-        MemoryScope.SESSION -> "SESSION"
-        MemoryScope.PERMANENT -> "PERMANENT"
-        MemoryScope.ANY -> "ANY"
-    }
+private fun MemoryScope.labelRes(): StringResource = when (this) {
+    MemoryScope.SESSION -> Res.string.memory_scope_session
+    MemoryScope.PERMANENT -> Res.string.memory_scope_permanent
+    MemoryScope.ANY -> Res.string.memory_scope_any
+}
 
 @OptIn(ExperimentalTime::class)
 private fun formatMemoryTime(epochMs: Long): String {

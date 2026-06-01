@@ -41,7 +41,42 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.BuiltInPersonas
 import dev.weft.undercurrent.core.model.Persona
 import dev.weft.undercurrent.core.model.PersonaKind
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.persona_tagline_almanac
+import dev.weft.undercurrent.core.resources.persona_tagline_default
+import dev.weft.undercurrent.core.resources.persona_tagline_developer
+import dev.weft.undercurrent.core.resources.persona_tagline_doctor
+import dev.weft.undercurrent.core.resources.persona_tagline_editor
+import dev.weft.undercurrent.core.resources.persona_tagline_field_notes
+import dev.weft.undercurrent.core.resources.persona_tagline_lawyer
+import dev.weft.undercurrent.core.resources.persona_tagline_reader
+import dev.weft.undercurrent.core.resources.persona_tagline_researcher
+import dev.weft.undercurrent.core.resources.persona_tagline_teacher
+import dev.weft.undercurrent.core.resources.common_cancel
+import dev.weft.undercurrent.core.resources.common_create
+import dev.weft.undercurrent.core.resources.common_delete
+import dev.weft.undercurrent.core.resources.common_save
+import dev.weft.undercurrent.core.resources.personas_active_pill
+import dev.weft.undercurrent.core.resources.personas_delete_dialog_body
+import dev.weft.undercurrent.core.resources.personas_delete_dialog_title
+import dev.weft.undercurrent.core.resources.personas_editor_field_instructions
+import dev.weft.undercurrent.core.resources.personas_editor_field_name
+import dev.weft.undercurrent.core.resources.personas_editor_field_tagline
+import dev.weft.undercurrent.core.resources.personas_editor_instructions_placeholder
+import dev.weft.undercurrent.core.resources.personas_editor_name_placeholder
+import dev.weft.undercurrent.core.resources.personas_editor_tagline_placeholder
+import dev.weft.undercurrent.core.resources.personas_editor_title_edit
+import dev.weft.undercurrent.core.resources.personas_editor_title_new_role
+import dev.weft.undercurrent.core.resources.personas_editor_title_new_voice
+import dev.weft.undercurrent.core.resources.personas_footer_hint
+import dev.weft.undercurrent.core.resources.personas_intro
+import dev.weft.undercurrent.core.resources.personas_new_action
+import dev.weft.undercurrent.core.resources.personas_section_roles
+import dev.weft.undercurrent.core.resources.personas_section_voices
+import dev.weft.undercurrent.core.resources.personas_title
 import dev.weft.undercurrent.core.ui.ScreenScaffold
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -115,7 +150,7 @@ fun PersonasScreen(
     }
 
     ScreenScaffold(
-        title = "Personas",
+        title = stringResource(Res.string.personas_title),
         onBack = onBack,
     ) {
         LazyColumn(
@@ -123,8 +158,7 @@ fun PersonasScreen(
         ) {
             item("intro") {
                 Text(
-                    text = "A voice shapes how I sound. A role shapes what I focus on. " +
-                        "You can pick one of each — they layer.",
+                    text = stringResource(Res.string.personas_intro),
                     style = typography.serifBody.copy(
                         color = colors.ink,
                         fontStyle = FontStyle.Italic,
@@ -141,7 +175,7 @@ fun PersonasScreen(
             }
             item("voices-label") {
                 SectionHeader(
-                    label = "Voices",
+                    label = stringResource(Res.string.personas_section_voices),
                     onAdd = { onStartCreator(PersonaKind.Voice) },
                 )
             }
@@ -164,7 +198,7 @@ fun PersonasScreen(
             item("roles-label") {
                 Spacer(Modifier.height(24.dp))
                 SectionHeader(
-                    label = "Roles",
+                    label = stringResource(Res.string.personas_section_roles),
                     onAdd = { onStartCreator(PersonaKind.Role) },
                 )
             }
@@ -187,8 +221,7 @@ fun PersonasScreen(
             item("footer") {
                 Spacer(Modifier.height(28.dp))
                 Text(
-                    text = "Tap to apply. Tap the active role again to clear it. " +
-                        "Long-press a custom one to edit.",
+                    text = stringResource(Res.string.personas_footer_hint),
                     style = typography.sansSmall.copy(color = colors.inkSubtle),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -264,7 +297,7 @@ private fun SectionHeader(label: String, onAdd: () -> Unit) {
             modifier = Modifier.weight(1f),
         )
         Text(
-            text = "+ New",
+            text = stringResource(Res.string.personas_new_action),
             style = typography.sansLabel.copy(
                 color = colors.ink,
                 fontWeight = FontWeight.SemiBold,
@@ -320,7 +353,7 @@ private fun PersonaCard(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text = persona.tagline,
+                text = persona.taglineRes()?.let { stringResource(it) } ?: persona.tagline,
                 style = typography.serifBody.copy(
                     color = colors.inkMuted,
                     fontSize = 14.sp,
@@ -330,7 +363,7 @@ private fun PersonaCard(
         }
         Spacer(Modifier.size(8.dp))
         StatusPill(
-            text = if (active) "ACTIVE" else persona.kind.pillLabel,
+            text = if (active) stringResource(Res.string.personas_active_pill) else persona.kind.pillLabel,
             filled = active,
         )
     }
@@ -397,9 +430,9 @@ private fun PersonaEditorDialog(
 
     val isEdit = initial != null
     val title = when {
-        isEdit -> "Edit persona"
-        kindForCreate == PersonaKind.Role -> "New role"
-        else -> "New voice"
+        isEdit -> stringResource(Res.string.personas_editor_title_edit)
+        kindForCreate == PersonaKind.Role -> stringResource(Res.string.personas_editor_title_new_role)
+        else -> stringResource(Res.string.personas_editor_title_new_voice)
     }
 
     AlertDialog(
@@ -408,23 +441,22 @@ private fun PersonaEditorDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 LabeledField(
-                    label = "Name",
+                    label = stringResource(Res.string.personas_editor_field_name),
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "Tech writer",
+                    placeholder = stringResource(Res.string.personas_editor_name_placeholder),
                 )
                 LabeledField(
-                    label = "Tagline",
+                    label = stringResource(Res.string.personas_editor_field_tagline),
                     value = tagline,
                     onValueChange = { tagline = it },
-                    placeholder = "Optional one-liner shown in the picker.",
+                    placeholder = stringResource(Res.string.personas_editor_tagline_placeholder),
                 )
                 LabeledField(
-                    label = "Instructions",
+                    label = stringResource(Res.string.personas_editor_field_instructions),
                     value = text,
                     onValueChange = { text = it },
-                    placeholder = "Speak as a senior tech writer. Use active voice. " +
-                        "Avoid jargon unless defined.",
+                    placeholder = stringResource(Res.string.personas_editor_instructions_placeholder),
                     minLines = 4,
                 )
             }
@@ -433,16 +465,21 @@ private fun PersonaEditorDialog(
             TextButton(
                 enabled = name.isNotBlank() && text.isNotBlank(),
                 onClick = { onSave(name.trim(), tagline.trim(), text.trim()) },
-            ) { Text(if (isEdit) "Save" else "Create") }
+            ) {
+                Text(
+                    if (isEdit) stringResource(Res.string.common_save)
+                    else stringResource(Res.string.common_create),
+                )
+            }
         },
         dismissButton = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (onDelete != null) {
                     TextButton(onClick = { confirmDelete = true }) {
-                        Text("Delete", color = colors.error)
+                        Text(stringResource(Res.string.common_delete), color = colors.error)
                     }
                 }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_cancel)) }
             }
         },
     )
@@ -450,16 +487,16 @@ private fun PersonaEditorDialog(
     if (confirmDelete && onDelete != null && initial != null) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete \"${initial.name}\"?") },
-            text = { Text("This custom persona will be permanently removed.") },
+            title = { Text(stringResource(Res.string.personas_delete_dialog_title, initial.name)) },
+            text = { Text(stringResource(Res.string.personas_delete_dialog_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
                     onDelete()
-                }) { Text("Delete", color = colors.error) }
+                }) { Text(stringResource(Res.string.common_delete), color = colors.error) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmDelete = false }) { Text(stringResource(Res.string.common_cancel)) }
             },
         )
     }
@@ -506,4 +543,23 @@ private fun LabeledField(
             }
         }
     }
+}
+
+/**
+ * Localized tagline for a built-in persona, or null for user-created
+ * personas (whose [Persona.tagline] holds the user's own text). Resolved
+ * at the call site via stringResource. Mirrors `AppPalette.taglineRes()`.
+ */
+private fun Persona.taglineRes(): StringResource? = when (id) {
+    BuiltInPersonas.Default.id -> Res.string.persona_tagline_default
+    BuiltInPersonas.Editor.id -> Res.string.persona_tagline_editor
+    BuiltInPersonas.FieldNotes.id -> Res.string.persona_tagline_field_notes
+    BuiltInPersonas.Reader.id -> Res.string.persona_tagline_reader
+    BuiltInPersonas.Almanac.id -> Res.string.persona_tagline_almanac
+    BuiltInPersonas.Developer.id -> Res.string.persona_tagline_developer
+    BuiltInPersonas.Doctor.id -> Res.string.persona_tagline_doctor
+    BuiltInPersonas.Lawyer.id -> Res.string.persona_tagline_lawyer
+    BuiltInPersonas.Teacher.id -> Res.string.persona_tagline_teacher
+    BuiltInPersonas.Researcher.id -> Res.string.persona_tagline_researcher
+    else -> null
 }

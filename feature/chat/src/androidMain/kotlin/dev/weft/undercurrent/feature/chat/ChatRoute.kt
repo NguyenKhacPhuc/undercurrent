@@ -26,6 +26,8 @@ import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.navigation.NavigationIntent
 import dev.weft.undercurrent.core.navigation.NavigationViewModel
 import dev.weft.undercurrent.core.navigation.Screen
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.app_name
 import dev.weft.undercurrent.core.ui.components.AppDrawer
 import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
@@ -34,6 +36,7 @@ import dev.weft.undercurrent.feature.theme.ThemeViewModel
 import dev.weft.undercurrent.core.domain.ConversationStoreRepository
 import dev.weft.undercurrent.core.domain.SpeechRepository
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
 @Composable
@@ -69,7 +72,7 @@ fun ChatRoute(
         .firstOrNull { it.id == agentCurrentConvId }
         ?.title
         ?.takeIf { it.isNotBlank() }
-        ?: "Undercurrent"
+        ?: stringResource(Res.string.app_name)
 
     val personaLabel = run {
         val voiceLabel = activeVoice.name.takeIf { it != "Default" }

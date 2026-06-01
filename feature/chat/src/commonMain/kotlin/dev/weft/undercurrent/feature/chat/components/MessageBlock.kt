@@ -21,7 +21,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.chat_assistant_app_label
+import dev.weft.undercurrent.core.resources.chat_tool_running
 import dev.weft.undercurrent.feature.chat.DEFAULT_AGENT_NAME
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -77,7 +81,7 @@ private fun AssistantBlock(
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "UNDERCURRENT",
+                text = stringResource(Res.string.chat_assistant_app_label),
                 style = typography.sansLabel.copy(
                     color = colors.inkSubtle,
                     fontWeight = FontWeight.SemiBold,
@@ -141,7 +145,7 @@ private fun ToolPill(info: ToolInfo) {
         if (info.status == ToolStatus.RUNNING && info.argsPreview == null && info.resultPreview == null) {
             DotSeparator()
             Text(
-                text = "running…",
+                text = stringResource(Res.string.chat_tool_running),
                 style = typography.mono.copy(color = colors.inkMuted),
             )
         }

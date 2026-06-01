@@ -22,6 +22,10 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.PermissionDialogState
 import dev.weft.undercurrent.core.model.ThemeMode
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.permission_dialog_not_now
+import dev.weft.undercurrent.core.resources.permission_dialog_open_settings
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun App(
@@ -87,10 +91,10 @@ private fun PermissionNeededDialog(
         title = { Text(state.friendlyTitle) },
         text = { Text(state.friendlyBody) },
         confirmButton = {
-            TextButton(onClick = onOpenSettings) { Text("Open Settings") }
+            TextButton(onClick = onOpenSettings) { Text(stringResource(Res.string.permission_dialog_open_settings)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Not now") }
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.permission_dialog_not_now)) }
         },
     )
 }

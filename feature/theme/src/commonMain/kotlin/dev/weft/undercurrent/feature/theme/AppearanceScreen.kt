@@ -31,8 +31,14 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.designsystem.colors
 import dev.weft.undercurrent.core.model.AppPalette
 import dev.weft.undercurrent.core.model.ThemeMode
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.appearance_mode_section
+import dev.weft.undercurrent.core.resources.appearance_theme_section
+import dev.weft.undercurrent.core.resources.appearance_title
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.SectionLabel
+import dev.weft.undercurrent.core.ui.taglineRes
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -56,13 +62,13 @@ fun AppearanceScreen(
     onModeSelected: (ThemeMode) -> Unit,
     onBack: () -> Unit,
 ) {
-    ScreenScaffold(title = "Appearance", onBack = onBack) {
+    ScreenScaffold(title = stringResource(Res.string.appearance_title), onBack = onBack) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().weight(1f),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item("theme-label") { SectionLabel(text = "Theme") }
+            item("theme-label") { SectionLabel(text = stringResource(Res.string.appearance_theme_section)) }
             items(AppPalette.entries) { palette ->
                 PaletteRow(
                     palette = palette,
@@ -71,7 +77,7 @@ fun AppearanceScreen(
                 )
             }
             item("mode-spacer") { Spacer(Modifier.height(16.dp)) }
-            item("mode-label") { SectionLabel(text = "Mode") }
+            item("mode-label") { SectionLabel(text = stringResource(Res.string.appearance_mode_section)) }
             item("mode-control") {
                 ModeSegmented(
                     selected = selectedMode,
@@ -125,7 +131,7 @@ private fun PaletteRow(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text = palette.tagline,
+                text = stringResource(palette.taglineRes()),
                 style = UndercurrentTheme.typography.sansSmall,
                 color = UndercurrentTheme.colors.inkMuted,
             )

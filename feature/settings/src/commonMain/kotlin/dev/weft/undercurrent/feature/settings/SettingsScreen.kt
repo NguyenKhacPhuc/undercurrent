@@ -21,8 +21,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.ProviderKind
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.settings_integrations_label
+import dev.weft.undercurrent.core.resources.settings_integrations_subtitle
+import dev.weft.undercurrent.core.resources.settings_provider_label
+import dev.weft.undercurrent.core.resources.settings_title
+import dev.weft.undercurrent.core.resources.settings_usage_label
+import dev.weft.undercurrent.core.resources.settings_usage_subtitle
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.feature.auth.AccountSectionRoute
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -34,7 +42,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onSignedOut: () -> Unit = {},
 ) {
-    ScreenScaffold(title = "Settings", onBack = onBack) {
+    ScreenScaffold(title = stringResource(Res.string.settings_title), onBack = onBack) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().weight(1f),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
@@ -45,7 +53,7 @@ fun SettingsScreen(
             }
             item {
                 SettingsLinkRow(
-                    label = "Provider",
+                    label = stringResource(Res.string.settings_provider_label),
                     subtitle = activeProvider.displayName,
                     onClick = onShowProvider,
                 )
@@ -56,15 +64,15 @@ fun SettingsScreen(
             // compatibility but has no in-app entry point.
             item {
                 SettingsLinkRow(
-                    label = "Usage",
-                    subtitle = "Tokens and cost",
+                    label = stringResource(Res.string.settings_usage_label),
+                    subtitle = stringResource(Res.string.settings_usage_subtitle),
                     onClick = onShowUsage,
                 )
             }
             item {
                 SettingsLinkRow(
-                    label = "Integrations",
-                    subtitle = "Connect third-party services",
+                    label = stringResource(Res.string.settings_integrations_label),
+                    subtitle = stringResource(Res.string.settings_integrations_subtitle),
                     onClick = onShowIntegrations,
                 )
             }

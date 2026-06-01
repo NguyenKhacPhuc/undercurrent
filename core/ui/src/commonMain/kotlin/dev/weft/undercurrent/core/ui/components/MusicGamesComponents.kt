@@ -34,7 +34,11 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.cd_play
+import dev.weft.undercurrent.core.resources.component_quest_level
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // AlbumCard — square cover + title + artist + optional play overlay
@@ -120,7 +124,7 @@ internal class AlbumCardComponent(private val imageLoader: ImageLoader) : WeftCo
                     ) {
                         Icon(
                             imageVector = undercurrentIcon("play"),
-                            contentDescription = "Play",
+                            contentDescription = stringResource(Res.string.cd_play),
                             tint = cs.onAccent,
                             modifier = Modifier.size(20.dp),
                         )
@@ -500,7 +504,7 @@ internal class LevelProgressComponent : WeftComponent<LevelProgressProps>(
             }
             Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
                 Text(
-                    text = "LEVEL ${props.level}",
+                    text = stringResource(Res.string.component_quest_level, props.level),
                     style = tp.sansSmall.copy(
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 1.5.sp,

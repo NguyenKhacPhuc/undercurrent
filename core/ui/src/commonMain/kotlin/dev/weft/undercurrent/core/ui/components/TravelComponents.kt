@@ -33,7 +33,23 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.cd_confirmed
+import dev.weft.undercurrent.core.resources.component_boarding_pass_date
+import dev.weft.undercurrent.core.resources.component_boarding_pass_flight
+import dev.weft.undercurrent.core.resources.component_boarding_pass_gate
+import dev.weft.undercurrent.core.resources.component_boarding_pass_passenger
+import dev.weft.undercurrent.core.resources.component_boarding_pass_seat
+import dev.weft.undercurrent.core.resources.component_boarding_status_boarded
+import dev.weft.undercurrent.core.resources.component_boarding_status_boarding
+import dev.weft.undercurrent.core.resources.component_boarding_status_delayed
+import dev.weft.undercurrent.core.resources.component_boarding_status_on_time
+import dev.weft.undercurrent.core.resources.component_flight_nonstop
+import dev.weft.undercurrent.core.resources.component_flight_one_stop
+import dev.weft.undercurrent.core.resources.component_flight_stops
+import dev.weft.undercurrent.core.resources.component_reservation_confirmation
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // BoardingPass — airline-ticket-style card
@@ -66,10 +82,10 @@ internal class BoardingPassComponent : WeftComponent<BoardingPassProps>(
         val cs = UndercurrentTheme.colors
         val tp = UndercurrentTheme.typography
         val (statusLabel, statusColor) = when (props.status.lowercase()) {
-            "boarding" -> "BOARDING" to cs.accent
-            "delayed" -> "DELAYED" to cs.error
-            "boarded" -> "BOARDED" to cs.inkSubtle
-            else -> "ON TIME" to cs.inkMuted
+            "boarding" -> stringResource(Res.string.component_boarding_status_boarding) to cs.accent
+            "delayed" -> stringResource(Res.string.component_boarding_status_delayed) to cs.error
+            "boarded" -> stringResource(Res.string.component_boarding_status_boarded) to cs.inkSubtle
+            else -> stringResource(Res.string.component_boarding_status_on_time) to cs.inkMuted
         }
         Column(
             modifier = Modifier
@@ -147,14 +163,14 @@ internal class BoardingPassComponent : WeftComponent<BoardingPassProps>(
             }
             // Details grid.
             Row(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
-                DetailCell("PASSENGER", props.passenger, modifier = Modifier.weight(2f), cs = cs, tp = tp)
-                DetailCell("DATE", props.date, modifier = Modifier.weight(1f), cs = cs, tp = tp)
+                DetailCell(stringResource(Res.string.component_boarding_pass_passenger), props.passenger, modifier = Modifier.weight(2f), cs = cs, tp = tp)
+                DetailCell(stringResource(Res.string.component_boarding_pass_date), props.date, modifier = Modifier.weight(1f), cs = cs, tp = tp)
             }
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp)) {
-                DetailCell("FLIGHT", props.flightNumber, modifier = Modifier.weight(1f), cs = cs, tp = tp)
-                DetailCell("SEAT", props.seat, modifier = Modifier.weight(1f), cs = cs, tp = tp)
+                DetailCell(stringResource(Res.string.component_boarding_pass_flight), props.flightNumber, modifier = Modifier.weight(1f), cs = cs, tp = tp)
+                DetailCell(stringResource(Res.string.component_boarding_pass_seat), props.seat, modifier = Modifier.weight(1f), cs = cs, tp = tp)
                 if (props.gate.isNotBlank()) {
-                    DetailCell("GATE", props.gate, modifier = Modifier.weight(1f), cs = cs, tp = tp)
+                    DetailCell(stringResource(Res.string.component_boarding_pass_gate), props.gate, modifier = Modifier.weight(1f), cs = cs, tp = tp)
                 }
             }
             // Status footer.
@@ -235,9 +251,9 @@ internal class FlightSegmentComponent : WeftComponent<FlightSegmentProps>(
         val cs = UndercurrentTheme.colors
         val tp = UndercurrentTheme.typography
         val stopsLabel = when (props.stops) {
-            0 -> "Nonstop"
-            1 -> "1 stop"
-            else -> "${props.stops} stops"
+            0 -> stringResource(Res.string.component_flight_nonstop)
+            1 -> stringResource(Res.string.component_flight_one_stop)
+            else -> stringResource(Res.string.component_flight_stops, props.stops)
         }
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -618,7 +634,7 @@ internal class ConfirmationCardComponent : WeftComponent<ConfirmationCardProps>(
                 ) {
                     Icon(
                         imageVector = undercurrentIcon("check"),
-                        contentDescription = "Confirmed",
+                        contentDescription = stringResource(Res.string.cd_confirmed),
                         tint = cs.onAccent,
                         modifier = Modifier.size(22.dp),
                     )
@@ -645,7 +661,7 @@ internal class ConfirmationCardComponent : WeftComponent<ConfirmationCardProps>(
                     .padding(12.dp),
             ) {
                 Text(
-                    text = "CONFIRMATION",
+                    text = stringResource(Res.string.component_reservation_confirmation),
                     style = tp.sansSmall.copy(
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 1.5.sp,

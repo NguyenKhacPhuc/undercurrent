@@ -31,7 +31,11 @@ import dev.weft.compose.components.WeftComponent
 import dev.weft.contracts.ComponentCategory
 import dev.weft.contracts.ComponentEvent
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.component_heatmap_less
+import dev.weft.undercurrent.core.resources.component_heatmap_more
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 
 // =============================================================================
 // Heatmap — GitHub-style activity grid
@@ -110,7 +114,7 @@ internal class HeatmapComponent : WeftComponent<HeatmapProps>(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Less", style = tp.sansSmall, color = cs.inkMuted)
+                Text(stringResource(Res.string.component_heatmap_less), style = tp.sansSmall, color = cs.inkMuted)
                 listOf(0f, 0.3f, 0.6f, 1f).forEach { intensity ->
                     Box(
                         modifier = Modifier
@@ -120,7 +124,7 @@ internal class HeatmapComponent : WeftComponent<HeatmapProps>(
                             .background(mix(cs.surfaceMuted, cs.accent, intensity)),
                     )
                 }
-                Text("  More", style = tp.sansSmall, color = cs.inkMuted)
+                Text("  " + stringResource(Res.string.component_heatmap_more), style = tp.sansSmall, color = cs.inkMuted)
             }
         }
     }
