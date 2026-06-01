@@ -13,4 +13,10 @@ val authModule = module {
             sessionTokenStore = get(),
         )
     }
+    viewModel {
+        AccountViewModel(
+            authRepository = get<AuthRepository>(named(AUTH_REPOSITORY_QUALIFIER)),
+            sessionTokenStore = get(),
+        )
+    }
 }

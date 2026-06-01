@@ -41,7 +41,7 @@ internal fun ScreenRouter(platform: PlatformAdapter) {
             Screen.Conversations -> ConversationsRoute()
             Screen.Traces -> TracesRoute()
             Screen.Memories -> MemoriesRoute()
-            Screen.Settings -> SettingsRoute()
+            Screen.Settings -> SettingsRoute(onSignedOut = { appVm.resume() })
             Screen.Integrations -> IntegrationsRoute(onRestart = platform.onRestartProcess)
             Screen.Providers -> ProvidersRoute(onOpenConsole = platform.onOpenUrl)
             Screen.Appearance -> AppearanceRoute()
