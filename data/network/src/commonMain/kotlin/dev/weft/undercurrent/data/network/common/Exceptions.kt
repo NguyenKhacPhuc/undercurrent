@@ -30,7 +30,12 @@ data class ApiException(
  * connect timeout, socket reset, no internet. The error-validator in
  * [NetworkModule] maps Ktor's transport exceptions to this so callers
  * have a single exception type to render "no connection" UI on.
+ *
+ * [cause] retains the underlying Ktor / OkHttp / NSURLSession exception
+ * for logging; UI code branches on `is NetworkException` and shows the
+ * same "no connection" copy regardless.
  */
-class NetworkException : Exception(
+class NetworkException(cause: Throwable? = null) : Exception(
     "Network error occurred. Please check your connection and try again.",
+    cause,
 )

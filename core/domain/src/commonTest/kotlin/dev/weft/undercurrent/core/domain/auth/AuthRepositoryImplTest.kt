@@ -3,11 +3,12 @@
 package dev.weft.undercurrent.core.domain.auth
 
 import app.cash.turbine.test
-import dev.weft.undercurrent.core.domain.AuthException
-import dev.weft.undercurrent.core.domain.AuthResponse
-import dev.weft.undercurrent.core.domain.MeResponse
 import dev.weft.undercurrent.core.domain.SessionTokenStore
+import dev.weft.undercurrent.core.domain.auth.dto.AuthResponse
+import dev.weft.undercurrent.core.domain.auth.dto.MeResponse
 import dev.weft.undercurrent.core.ext.Result
+import dev.weft.undercurrent.data.network.common.ApiException
+import dev.weft.undercurrent.data.network.common.NetworkException
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.shouldBe
@@ -89,7 +90,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
     }
 
     Given("signUp() against a 400 BE response with field details") {
-        Then("emits [Loading, Error(AuthException.Http(status=400, fieldErrors=…))]") {
+        Then("emits [Loading, Error(ApiException(code=invalid_request, details=…))]") {
             runTest {
                 val engine = MockEngine {
                     respond(
@@ -104,10 +105,10 @@ class AuthRepositoryImplTest : BehaviorSpec({
                         awaitItem() shouldBe Result.Loading
                         val err = awaitItem()
                         err.shouldBeInstanceOf<Result.Error>()
-                        val ex = err.exception.shouldBeInstanceOf<AuthException.Http>()
-                        ex.status shouldBe 400
-                        ex.errorCode shouldBe "invalid_request"
-                        ex.fieldErrors!! shouldContainExactly mapOf("email" to "bad")
+                        val ex = err.exception.shouldBeInstanceOf<ApiException>()
+                        ex.httpStatus shouldBe 400
+                        ex.code shouldBe "invalid_request"
+                        ex.details!! shouldContainExactly mapOf("email" to "bad")
                         awaitComplete()
                     }
             }
@@ -115,7 +116,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
     }
 
     Given("signUp() against a 409 BE response") {
-        Then("emits Error(AuthException.Http(status=409, errorCode=email_already_registered))") {
+        Then("emits Error(ApiException(code=email_already_registered, httpStatus=409))") {
             runTest {
                 val engine = MockEngine {
                     respond(
@@ -129,9 +130,9 @@ class AuthRepositoryImplTest : BehaviorSpec({
                     .test {
                         awaitItem() shouldBe Result.Loading
                         val err = awaitItem().shouldBeInstanceOf<Result.Error>()
-                        val ex = err.exception.shouldBeInstanceOf<AuthException.Http>()
-                        ex.status shouldBe 409
-                        ex.errorCode shouldBe "email_already_registered"
+                        val ex = err.exception.shouldBeInstanceOf<ApiException>()
+                        ex.httpStatus shouldBe 409
+                        ex.code shouldBe "email_already_registered"
                         awaitComplete()
                     }
             }
@@ -163,7 +164,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
     }
 
     Given("signIn() against a 401 BE response") {
-        Then("emits Error(AuthException.Http(status=401))") {
+        Then("emits Error(ApiException(httpStatus=401))") {
             runTest {
                 val engine = MockEngine {
                     respond(
@@ -177,9 +178,9 @@ class AuthRepositoryImplTest : BehaviorSpec({
                     .test {
                         awaitItem() shouldBe Result.Loading
                         val ex = awaitItem().shouldBeInstanceOf<Result.Error>()
-                            .exception.shouldBeInstanceOf<AuthException.Http>()
-                        ex.status shouldBe 401
-                        ex.errorCode shouldBe "unauthenticated"
+                            .exception.shouldBeInstanceOf<ApiException>()
+                        ex.httpStatus shouldBe 401
+                        ex.code shouldBe "unauthenticated"
                         awaitComplete()
                     }
             }
@@ -187,7 +188,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
     }
 
     Given("signIn() against a 429 BE response") {
-        Then("emits Error(AuthException.Http(status=429))") {
+        Then("emits Error(ApiException(httpStatus=429))") {
             runTest {
                 val engine = MockEngine {
                     respond(
@@ -201,9 +202,9 @@ class AuthRepositoryImplTest : BehaviorSpec({
                     .test {
                         awaitItem() shouldBe Result.Loading
                         val ex = awaitItem().shouldBeInstanceOf<Result.Error>()
-                            .exception.shouldBeInstanceOf<AuthException.Http>()
-                        ex.status shouldBe 429
-                        ex.errorCode shouldBe "rate_limited"
+                            .exception.shouldBeInstanceOf<ApiException>()
+                        ex.httpStatus shouldBe 429
+                        ex.code shouldBe "rate_limited"
                         awaitComplete()
                     }
             }
@@ -211,7 +212,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
     }
 
     Given("getMe() with no stored token") {
-        Then("emits Error(AuthException.Http(status=401)) without making an HTTP call") {
+        Then("emits Error(ApiException(httpStatus=401)) without making an HTTP call") {
             runTest {
                 var calls = 0
                 val engine = MockEngine { calls++; respondOk() }
@@ -220,9 +221,9 @@ class AuthRepositoryImplTest : BehaviorSpec({
                     .test {
                         awaitItem() shouldBe Result.Loading
                         val ex = awaitItem().shouldBeInstanceOf<Result.Error>()
-                            .exception.shouldBeInstanceOf<AuthException.Http>()
-                        ex.status shouldBe 401
-                        ex.errorCode shouldBe "unauthenticated"
+                            .exception.shouldBeInstanceOf<ApiException>()
+                        ex.httpStatus shouldBe 401
+                        ex.code shouldBe "unauthenticated"
                         awaitComplete()
                     }
                 calls shouldBe 0
@@ -256,7 +257,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
     }
 
     Given("getMe() with a stored token and 401 response") {
-        Then("emits Error(AuthException.Http(status=401))") {
+        Then("emits Error(ApiException(httpStatus=401))") {
             runTest {
                 val engine = MockEngine {
                     respond(
@@ -270,8 +271,8 @@ class AuthRepositoryImplTest : BehaviorSpec({
                     .test {
                         awaitItem() shouldBe Result.Loading
                         val ex = awaitItem().shouldBeInstanceOf<Result.Error>()
-                            .exception.shouldBeInstanceOf<AuthException.Http>()
-                        ex.status shouldBe 401
+                            .exception.shouldBeInstanceOf<ApiException>()
+                        ex.httpStatus shouldBe 401
                         awaitComplete()
                     }
             }
@@ -334,7 +335,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
     }
 
     Given("a network exception during signIn()") {
-        Then("emits Error(AuthException.Network)") {
+        Then("emits Error(NetworkException)") {
             runTest {
                 val engine = MockEngine { throw SocketTimeoutException("test") }
                 repo(engine)
@@ -342,7 +343,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
                     .test {
                         awaitItem() shouldBe Result.Loading
                         val err = awaitItem().shouldBeInstanceOf<Result.Error>()
-                        err.exception.shouldBeInstanceOf<AuthException.Network>()
+                        err.exception.shouldBeInstanceOf<NetworkException>()
                         awaitComplete()
                     }
             }

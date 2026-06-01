@@ -1,14 +1,14 @@
 package dev.weft.undercurrent.core.domain.auth
 
-import dev.weft.undercurrent.core.domain.AuthException
 import dev.weft.undercurrent.core.domain.AuthRepository
-import dev.weft.undercurrent.core.domain.AuthResponse
-import dev.weft.undercurrent.core.domain.MeResponse
 import dev.weft.undercurrent.core.domain.SessionTokenStore
+import dev.weft.undercurrent.core.domain.auth.dto.AuthResponse
+import dev.weft.undercurrent.core.domain.auth.dto.MeResponse
 import dev.weft.undercurrent.core.domain.auth.dto.SignInRequest
 import dev.weft.undercurrent.core.domain.auth.dto.SignUpRequest
 import dev.weft.undercurrent.core.ext.Result
 import dev.weft.undercurrent.core.ext.asResult
+import dev.weft.undercurrent.data.network.common.ApiException
 import dev.weft.undercurrent.data.network.common.BaseResponse
 import dev.weft.undercurrent.data.network.common.safeApiCall
 import io.ktor.client.HttpClient
@@ -28,18 +28,19 @@ import kotlinx.coroutines.flow.flowOn
  * Ktor-backed [AuthRepository]. Talks to the BE at [baseUrl] using the
  * shared [httpClient] (configured in [authRepositoryModule] with an
  * [io.ktor.client.plugins.HttpResponseValidator] that translates HTTP
- * errors → [AuthException.Http] and transport errors →
- * [AuthException.Network]). Reads/writes the bearer via
- * [sessionTokenStore] for authed endpoints.
+ * errors → [ApiException] / [dev.weft.undercurrent.data.network.common.HttpException]
+ * and transport errors → [dev.weft.undercurrent.data.network.common.NetworkException]).
+ * Reads/writes the bearer via [sessionTokenStore] for authed endpoints.
  *
  * Each BE endpoint returns the standard
  * [dev.weft.undercurrent.data.network.common.BaseResponse] envelope
  * (`{ success, data, message, code }`); methods deserialize into
  * `BaseResponse<T>` and let [safeApiCall] unwrap `.data` to `T`.
- * `.asResult()` then yields `[Loading, Success(T) | Error(AuthException.X)]`.
+ * `.asResult()` then yields `[Loading, Success(T) | Error(<exception>)]`.
  * I/O runs on [ioDispatcher].
  *
- * The ViewModel layer translates `AuthException` shape → UI state.
+ * The ViewModel layer pattern-matches `is ApiException` + `.code`
+ * / `.httpStatus` to map to UI states.
  */
 class AuthRepositoryImpl(
     private val httpClient: HttpClient,
@@ -67,11 +68,11 @@ class AuthRepositoryImpl(
     }.asResult().flowOn(ioDispatcher)
 
     override fun getMe(): Flow<Result<MeResponse>> = safeApiCall {
-        val token = sessionTokenStore.read() ?: throw AuthException.Http(
-            status = HttpStatusCode.Unauthorized.value,
-            errorCode = "unauthenticated",
-            errorMessage = "No session token stored on this device",
-            fieldErrors = null,
+        val token = sessionTokenStore.read() ?: throw ApiException(
+            code = "unauthenticated",
+            apiMessage = "No session token stored on this device",
+            endpoint = "/v1/me",
+            httpStatus = HttpStatusCode.Unauthorized.value,
         )
         httpClient.get("$baseUrl/v1/me") { bearerAuth(token) }.body<BaseResponse<MeResponse>>()
     }.asResult().flowOn(ioDispatcher)

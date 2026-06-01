@@ -1,11 +1,13 @@
 package dev.weft.undercurrent.core.domain.auth
 
-import dev.weft.undercurrent.core.domain.AuthException
 import dev.weft.undercurrent.core.domain.AuthRepository
 import dev.weft.undercurrent.core.domain.SessionTokenStore
 import dev.weft.undercurrent.core.ext.ioDispatcher
 import dev.weft.undercurrent.data.network.PlatformHttpClientEngineFactory
+import dev.weft.undercurrent.data.network.common.ApiException
 import dev.weft.undercurrent.data.network.common.BaseErrorResponse
+import dev.weft.undercurrent.data.network.common.HttpException
+import dev.weft.undercurrent.data.network.common.NetworkException
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.network.sockets.ConnectTimeoutException
@@ -14,6 +16,8 @@ import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.request
+import io.ktor.http.encodedPath
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.util.network.UnresolvedAddressException
@@ -57,10 +61,11 @@ val authRepositoryModule = module {
 /**
  * Builds the default [HttpClient] used by [AuthRepositoryImpl].
  * Centralizes ContentNegotiation, timeouts, and the response validator
- * that translates BE error envelopes → [AuthException.Http] and
- * transport-level failures → [AuthException.Network]. Exposed as a
- * function so tests can build an equivalently-configured client off
- * a `MockEngine` without going through Koin.
+ * that translates BE error envelopes → [ApiException] (or [HttpException]
+ * if the body can't be parsed) and transport-level failures →
+ * [NetworkException]. Exposed as a function so tests can build an
+ * equivalently-configured client off a `MockEngine` without going
+ * through Koin.
  */
 fun defaultAuthHttpClient(engine: HttpClientEngine): HttpClient = HttpClient(engine) {
     install(ContentNegotiation) {
@@ -76,18 +81,25 @@ fun defaultAuthHttpClient(engine: HttpClientEngine): HttpClient = HttpClient(eng
                 is ConnectTimeoutException,
                 is SocketTimeoutException,
                 is UnresolvedAddressException,
-                -> throw AuthException.Network(cause)
+                -> throw NetworkException(cause)
             }
         }
         validateResponse { response ->
             if (response.status.isSuccess()) return@validateResponse
+            val endpoint = response.request.url.encodedPath
+            val statusCode = response.status.value
             val envelope = decodeBaseErrorResponse(response.bodyAsText())
-            throw AuthException.Http(
-                status = response.status.value,
-                errorCode = envelope?.code,
-                errorMessage = envelope?.message,
-                fieldErrors = envelope?.details,
-            )
+            if (envelope != null) {
+                throw ApiException(
+                    code = envelope.code,
+                    apiMessage = envelope.message,
+                    details = envelope.details,
+                    endpoint = endpoint,
+                    httpStatus = statusCode,
+                )
+            } else {
+                throw HttpException(endpoint, statusCode)
+            }
         }
     }
 }
