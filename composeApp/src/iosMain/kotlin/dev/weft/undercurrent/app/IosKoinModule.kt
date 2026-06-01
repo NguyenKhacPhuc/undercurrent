@@ -91,6 +91,7 @@ val iosAppModule = module {
             providerPrefsRepo = get(),
             navigationVm = get(),
             chatVm = get(),
+            sessionTokenStore = get(),
         )
     }
 

@@ -230,6 +230,7 @@ val appModule = module {
             agentFactory = get(),
             chatVm = get(),
             uiBridgeRepo = get(),
+            sessionTokenStore = get(),
         )
     }
 
