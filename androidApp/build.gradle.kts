@@ -52,7 +52,7 @@ dependencies {
 
     // Feature modules — used by the App() router + AppViewModel wiring
     implementation(projects.feature.chat)
-    implementation(projects.feature.signIn)
+    implementation(projects.feature.auth)
     implementation(projects.feature.conversations)
     implementation(projects.feature.memories)
     implementation(projects.feature.personas)

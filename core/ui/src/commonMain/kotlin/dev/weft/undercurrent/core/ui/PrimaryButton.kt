@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun PrimaryButton(
@@ -40,5 +41,21 @@ fun PrimaryButton(
             style = typography.sansLabel.copy(color = colors.onAccent),
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+@Preview
+@Composable
+private fun PrimaryButtonPreview() {
+    UndercurrentTheme {
+        PrimaryButton(label = "Sign In", onClick = {})
+    }
+}
+
+@Preview
+@Composable
+private fun PrimaryButtonPreviewDisabled() {
+    UndercurrentTheme {
+        PrimaryButton(label = "Sign In", onClick = {}, enabled = false)
     }
 }

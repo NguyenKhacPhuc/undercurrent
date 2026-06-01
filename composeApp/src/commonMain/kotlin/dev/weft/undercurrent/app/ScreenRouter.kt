@@ -18,7 +18,7 @@ import dev.weft.undercurrent.feature.onboarding.OnboardingRoute
 import dev.weft.undercurrent.feature.personas.PersonasRoute
 import dev.weft.undercurrent.feature.providers.ProvidersRoute
 import dev.weft.undercurrent.feature.settings.SettingsRoute
-import dev.weft.undercurrent.feature.signin.SignInRoute
+import dev.weft.undercurrent.feature.auth.SignInRoute
 import dev.weft.undercurrent.feature.theme.AppearanceRoute
 import dev.weft.undercurrent.feature.traces.TracesRoute
 import dev.weft.undercurrent.feature.usage.UsageRoute

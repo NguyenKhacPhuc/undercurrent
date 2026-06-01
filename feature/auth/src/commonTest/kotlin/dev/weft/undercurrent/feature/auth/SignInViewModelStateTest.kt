@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalCoroutinesApi::class)
 
-package dev.weft.undercurrent.feature.signin
+package dev.weft.undercurrent.feature.auth
 
 import app.cash.turbine.test
 import dev.mokkery.answering.returns

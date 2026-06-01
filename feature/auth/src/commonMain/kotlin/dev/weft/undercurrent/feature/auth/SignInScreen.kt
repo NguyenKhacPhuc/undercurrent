@@ -1,4 +1,4 @@
-package dev.weft.undercurrent.feature.signin
+package dev.weft.undercurrent.feature.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

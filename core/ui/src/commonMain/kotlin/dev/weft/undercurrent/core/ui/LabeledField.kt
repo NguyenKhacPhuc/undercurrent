@@ -16,9 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun LabeledField(
@@ -65,5 +67,59 @@ fun LabeledField(
             Spacer(Modifier.height(4.dp))
             Text(it, style = typography.sansLabel.copy(color = colors.error))
         }
+    }
+}
+
+@Preview
+@Composable
+private fun LabeledFieldPreview() {
+    UndercurrentTheme {
+        LabeledField(
+            label = "Email",
+            value = "phuc@example.com",
+            onValueChange = {},
+            keyboardType = KeyboardType.Email,
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun LabeledFieldPreviewWithError() {
+    UndercurrentTheme {
+        LabeledField(
+            label = "Email",
+            value = "not-an-email",
+            onValueChange = {},
+            keyboardType = KeyboardType.Email,
+            fieldError = "must be a valid email address",
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun LabeledFieldPreviewPassword() {
+    UndercurrentTheme {
+        LabeledField(
+            label = "Password",
+            value = "hunter2-correct",
+            onValueChange = {},
+            keyboardType = KeyboardType.Password,
+            visualTransformation = PasswordVisualTransformation(),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun LabeledFieldPreviewDisabled() {
+    UndercurrentTheme {
+        LabeledField(
+            label = "Email",
+            value = "phuc@example.com",
+            onValueChange = {},
+            enabled = false,
+        )
     }
 }

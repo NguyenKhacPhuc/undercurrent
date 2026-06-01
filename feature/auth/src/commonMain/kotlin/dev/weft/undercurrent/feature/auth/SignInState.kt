@@ -1,4 +1,4 @@
-package dev.weft.undercurrent.feature.signin
+package dev.weft.undercurrent.feature.auth
 
 import dev.weft.undercurrent.core.ext.MIN_PASSWORD_LENGTH
 import dev.weft.undercurrent.core.ext.displayNameValid

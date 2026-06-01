@@ -1,4 +1,4 @@
-package dev.weft.undercurrent.feature.signin
+package dev.weft.undercurrent.feature.auth
 
 import dev.weft.undercurrent.core.domain.AuthRepository
 import dev.weft.undercurrent.core.domain.SessionTokenStore

@@ -1,4 +1,4 @@
-package dev.weft.undercurrent.feature.signin
+package dev.weft.undercurrent.feature.auth
 
 sealed interface SignInIntent {
     data object SwitchMode : SignInIntent
