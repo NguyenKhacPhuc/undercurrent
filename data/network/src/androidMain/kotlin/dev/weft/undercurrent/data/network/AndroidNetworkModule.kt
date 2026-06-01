@@ -23,12 +23,15 @@ import java.net.URI
 val androidNetworkModule = module {
 
     single<PlatformHttpClientEngineFactory> {
-        val baseUrl = get<String>(named(BASE_URL_QUALIFIER))
+        // Cert pinning is opt-in via BASE_URL_QUALIFIER + SSL_PINS_QUALIFIER.
+        // Both optional so callers that don't pin (auth HttpClient,
+        // future no-pin REST clients) don't crash when their host app
+        // doesn't register either qualifier.
+        val baseUrl = getOrNull<String>(named(BASE_URL_QUALIFIER))
         val sslPins = getOrNull<List<String>>(named(SSL_PINS_QUALIFIER)).orEmpty().map { pin ->
-            // OkHttp expects pins in "sha256/<base64>" form.
             "sha256/$pin"
         }
-        val host = runCatching { URI(baseUrl).host }.getOrNull()
+        val host = baseUrl?.let { runCatching { URI(it).host }.getOrNull() }
 
         PlatformHttpClientEngineFactory {
             OkHttp.create {
