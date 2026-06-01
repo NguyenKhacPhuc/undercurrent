@@ -29,6 +29,8 @@ kotlin {
             implementation("dev.weft:weft-harness-cost")
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.koin.android)
+            // EncryptedSharedPreferences for the BE session bearer (mobile-auth-wiring/02).
+            implementation(libs.androidx.security.crypto)
         }
         iosMain.dependencies {
             // module-specific iOS deps go here
