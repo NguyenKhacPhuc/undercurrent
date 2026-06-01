@@ -9,6 +9,7 @@ import dev.weft.undercurrent.core.domain.auth.dto.MeResponse
 import dev.weft.undercurrent.core.ext.Result
 import dev.weft.undercurrent.data.network.common.ApiException
 import dev.weft.undercurrent.data.network.common.NetworkException
+import dev.weft.undercurrent.data.network.common.defaultHttpClient
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.shouldBe
@@ -35,7 +36,7 @@ private class FakeStore(initial: String? = null) : SessionTokenStore {
     override suspend fun clear() { this.token = null }
 }
 
-private fun client(engine: MockEngine): HttpClient = defaultAuthHttpClient(engine)
+private fun client(engine: MockEngine): HttpClient = defaultHttpClient(engine)
 
 private fun repo(engine: MockEngine, store: SessionTokenStore = FakeStore()): AuthRepositoryImpl =
     AuthRepositoryImpl(
