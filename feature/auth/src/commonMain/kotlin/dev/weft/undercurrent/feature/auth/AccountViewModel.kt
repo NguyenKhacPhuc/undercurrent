@@ -4,11 +4,10 @@ import dev.weft.undercurrent.core.domain.AuthRepository
 import dev.weft.undercurrent.core.domain.SessionTokenStore
 import dev.weft.undercurrent.core.ext.Result
 import dev.weft.undercurrent.data.network.common.ApiException
+import dev.weft.undercurrent.data.network.common.HttpStatus
 import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
-
-private const val HTTP_UNAUTHORIZED = 401
 
 class AccountViewModel(
     private val authRepository: AuthRepository,
@@ -44,7 +43,7 @@ class AccountViewModel(
 
     private suspend fun handleGetMeError(e: Throwable) {
         val api = e as? ApiException
-        if (api?.httpStatus == HTTP_UNAUTHORIZED) {
+        if (api?.httpStatus == HttpStatus.UNAUTHORIZED) {
             sessionTokenStore.clear()
             emit(AccountEffect.SignedOut)
         } else {

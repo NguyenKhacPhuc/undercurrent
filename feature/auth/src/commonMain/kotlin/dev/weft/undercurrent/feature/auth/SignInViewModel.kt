@@ -7,6 +7,7 @@ import dev.weft.undercurrent.core.ext.Result
 import dev.weft.undercurrent.core.ui.toUserMessage
 import dev.weft.undercurrent.data.network.common.ApiException
 import dev.weft.undercurrent.data.network.common.ErrorCodes
+import dev.weft.undercurrent.data.network.common.HttpStatus
 import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
@@ -96,7 +97,7 @@ class SignInViewModel(
     private fun applyRegisterError(e: Throwable) {
         val api = e as? ApiException
         when {
-            api != null && api.httpStatus == 400 && !api.details.isNullOrEmpty() ->
+            api != null && api.httpStatus == HttpStatus.BAD_REQUEST && !api.details.isNullOrEmpty() ->
                 update { state -> state.copy(fieldErrors = api.details.orEmpty(), topError = null) }
             api != null && api.code == ErrorCodes.EMAIL_ALREADY_REGISTERED ->
                 update { state ->
@@ -117,8 +118,8 @@ class SignInViewModel(
     private fun mapSignInError(e: Throwable): TopError {
         val api = e as? ApiException
         return when {
-            api != null && api.httpStatus == 401 -> TopError.InvalidCredentials
-            api != null && api.httpStatus == 429 -> TopError.RateLimited
+            api != null && api.httpStatus == HttpStatus.UNAUTHORIZED -> TopError.InvalidCredentials
+            api != null && api.httpStatus == HttpStatus.TOO_MANY_REQUESTS -> TopError.RateLimited
             else -> e.toTopError()
         }
     }
