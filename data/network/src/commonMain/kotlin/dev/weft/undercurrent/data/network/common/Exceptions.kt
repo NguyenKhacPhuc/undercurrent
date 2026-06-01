@@ -18,8 +18,9 @@ open class HttpException(
  * both shapes.
  */
 data class ApiException(
-    val code: Int,
+    val code: String,
     val apiMessage: String,
+    val details: Map<String, String>? = null,
     override val endpoint: String = "",
     override val httpStatus: Int = 0,
 ) : HttpException(endpoint, httpStatus, apiMessage)

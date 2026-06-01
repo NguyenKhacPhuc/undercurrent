@@ -123,6 +123,7 @@ val networkModule = module {
                                 throw ApiException(
                                     code = errorResponse.code,
                                     apiMessage = errorResponse.message,
+                                    details = errorResponse.details,
                                     endpoint = endpoint,
                                     httpStatus = statusCode,
                                 )

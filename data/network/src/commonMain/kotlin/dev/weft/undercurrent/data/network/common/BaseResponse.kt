@@ -11,8 +11,8 @@ import kotlinx.serialization.Serializable
 data class BaseResponse<T>(
     val success: Boolean,
     val data: T?,
-    val message: String?,
-    val code: Int?,
+    val message: String? = null,
+    val code: String? = null,
 )
 
 /**
@@ -21,9 +21,15 @@ data class BaseResponse<T>(
  * throws [ApiException] carrying the parsed fields. If parsing fails,
  * the validator throws a plain [HttpException] with status + endpoint
  * only.
+ *
+ * `code` is a stable machine-readable string (`"invalid_request"`,
+ * `"unauthenticated"`, …) — clients branch on it. `details` is an
+ * optional per-field-error map used by 400 validation responses
+ * (`{ "email": "must be a valid email address" }`).
  */
 @Serializable
 data class BaseErrorResponse(
-    val code: Int,
+    val code: String,
     val message: String,
+    val details: Map<String, String>? = null,
 )

@@ -47,6 +47,13 @@ private fun repo(engine: MockEngine, store: SessionTokenStore = FakeStore()): Au
 private val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
 private const val BASE = "https://be.test"
 
+/**
+ * Wraps a raw payload JSON string in the BaseResponse envelope the BE
+ * emits on success. Keeps the test bodies readable.
+ */
+private fun envelope(dataJson: String): String =
+    """{"success":true,"data":$dataJson,"message":null,"code":null}"""
+
 class AuthRepositoryImplTest : BehaviorSpec({
 
     Given("signUp() against a 201 BE response") {
@@ -56,7 +63,9 @@ class AuthRepositoryImplTest : BehaviorSpec({
                 val engine = MockEngine { request ->
                     seenRequest = request
                     respond(
-                        content = """{"account":{"id":"acct.abc","displayName":"Phuc","email":"phuc@example.com","createdAtMs":1},"session":{"token":"tk-1","expiresAtMs":2}}""",
+                        content = envelope(
+                            """{"account":{"id":"acct.abc","displayName":"Phuc","email":"phuc@example.com","createdAtMs":1},"session":{"token":"tk-1","expiresAtMs":2}}""",
+                        ),
                         status = HttpStatusCode.Created,
                         headers = jsonHeaders,
                     )
@@ -84,7 +93,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
             runTest {
                 val engine = MockEngine {
                     respond(
-                        content = """{"error":{"code":"invalid_request","message":"x","details":{"email":"bad"}}}""",
+                        content = """{"code":"invalid_request","message":"x","details":{"email":"bad"}}""",
                         status = HttpStatusCode.BadRequest,
                         headers = jsonHeaders,
                     )
@@ -110,7 +119,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
             runTest {
                 val engine = MockEngine {
                     respond(
-                        content = """{"error":{"code":"email_already_registered","message":"taken"}}""",
+                        content = """{"code":"email_already_registered","message":"taken"}""",
                         status = HttpStatusCode.Conflict,
                         headers = jsonHeaders,
                     )
@@ -135,7 +144,9 @@ class AuthRepositoryImplTest : BehaviorSpec({
                 val engine = MockEngine { request ->
                     request.url.encodedPath shouldBe "/v1/auth/sign-in"
                     respond(
-                        content = """{"account":{"id":"acct.x","displayName":"X","email":"x@y.com","createdAtMs":1},"session":{"token":"t","expiresAtMs":2}}""",
+                        content = envelope(
+                            """{"account":{"id":"acct.x","displayName":"X","email":"x@y.com","createdAtMs":1},"session":{"token":"t","expiresAtMs":2}}""",
+                        ),
                         status = HttpStatusCode.OK,
                         headers = jsonHeaders,
                     )
@@ -156,7 +167,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
             runTest {
                 val engine = MockEngine {
                     respond(
-                        content = """{"error":{"code":"unauthenticated","message":"Invalid email or password"}}""",
+                        content = """{"code":"unauthenticated","message":"Invalid email or password"}""",
                         status = HttpStatusCode.Unauthorized,
                         headers = jsonHeaders,
                     )
@@ -180,7 +191,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
             runTest {
                 val engine = MockEngine {
                     respond(
-                        content = """{"error":{"code":"rate_limited","message":"too many"}}""",
+                        content = """{"code":"rate_limited","message":"too many"}""",
                         status = HttpStatusCode.TooManyRequests,
                         headers = jsonHeaders,
                     )
@@ -226,7 +237,9 @@ class AuthRepositoryImplTest : BehaviorSpec({
                     request.headers[HttpHeaders.Authorization] shouldBe "Bearer tk-123"
                     request.url.encodedPath shouldBe "/v1/me"
                     respond(
-                        content = """{"account":{"id":"acct.a","displayName":"A","email":"a@b.c","createdAtMs":1}}""",
+                        content = envelope(
+                            """{"account":{"id":"acct.a","displayName":"A","email":"a@b.c","createdAtMs":1}}""",
+                        ),
                         status = HttpStatusCode.OK,
                         headers = jsonHeaders,
                     )
@@ -247,7 +260,7 @@ class AuthRepositoryImplTest : BehaviorSpec({
             runTest {
                 val engine = MockEngine {
                     respond(
-                        content = """{"error":{"code":"unauthenticated","message":"x"}}""",
+                        content = """{"code":"unauthenticated","message":"x"}""",
                         status = HttpStatusCode.Unauthorized,
                         headers = jsonHeaders,
                     )
@@ -282,13 +295,17 @@ class AuthRepositoryImplTest : BehaviorSpec({
         }
     }
 
-    Given("signOut() with a token and 204 response") {
+    Given("signOut() with a token and 200 response") {
         Then("attaches the bearer and emits Success(Unit)") {
             runTest {
                 val engine = MockEngine { request ->
                     request.headers[HttpHeaders.Authorization] shouldBe "Bearer tk-out"
                     request.url.encodedPath shouldBe "/v1/auth/sign-out"
-                    respond("", HttpStatusCode.NoContent)
+                    respond(
+                        content = """{"success":true,"data":null,"message":null,"code":null}""",
+                        status = HttpStatusCode.OK,
+                        headers = jsonHeaders,
+                    )
                 }
                 repo(engine, store = FakeStore(initial = "tk-out"))
                     .signOut()

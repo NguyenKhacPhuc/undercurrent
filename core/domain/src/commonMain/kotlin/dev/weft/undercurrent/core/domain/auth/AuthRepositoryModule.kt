@@ -3,9 +3,9 @@ package dev.weft.undercurrent.core.domain.auth
 import dev.weft.undercurrent.core.domain.AuthException
 import dev.weft.undercurrent.core.domain.AuthRepository
 import dev.weft.undercurrent.core.domain.SessionTokenStore
-import dev.weft.undercurrent.core.domain.auth.dto.AuthErrorEnvelope
 import dev.weft.undercurrent.core.ext.ioDispatcher
 import dev.weft.undercurrent.data.network.PlatformHttpClientEngineFactory
+import dev.weft.undercurrent.data.network.common.BaseErrorResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.network.sockets.ConnectTimeoutException
@@ -36,8 +36,9 @@ import org.koin.dsl.module
  *
  * The HTTP client built here is intentionally separate from the
  * `networkModule` integrations client — the BE has no refresh-token
- * flow and a different error envelope, so reusing the integrations
- * machinery would mismatch.
+ * flow, so reusing the integrations machinery (which assumes the
+ * `TokenManager` + refresh flow) would mismatch. Error envelope is
+ * the shared [BaseErrorResponse] shape.
  */
 val authRepositoryModule = module {
     single<HttpClient>(named(AUTH_HTTP_CLIENT_QUALIFIER)) {
@@ -80,19 +81,19 @@ fun defaultAuthHttpClient(engine: HttpClientEngine): HttpClient = HttpClient(eng
         }
         validateResponse { response ->
             if (response.status.isSuccess()) return@validateResponse
-            val envelope = decodeAuthErrorEnvelope(response.bodyAsText())
+            val envelope = decodeBaseErrorResponse(response.bodyAsText())
             throw AuthException.Http(
                 status = response.status.value,
-                errorCode = envelope?.error?.code,
-                errorMessage = envelope?.error?.message,
-                fieldErrors = envelope?.error?.details,
+                errorCode = envelope?.code,
+                errorMessage = envelope?.message,
+                fieldErrors = envelope?.details,
             )
         }
     }
 }
 
-private fun decodeAuthErrorEnvelope(body: String): AuthErrorEnvelope? = try {
-    if (body.isBlank()) null else authJson.decodeFromString(AuthErrorEnvelope.serializer(), body)
+private fun decodeBaseErrorResponse(body: String): BaseErrorResponse? = try {
+    if (body.isBlank()) null else authJson.decodeFromString(BaseErrorResponse.serializer(), body)
 } catch (_: SerializationException) {
     null
 }

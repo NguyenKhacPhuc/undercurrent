@@ -44,22 +44,3 @@ fun <T : Any?> safeApiCallNullableData(
         throw e
     }
 }
-
-/**
- * Same as [safeApiCall] but for endpoints whose response IS the raw
- * payload — no `{ success, data, … }` envelope. Used by the BE auth
- * surface (`/v1/auth/sign-up`, `/v1/me`, …) which serializes
- * `AuthResponse` / `MeResponse` directly. Transport-level timeouts
- * still coerce to [NetworkException] so the call site has one
- * exception type for "no connection".
- */
-fun <T : Any?> safeApiCallRaw(call: suspend () -> T): Flow<T> = flow {
-    try {
-        emit(call())
-    } catch (e: Exception) {
-        if (e is ConnectTimeoutException) {
-            throw NetworkException()
-        }
-        throw e
-    }
-}
