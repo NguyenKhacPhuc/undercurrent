@@ -33,16 +33,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
-/**
- * KMP-portable state-projection tests for [SignInViewModel]. Runs on
- * Android + iOS via the convention plugin's kotest + Mokkery wiring.
- *
- * Uses Mokkery's compiler-plugin-generated mocks for [AuthRepository]
- * + [SessionTokenStore]; `every {} returns flowOf(...)` to seed each
- * BE response shape, `verify {}` / `verifySuspend {}` for call
- * assertions. Covers form-state mutations + the Sign-In and Register
- * Continue paths.
- */
 class SignInViewModelStateTest : BehaviorSpec({
 
     val mainDispatcher = StandardTestDispatcher()
@@ -204,8 +194,6 @@ class SignInViewModelStateTest : BehaviorSpec({
         }
     }
 
-    // ---- Sign-In Continue dispatch ----------------------------------------
-
     fun signInVm(
         signInStub: (AuthRepository) -> Unit = {},
     ): Triple<SignInViewModel, AuthRepository, SessionTokenStore> {
@@ -267,11 +255,6 @@ class SignInViewModelStateTest : BehaviorSpec({
     Given("Sign-In Continue with a flow that hangs after Result.Loading") {
         Then("vm.loading observes the false→true→false transition across the call") {
             runTest {
-                // Channel-backed flow lets us hold the call open after Loading
-                // emits and assert that vm.loading flipped to true. Without
-                // this, every test seeded with flowOf(Loading, Success/Error)
-                // races straight through and the loading=true window is
-                // never observable.
                 val resultChannel = Channel<Result<AuthResponse>>(Channel.UNLIMITED)
                 resultChannel.send(Result.Loading)
                 val (vm, _, _) = signInVm { r ->
@@ -279,12 +262,11 @@ class SignInViewModelStateTest : BehaviorSpec({
                 }
 
                 vm.loading.test {
-                    awaitItem() shouldBe false   // initial
+                    awaitItem() shouldBe false
                     fillSignIn(vm)
                     vm.dispatch(SignInIntent.Continue)
                     advanceUntilIdle()
-                    awaitItem() shouldBe true    // withLoading set it
-                    // Resolve the call so withLoading's `finally` flips it back.
+                    awaitItem() shouldBe true
                     resultChannel.send(
                         Result.Success(
                             AuthResponse(
@@ -295,7 +277,7 @@ class SignInViewModelStateTest : BehaviorSpec({
                     )
                     resultChannel.close()
                     advanceUntilIdle()
-                    awaitItem() shouldBe false   // back to idle
+                    awaitItem() shouldBe false
                 }
             }
         }
@@ -377,8 +359,6 @@ class SignInViewModelStateTest : BehaviorSpec({
             }
         }
     }
-
-    // ---- Register Continue dispatch ---------------------------------------
 
     fun registerVm(
         signUpStub: (AuthRepository) -> Unit = {},

@@ -50,8 +50,6 @@ kotlin {
             implementation(libs.compose.multiplatform.material.icons.extended)
             implementation(projects.core.domain)
             implementation(projects.core.ext)
-            // ApiException / HttpException / NetworkException — surfaced
-            // by Throwable.toUserMessage().
             implementation(projects.data.network)
             implementation(libs.kotlinx.serialization.json)
             // Calendar / Countdown components use kotlinx-datetime +
