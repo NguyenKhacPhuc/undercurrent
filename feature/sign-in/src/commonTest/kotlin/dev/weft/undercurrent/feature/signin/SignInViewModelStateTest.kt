@@ -2,8 +2,16 @@
 
 package dev.weft.undercurrent.feature.signin
 
+import app.cash.turbine.test
+import dev.weft.undercurrent.core.domain.auth.dto.AccountDto
+import dev.weft.undercurrent.core.domain.auth.dto.AuthResponse
+import dev.weft.undercurrent.core.domain.auth.dto.SessionDto
+import dev.weft.undercurrent.core.ext.Result
+import dev.weft.undercurrent.data.network.common.ApiException
+import dev.weft.undercurrent.data.network.common.NetworkException
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -195,6 +203,164 @@ class SignInViewModelStateTest : BehaviorSpec({
                     advanceUntilIdle()
                     vm.state.value.topError shouldBe null
                 }
+            }
+        }
+    }
+
+    // ---- Sign-In Continue dispatch (task 3) -------------------------------
+
+    fun signInVmWith(
+        seedResult: Result<AuthResponse>? = null,
+        store: FakeSessionTokenStore = FakeSessionTokenStore(),
+    ): Pair<SignInViewModel, Pair<FakeAuthRepository, FakeSessionTokenStore>> {
+        val repo = FakeAuthRepository()
+        if (seedResult != null) repo.signInResponses.addLast(seedResult)
+        val vm = SignInViewModel(authRepository = repo, sessionTokenStore = store)
+        return vm to (repo to store)
+    }
+
+    fun fillSignIn(vm: SignInViewModel) {
+        vm.dispatch(SignInIntent.EmailChanged("phuc@example.com"))
+        vm.dispatch(SignInIntent.PasswordChanged("hunter2-correct"))
+    }
+
+    Given("Sign-In Continue with canSubmit=false") {
+        Then("the AuthRepository is NOT called and state is unchanged") {
+            runTest {
+                val (vm, deps) = signInVmWith()
+                val (repo, store) = deps
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+                repo.signInCalls.size shouldBe 0
+                store.saved shouldBe null
+                vm.state.value.submitting shouldBe false
+            }
+        }
+    }
+
+    Given("Sign-In Continue with valid form and a 200 BE response") {
+        Then("the bearer is persisted via SessionTokenStore and Effect.SignedIn is emitted") {
+            runTest {
+                val authResponse = AuthResponse(
+                    account = AccountDto("acct.abc", "Phuc", "phuc@example.com", 1L),
+                    session = SessionDto(token = "tk-success", expiresAtMs = 2L),
+                )
+                val (vm, deps) = signInVmWith(seedResult = Result.Success(authResponse))
+                val (repo, store) = deps
+
+                vm.effects.test {
+                    fillSignIn(vm)
+                    vm.dispatch(SignInIntent.Continue)
+                    advanceUntilIdle()
+
+                    awaitItem() shouldBe SignInEffect.SignedIn
+                    cancelAndIgnoreRemainingEvents()
+                }
+
+                repo.signInCalls shouldBe listOf(
+                    FakeAuthRepository.SignInCall("phuc@example.com", "hunter2-correct"),
+                )
+                store.saved shouldBe "tk-success"
+                val s = vm.state.value
+                s.submitting shouldBe false
+                s.topError shouldBe null
+            }
+        }
+    }
+
+    Given("Sign-In Continue with a 401 BE response") {
+        Then("topError becomes InvalidCredentials and submitting flips off") {
+            runTest {
+                val err = ApiException(
+                    code = "unauthenticated",
+                    apiMessage = "Invalid email or password",
+                    endpoint = "/v1/auth/sign-in",
+                    httpStatus = 401,
+                )
+                val (vm, deps) = signInVmWith(seedResult = Result.Error(err))
+                val (_, store) = deps
+
+                fillSignIn(vm)
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+
+                val s = vm.state.value
+                s.submitting shouldBe false
+                s.topError shouldBe TopError.InvalidCredentials
+                store.saved shouldBe null
+            }
+        }
+    }
+
+    Given("Sign-In Continue with a 429 BE response") {
+        Then("topError becomes RateLimited") {
+            runTest {
+                val err = ApiException(
+                    code = "rate_limited",
+                    apiMessage = "Too many failed sign-in attempts.",
+                    endpoint = "/v1/auth/sign-in",
+                    httpStatus = 429,
+                )
+                val (vm, _) = signInVmWith(seedResult = Result.Error(err))
+                fillSignIn(vm)
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+                vm.state.value.topError shouldBe TopError.RateLimited
+            }
+        }
+    }
+
+    Given("Sign-In Continue with a 400 BE response (generic)") {
+        Then("topError carries the BE's message above the form") {
+            runTest {
+                val err = ApiException(
+                    code = "invalid_request",
+                    apiMessage = "email and password are required",
+                    endpoint = "/v1/auth/sign-in",
+                    httpStatus = 400,
+                )
+                val (vm, _) = signInVmWith(seedResult = Result.Error(err))
+                fillSignIn(vm)
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+                val top = vm.state.value.topError.shouldBeInstanceOf<TopError.Message>()
+                top.message shouldBe "email and password are required"
+            }
+        }
+    }
+
+    Given("Sign-In Continue with a NetworkException") {
+        Then("topError becomes Network so the UI can show Retry") {
+            runTest {
+                val (vm, _) = signInVmWith(seedResult = Result.Error(NetworkException()))
+                fillSignIn(vm)
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+                vm.state.value.topError shouldBe TopError.Network
+            }
+        }
+    }
+
+    Given("Sign-In Continue after a previous error") {
+        Then("a fresh Continue clears the previous topError before submitting") {
+            runTest {
+                val ok = AuthResponse(
+                    account = AccountDto("acct.x", "X", "x@y.com", 1L),
+                    session = SessionDto("tk2", 2L),
+                )
+                val (vm, deps) = signInVmWith()
+                val (repo, _) = deps
+                repo.signInResponses.addLast(Result.Error(NetworkException()))
+                repo.signInResponses.addLast(Result.Success(ok))
+
+                fillSignIn(vm)
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+                vm.state.value.topError shouldBe TopError.Network
+
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+                vm.state.value.topError shouldBe null
             }
         }
     }
