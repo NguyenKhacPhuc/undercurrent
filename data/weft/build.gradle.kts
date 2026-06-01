@@ -36,4 +36,10 @@ dependencies {
     debugImplementation("dev.weft.devtools:weft-devtools")
 
     implementation(libs.kotlinx.coroutines.android)
+
+    // WebSearchTool — owns a plain Tavily HttpClient (the BE client in
+    // Koin is authenticated + base-URL-pinned, so it can't be reused).
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.kotlinx.serialization.json)
 }

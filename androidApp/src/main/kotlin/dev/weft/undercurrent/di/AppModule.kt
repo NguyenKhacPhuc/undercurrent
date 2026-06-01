@@ -43,6 +43,7 @@ import dev.weft.undercurrent.data.weft.tools.OpenMemoriesTool
 import dev.weft.undercurrent.data.weft.tools.OpenPersonasTool
 import dev.weft.undercurrent.data.weft.tools.OpenUsageTool
 import dev.weft.undercurrent.data.weft.tools.ShowLocationOnMapTool
+import dev.weft.undercurrent.data.weft.tools.WebSearchTool
 import dev.weft.undercurrent.feature.chat.chatAndroidModule
 import dev.weft.undercurrent.feature.chat.chatModule
 import dev.weft.undercurrent.feature.chat.agent.AgentSession
@@ -178,6 +179,7 @@ val appModule = module {
                     OpenConversationsTool(ctx, navigation),
                     OpenUsageTool(ctx, navigation),
                     ShowLocationOnMapTool(ctx),
+                    WebSearchTool(ctx, dev.weft.undercurrent.BuildConfig.TAVILY_API_KEY),
                     CreatePersonaTool(
                         ctx = ctx,
                         personaRepo = personaRepo,

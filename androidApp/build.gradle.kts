@@ -6,9 +6,25 @@
 // lives in :composeApp, :shared, or the feature modules. iOS gets
 // the equivalent shell in iosApp/ (Xcode project).
 
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.undercurrent.android.application)
     alias(libs.plugins.kotlin.serialization)
+}
+
+// Tavily key for the web_search tool. Resolution order: local.properties
+// (`tavily.apiKey=…`), then the TAVILY_API_KEY env var, then blank. A
+// blank key is fine — WebSearchTool degrades to a NO_API_KEY error.
+val tavilyApiKey: String = run {
+    val props = Properties()
+    rootProject.file("local.properties")
+        .takeIf { it.exists() }
+        ?.inputStream()
+        ?.use { props.load(it) }
+    props.getProperty("tavily.apiKey")
+        ?: System.getenv("TAVILY_API_KEY")
+        ?: ""
 }
 
 android {
@@ -17,6 +33,7 @@ android {
         applicationId = "dev.weft.undercurrent"
         versionCode = 1
         versionName = "0.0.1"
+        buildConfigField("String", "TAVILY_API_KEY", "\"$tavilyApiKey\"")
     }
     packaging {
         resources {
@@ -39,6 +56,7 @@ dependencies {
     implementation(projects.core.navigation)
     implementation(projects.core.ui)
     implementation(projects.core.ext)
+    implementation(projects.core.resources)
 
     // Domain — repositories (DataStore-Preferences-backed)
     implementation(projects.core.domain)
@@ -98,6 +116,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.compose.multiplatform.resources)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.browser)
     debugImplementation(libs.androidx.compose.ui.tooling)
