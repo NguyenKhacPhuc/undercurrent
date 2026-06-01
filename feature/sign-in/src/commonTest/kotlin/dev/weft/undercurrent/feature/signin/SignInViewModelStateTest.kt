@@ -364,4 +364,170 @@ class SignInViewModelStateTest : BehaviorSpec({
             }
         }
     }
+
+    // ---- Register Continue dispatch (task 4) ------------------------------
+
+    fun registerVmWith(
+        seedResult: Result<AuthResponse>? = null,
+        store: FakeSessionTokenStore = FakeSessionTokenStore(),
+    ): Pair<SignInViewModel, Pair<FakeAuthRepository, FakeSessionTokenStore>> {
+        val repo = FakeAuthRepository()
+        if (seedResult != null) repo.signUpResponses.addLast(seedResult)
+        val vm = SignInViewModel(authRepository = repo, sessionTokenStore = store)
+        return vm to (repo to store)
+    }
+
+    suspend fun fillRegister(vm: SignInViewModel) {
+        vm.dispatch(SignInIntent.SwitchMode)
+        vm.dispatch(SignInIntent.DisplayNameChanged("Phuc"))
+        vm.dispatch(SignInIntent.EmailChanged("phuc@example.com"))
+        vm.dispatch(SignInIntent.PasswordChanged("hunter2-correct"))
+    }
+
+    Given("Register Continue with !canSubmit (displayName empty)") {
+        Then("the AuthRepository is NOT called") {
+            runTest {
+                val (vm, deps) = registerVmWith()
+                val (repo, _) = deps
+                vm.dispatch(SignInIntent.SwitchMode)
+                vm.dispatch(SignInIntent.EmailChanged("phuc@example.com"))
+                vm.dispatch(SignInIntent.PasswordChanged("hunter2-correct"))
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+                repo.signUpCalls.size shouldBe 0
+            }
+        }
+    }
+
+    Given("Register Continue with valid form and a 201 BE response") {
+        Then("the bearer is persisted, Effect.SignedIn is emitted, and signUp got the right args") {
+            runTest {
+                val ok = AuthResponse(
+                    account = AccountDto("acct.new", "Phuc", "phuc@example.com", 1L),
+                    session = SessionDto(token = "tk-new", expiresAtMs = 2L),
+                )
+                val (vm, deps) = registerVmWith(seedResult = Result.Success(ok))
+                val (repo, store) = deps
+
+                vm.effects.test {
+                    fillRegister(vm)
+                    vm.dispatch(SignInIntent.Continue)
+                    advanceUntilIdle()
+                    awaitItem() shouldBe SignInEffect.SignedIn
+                    cancelAndIgnoreRemainingEvents()
+                }
+
+                repo.signUpCalls shouldBe listOf(
+                    FakeAuthRepository.SignUpCall("Phuc", "phuc@example.com", "hunter2-correct"),
+                )
+                store.saved shouldBe "tk-new"
+                vm.state.value.submitting shouldBe false
+            }
+        }
+    }
+
+    Given("Register Continue with a 400 BE response carrying field details") {
+        Then("fieldErrors are populated and no topError is shown above the form") {
+            runTest {
+                val err = ApiException(
+                    code = "invalid_request",
+                    apiMessage = "One or more fields are invalid",
+                    details = mapOf("email" to "must be a valid email address", "password" to "must be at least 8 characters"),
+                    endpoint = "/v1/auth/sign-up",
+                    httpStatus = 400,
+                )
+                val (vm, _) = registerVmWith(seedResult = Result.Error(err))
+                fillRegister(vm)
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+                val s = vm.state.value
+                s.fieldErrors shouldBe mapOf(
+                    "email" to "must be a valid email address",
+                    "password" to "must be at least 8 characters",
+                )
+                s.topError shouldBe null
+            }
+        }
+    }
+
+    Given("Register Continue with a 400 BE response WITHOUT field details") {
+        Then("topError carries the BE message above the form") {
+            runTest {
+                val err = ApiException(
+                    code = "invalid_request",
+                    apiMessage = "Request body is missing or malformed",
+                    details = null,
+                    endpoint = "/v1/auth/sign-up",
+                    httpStatus = 400,
+                )
+                val (vm, _) = registerVmWith(seedResult = Result.Error(err))
+                fillRegister(vm)
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+                val top = vm.state.value.topError.shouldBeInstanceOf<TopError.Message>()
+                top.message shouldBe "Request body is missing or malformed"
+                vm.state.value.fieldErrors shouldBe emptyMap()
+            }
+        }
+    }
+
+    Given("Register Continue with a 409 email_already_registered BE response") {
+        Then("topError carries the BE message AND the Switch-to-Sign-In shortcut is surfaced") {
+            runTest {
+                val err = ApiException(
+                    code = "email_already_registered",
+                    apiMessage = "An account with this email already exists",
+                    endpoint = "/v1/auth/sign-up",
+                    httpStatus = 409,
+                )
+                val (vm, _) = registerVmWith(seedResult = Result.Error(err))
+                fillRegister(vm)
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+                val s = vm.state.value
+                val top = s.topError.shouldBeInstanceOf<TopError.Message>()
+                top.message shouldBe "An account with this email already exists"
+                s.showSwitchToSignInShortcut shouldBe true
+            }
+        }
+    }
+
+    Given("Register Continue with a NetworkException") {
+        Then("topError becomes Network") {
+            runTest {
+                val (vm, _) = registerVmWith(seedResult = Result.Error(NetworkException()))
+                fillRegister(vm)
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+                vm.state.value.topError shouldBe TopError.Network
+            }
+        }
+    }
+
+    Given("after a 409 surfaces the Switch shortcut, SwitchToSignInWithEmail is dispatched") {
+        Then("the VM flips to Sign-In mode with the email preserved and the shortcut cleared") {
+            runTest {
+                val err = ApiException(
+                    code = "email_already_registered",
+                    apiMessage = "An account with this email already exists",
+                    endpoint = "/v1/auth/sign-up",
+                    httpStatus = 409,
+                )
+                val (vm, _) = registerVmWith(seedResult = Result.Error(err))
+                fillRegister(vm)
+                vm.dispatch(SignInIntent.Continue)
+                advanceUntilIdle()
+                vm.state.value.showSwitchToSignInShortcut shouldBe true
+
+                vm.dispatch(SignInIntent.SwitchToSignInWithEmail)
+                advanceUntilIdle()
+
+                val s = vm.state.value
+                s.mode shouldBe SignInState.Mode.SignIn
+                s.email shouldBe "phuc@example.com"
+                s.showSwitchToSignInShortcut shouldBe false
+                s.topError shouldBe null
+            }
+        }
+    }
 })

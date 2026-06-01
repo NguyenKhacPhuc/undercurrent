@@ -92,7 +92,59 @@ class SignInViewModel(
     }
 
     private suspend fun handleRegister(displayName: String, email: String, password: String) {
-        // Behavior lands in task 4.
+        authRepository.signUp(displayName, email, password).collect { result ->
+            when (result) {
+                Result.Loading -> Unit
+                is Result.Success -> onAuthSuccess(result.data)
+                is Result.Error -> applyRegisterError(result.exception)
+            }
+        }
+    }
+
+    /**
+     * Translates a Register-side failure into the right combination of
+     * `topError` / `fieldErrors` / `showSwitchToSignInShortcut`. The
+     * mapping mirrors `api-contract.md`'s 4xx codes:
+     *
+     *  - 400 + `details` populated → per-field errors, no top-error.
+     *  - 400 + no `details` → top-error with the BE message.
+     *  - 409 `email_already_registered` → top-error AND the
+     *    "Switch to Sign In with this email" affordance.
+     *  - Other ApiException → top-error with the BE message.
+     *  - NetworkException → Network so the UI shows Retry.
+     */
+    private fun applyRegisterError(e: Throwable) {
+        when {
+            e is ApiException && e.httpStatus == 400 && !e.details.isNullOrEmpty() -> {
+                val details = e.details.orEmpty()
+                update { s -> s.copy(submitting = false, fieldErrors = details, topError = null) }
+            }
+            e is ApiException && e.code == EMAIL_ALREADY_REGISTERED_CODE -> {
+                update { s ->
+                    s.copy(
+                        submitting = false,
+                        topError = TopError.Message(e.apiMessage),
+                        showSwitchToSignInShortcut = true,
+                    )
+                }
+            }
+            e is ApiException -> update { s ->
+                s.copy(submitting = false, topError = TopError.Message(e.apiMessage))
+            }
+            e is NetworkException -> update { s ->
+                s.copy(submitting = false, topError = TopError.Network)
+            }
+            e is HttpException -> update { s ->
+                s.copy(submitting = false, topError = TopError.Message("Server error (${e.httpStatus})."))
+            }
+            else -> update { s ->
+                s.copy(submitting = false, topError = TopError.Message(e.message ?: "Unknown error."))
+            }
+        }
+    }
+
+    private companion object {
+        const val EMAIL_ALREADY_REGISTERED_CODE: String = "email_already_registered"
     }
 
     private suspend fun onAuthSuccess(response: AuthResponse) {
