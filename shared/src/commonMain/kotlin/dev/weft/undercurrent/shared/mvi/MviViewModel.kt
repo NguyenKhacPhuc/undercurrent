@@ -22,6 +22,9 @@ abstract class MviViewModel<State, Intent, Effect>(
     private val _effects = Channel<Effect>(Channel.BUFFERED)
     val effects: Flow<Effect> = _effects.receiveAsFlow()
 
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
     protected val current: State get() = _state.value
 
     abstract fun dispatch(intent: Intent): Job
@@ -44,4 +47,17 @@ abstract class MviViewModel<State, Intent, Effect>(
 
     protected fun <T> Flow<T>.observe(block: suspend (T) -> Unit): Job =
         viewModelScope.coroutinesLaunch { collect(block) }
+
+    protected fun setLoading(value: Boolean) {
+        _loading.value = value
+    }
+
+    protected suspend inline fun <T> withLoading(block: () -> T): T {
+        setLoading(true)
+        try {
+            return block()
+        } finally {
+            setLoading(false)
+        }
+    }
 }

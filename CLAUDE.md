@@ -300,8 +300,14 @@ conversation → rename to verb-noun → shorten description.
 ## Testing (BDD via kotest)
 
 The convention plugin wires kotest + Turbine + kotlinx-coroutines-test
-into every KMP library's `commonTest`; MockK + kotest-runner-junit5 in
-`androidUnitTest`. No per-module test deps to add.
++ **Mokkery** into every KMP library's `commonTest`; MockK +
+kotest-runner-junit5 in `androidUnitTest`. No per-module test deps to
+add.
+
+Mokkery is a Kotlin compiler plugin that generates mock implementations
+of interfaces at compile time — like MockK, but K/N-native. Use it
+directly in `commonTest`; the same module's `androidUnitTest` still has
+full JVM MockK for tests that need a feature Mokkery doesn't ship.
 
 **BDD style** — `BehaviorSpec` with `Given` / `When` / `Then`:
 
@@ -315,10 +321,14 @@ class FooViewModelTest : BehaviorSpec({
         When("Intent.X is dispatched") {
             Then("state.foo becomes 'bar'") {
                 runTest {
-                    val vm = FooViewModel(FakeRepository())
+                    val repo = mock<FooRepository> {
+                        every { fetch(any()) } returns flowOf("bar")
+                    }
+                    val vm = FooViewModel(repo)
                     vm.dispatch(FooIntent.X)
                     advanceUntilIdle()      // dispatch is async — returns Job
                     vm.state.value.foo shouldBe "bar"
+                    verify(exactly(1)) { repo.fetch("x") }
                 }
             }
         }
@@ -329,11 +339,11 @@ class FooViewModelTest : BehaviorSpec({
 **Split convention** (when both styles apply):
 
 - `<Name>ViewModelStateTest.kt` in **commonTest** — state-projection
-  assertions only. Hand-rolled `Fake<Repository>` (KMP-portable, no
-  MockK). Runs on Android + iOS.
-- `<Name>ViewModelTest.kt` in **androidUnitTest** — collaborator
-  interaction assertions (`coVerify(exactly = N) { repo.method(...) }`).
-  JVM-only because MockK is JVM-only.
+  assertions + collaborator-call verification via Mokkery. Runs on
+  Android + iOS.
+- `<Name>ViewModelTest.kt` in **androidUnitTest** — only when MockK's
+  JVM-only features are needed (advanced spy/argument-capture).
+  Defaults to commonTest with Mokkery.
 
 The split is by *what an assertion checks*, not by *what the test
 exercises*.
@@ -378,9 +388,13 @@ adb logcat | grep Undercurrent
 ## Conventions
 
 - **No emojis in code or commits** unless the user explicitly asks.
-- **No excessive comments.** Don't narrate the obvious. Why-comments
-  for non-obvious choices, KDoc on public APIs intended for host
-  consumers, nothing else.
+- **Default to zero comments.** Read the code first; comment only when
+  the *why* is non-obvious (hidden constraint, subtle invariant,
+  workaround). A one-line KDoc on a public API consumed cross-module is
+  fine — multi-paragraph treatises on internal symbols are not. Never
+  restate what the code does, reference the current PR / task / story,
+  or section-header inside a single file. If removing a comment doesn't
+  confuse a future reader, the comment shouldn't exist.
 - **`internal` by default** for classes that don't cross module
   boundaries. Public is the exception.
 - **DataStore for prefs, KeyVault for secrets, SQLDelight (via Weft)
@@ -410,9 +424,10 @@ adb logcat | grep Undercurrent
   render it.
 - Don't ship a Composable file over 300 lines or one without a
   `@Preview`. Split into a `components/` subpackage when it grows.
-- Don't put MockK or kotest-runner-junit5 in `commonTest` — both are
-  JVM-only. Hand-rolled fakes only there. Kotest's engine + assertions
-  + Turbine ARE KMP and live in `commonTest`.
+- Don't put the JVM `mockk` artifact or kotest-runner-junit5 in
+  `commonTest` — both are JVM-only. Use Mokkery (`mock<T>()` +
+  `every {}` + `verify {}`) which IS multiplatform. Kotest's engine
+  + assertions + Turbine ARE KMP and also live in `commonTest`.
 - Don't reformat the AppPreamble casually — sentences are tuned against
   agent behavior.
 </content>

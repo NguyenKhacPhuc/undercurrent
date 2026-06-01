@@ -69,6 +69,11 @@ turbine = "1.2.0"
 # source sets to stub gateway dependencies. iOS-side tests fall back
 # to hand-rolled fakes (the Stub* gateways the host already ships).
 mockk = "1.13.13"
+# Mokkery — KMP-native mocking via a Kotlin compiler plugin. Runtime
+# library + Gradle plugin track the same version. Used in commonTest
+# of every KMP module; full JVM mockk stays available in androidUnitTest
+# for tests that need MockK-only features.
+mokkery = "3.3.0"
 
 # Lint
 detekt = "1.23.7"
@@ -200,6 +205,11 @@ kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.
 kotest-framework-engine = { module = "io.kotest:kotest-framework-engine", version.ref = "kotest" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+# Mokkery's runtime entrypoint. The actual mocks are emitted by the
+# `dev.mokkery` Kotlin compiler plugin applied via the kmp.library
+# convention plugin; this dep is what the generated code resolves
+# against at test-runtime.
+mokkery-runtime = { module = "dev.mokkery:mokkery-runtime", version.ref = "mokkery" }
 
 # --- Convention-plugin compile classpath ---
 # build-logic/convention/build.gradle.kts depends on these as
@@ -210,6 +220,7 @@ android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref 
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-compose-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "composeMultiplatform" }
+mokkery-gradlePlugin = { module = "dev.mokkery:dev.mokkery.gradle.plugin", version.ref = "mokkery" }
 
 [plugins]
 # Stock plugin IDs (consumed by the convention plugins above)
@@ -222,6 +233,10 @@ compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMu
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+# Mokkery KMP mocking compiler plugin. Applied by the kmp.library
+# convention plugin into every KMP library so commonTest can call
+# `mock<T>()` directly.
+mokkery = { id = "dev.mokkery", version.ref = "mokkery" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 

@@ -22,6 +22,7 @@ import dev.weft.undercurrent.feature.miniapps.miniAppsModule
 import dev.weft.undercurrent.feature.onboarding.onboardingModule
 import dev.weft.undercurrent.feature.personas.personasModule
 import dev.weft.undercurrent.feature.providers.ProviderViewModel
+import dev.weft.undercurrent.feature.auth.authModule
 import dev.weft.undercurrent.feature.theme.themeModule
 import dev.weft.undercurrent.feature.traces.TraceExportViewModel
 import dev.weft.undercurrent.feature.traces.tracesModule
@@ -90,6 +91,7 @@ val iosAppModule = module {
             providerPrefsRepo = get(),
             navigationVm = get(),
             chatVm = get(),
+            sessionTokenStore = get(),
         )
     }
 
@@ -116,6 +118,7 @@ val iosAllModules = listOf(
     databaseIosModule,
     iosNetworkModule,
     authRepositoryModule,
+    authModule,
     chatModule,
     themeModule,
     onboardingModule,

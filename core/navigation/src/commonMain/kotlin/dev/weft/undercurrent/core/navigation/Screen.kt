@@ -16,6 +16,16 @@ package dev.weft.undercurrent.core.navigation
  */
 sealed interface Screen : NavKey {
     data object Loading : Screen
+
+    /**
+     * First-launch register-or-sign-in flow against the BE
+     * (`mobile-auth-wiring/05`). Rendered when no session token is
+     * stored on-device; after a successful sign-in or register,
+     * the host resumes the normal onboarding cascade
+     * ([Onboarding] → [KeyPaste] → [Chat]).
+     */
+    data object SignIn : Screen
+
     data object Onboarding : Screen
     data object KeyPaste : Screen
     data object Chat : Screen

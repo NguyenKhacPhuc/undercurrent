@@ -56,6 +56,8 @@ kotlin {
             implementation(projects.data.sqldelight)
             // Network — iosNetworkModule (Ktor Darwin engine) registered into Koin
             implementation(projects.data.network)
+            // Sign-in feature — SignInRoute referenced by ScreenRouter
+            implementation(projects.feature.auth)
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)

@@ -44,6 +44,7 @@ internal class WeftAppViewModel(
     private val agentFactory: WeftAgentFactory,
     private val chatVm: ChatViewModel,
     uiBridgeRepo: UiBridgeRepository,
+    private val sessionTokenStore: dev.weft.undercurrent.core.domain.SessionTokenStore,
 ) : MviViewModel<AppState, Nothing, AppEffect>(
     initialState = AppState.initial(),
 ), AppViewModel {
@@ -103,6 +104,15 @@ internal class WeftAppViewModel(
     }
 
     private suspend fun handleResume() {
+        // Sign-in gate (mobile-auth-wiring/05 D7): no stored BE session
+        // → land on the SignIn screen before any other onboarding step.
+        // The boot cascade re-runs after a successful sign-in via
+        // SignInRoute.onSignedIn → AppViewModel.resume().
+        val sessionToken = withContext(Dispatchers.IO) { sessionTokenStore.read() }
+        if (sessionToken == null) {
+            agentSession.setRootScreen(Screen.SignIn)
+            return
+        }
         val onboardingDone = onboardingRepo.completedFlow.first()
         if (!onboardingDone) {
             agentSession.setRootScreen(Screen.Onboarding)
