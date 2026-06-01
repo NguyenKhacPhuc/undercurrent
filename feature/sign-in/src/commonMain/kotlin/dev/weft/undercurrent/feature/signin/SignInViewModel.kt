@@ -22,6 +22,36 @@ class SignInViewModel(
     initialState = SignInState(),
 ) {
     override fun dispatch(intent: SignInIntent) = launch {
-        // Intent handling lands in tasks 2–4.
+        when (intent) {
+            SignInIntent.SwitchMode -> update { s ->
+                s.copy(
+                    mode = when (s.mode) {
+                        SignInState.Mode.SignIn -> SignInState.Mode.Register
+                        SignInState.Mode.Register -> SignInState.Mode.SignIn
+                    },
+                    // Toggling clears displayName + any stale errors so the
+                    // new form starts in a clean state. Email + password are
+                    // preserved per Q2's UX guess.
+                    displayName = "",
+                    topError = null,
+                    fieldErrors = emptyMap(),
+                    showSwitchToSignInShortcut = false,
+                )
+            }
+            SignInIntent.SwitchToSignInWithEmail -> update { s ->
+                s.copy(
+                    mode = SignInState.Mode.SignIn,
+                    topError = null,
+                    fieldErrors = emptyMap(),
+                    showSwitchToSignInShortcut = false,
+                )
+            }
+            is SignInIntent.EmailChanged -> update { s -> s.copy(email = intent.value) }
+            is SignInIntent.PasswordChanged -> update { s -> s.copy(password = intent.value) }
+            is SignInIntent.DisplayNameChanged -> update { s -> s.copy(displayName = intent.value) }
+            SignInIntent.ClearTopError -> update { s -> s.copy(topError = null) }
+            // Continue dispatch lands in tasks 3 + 4.
+            SignInIntent.Continue -> Unit
+        }
     }
 }
