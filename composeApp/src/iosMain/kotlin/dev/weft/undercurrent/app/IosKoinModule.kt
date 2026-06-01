@@ -4,11 +4,14 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import dev.weft.compose.components.WeftComponentRegistry
+import dev.weft.undercurrent.core.domain.auth.BE_BASE_URL_QUALIFIER
+import dev.weft.undercurrent.core.domain.auth.authRepositoryModule
 import dev.weft.undercurrent.core.domain.repositoryModule
 import dev.weft.undercurrent.core.domain.usecase.chat.chatUseCasesModule
 import dev.weft.undercurrent.core.navigation.navigationModule
 import dev.weft.undercurrent.core.ui.components.undercurrentComponents
 import dev.weft.undercurrent.data.datastore.datastoreIosModule
+import dev.weft.undercurrent.data.network.iosNetworkModule
 import dev.weft.undercurrent.data.sqldelight.databaseIosModule
 import dev.weft.undercurrent.feature.chat.chatModule
 import dev.weft.undercurrent.feature.conversations.conversationsModule
@@ -45,9 +48,15 @@ import dev.weft.undercurrent.core.domain.TraceStoreRepository
 import dev.weft.undercurrent.core.domain.UiBridgeRepository
 import dev.weft.undercurrent.core.domain.UsageRepository
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val iosAppModule = module {
+
+    // BE base URL consumed by authRepositoryModule. Hardcoded for v1
+    // per BE Inception D5; swap to a build-time constant when we add
+    // a staging environment.
+    single<String>(named(BE_BASE_URL_QUALIFIER)) { BE_BASE_URL }
 
     single<ImageLoader> {
         ImageLoader.Builder(PlatformContext.INSTANCE)
@@ -102,6 +111,8 @@ val iosAllModules = listOf(
     chatUseCasesModule,
     datastoreIosModule,
     databaseIosModule,
+    iosNetworkModule,
+    authRepositoryModule,
     chatModule,
     themeModule,
     onboardingModule,
@@ -112,3 +123,10 @@ val iosAllModules = listOf(
     tracesModule,
     usageModule,
 )
+
+/**
+ * Production BE — pinned 2026-05-31 after the BE Story 01 deploy
+ * (`inception/260531-1733-backend-bootstrap-auth/api-contract.md#Conventions`).
+ * Swap to a build-time constant when we add a staging environment.
+ */
+private const val BE_BASE_URL: String = "https://undercurrent-backend-production.up.railway.app"

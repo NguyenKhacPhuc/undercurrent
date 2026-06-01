@@ -22,6 +22,8 @@ import dev.weft.undercurrent.core.domain.OnboardingRepository
 import dev.weft.undercurrent.core.domain.PersonaRepository
 import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.domain.ThemeRepository
+import dev.weft.undercurrent.core.domain.auth.BE_BASE_URL_QUALIFIER
+import dev.weft.undercurrent.core.domain.auth.authRepositoryModule
 import dev.weft.undercurrent.core.domain.repositoryModule
 import dev.weft.undercurrent.core.domain.usecase.chat.chatUseCasesModule
 import dev.weft.undercurrent.core.model.AppEffect
@@ -29,6 +31,7 @@ import dev.weft.undercurrent.core.model.AppState
 import dev.weft.undercurrent.core.navigation.NavigationChannel
 import dev.weft.undercurrent.core.navigation.navigationModule
 import dev.weft.undercurrent.data.datastore.datastoreAndroidModule
+import dev.weft.undercurrent.data.network.androidNetworkModule
 import dev.weft.undercurrent.data.sqldelight.SqlDelightDataSource
 import dev.weft.undercurrent.data.sqldelight.databaseAndroidModule
 import dev.weft.undercurrent.core.domain.repositoryAndroidModule
@@ -71,6 +74,11 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val appModule = module {
+
+    // BE base URL consumed by authRepositoryModule. Hardcoded for v1
+    // per BE Inception D5; swap to BuildConfig when we add a staging
+    // environment.
+    single<String>(named(BE_BASE_URL_QUALIFIER)) { BE_BASE_URL }
 
     single {
         val imageLoader = coil3.ImageLoader.Builder(androidContext()).build()
@@ -261,6 +269,8 @@ val allModules = listOf(
     datastoreAndroidModule,
     databaseAndroidModule,
     repositoryAndroidModule,
+    androidNetworkModule,
+    authRepositoryModule,
     chatModule,
     chatAndroidModule,
     themeModule,
@@ -296,6 +306,13 @@ private fun mcpServersFor(
 }
 
 private const val OAUTH_KEY_VAULT: String = "oauth_key_vault"
+
+/**
+ * Production BE — pinned 2026-05-31 after the BE Story 01 deploy
+ * (`inception/260531-1733-backend-bootstrap-auth/api-contract.md#Conventions`).
+ * Swap to a `BuildConfig` constant when we add a staging environment.
+ */
+private const val BE_BASE_URL: String = "https://undercurrent-backend-production.up.railway.app"
 
 private fun dev.weft.undercurrent.core.domain.OAuthConfig.toWeft(): dev.weft.oauth.OAuthConfig =
     dev.weft.oauth.OAuthConfig(

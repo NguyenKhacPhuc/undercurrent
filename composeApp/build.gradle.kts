@@ -54,6 +54,8 @@ kotlin {
             implementation(projects.core.domain)
             implementation(projects.data.datastore)
             implementation(projects.data.sqldelight)
+            // Network — iosNetworkModule (Ktor Darwin engine) registered into Koin
+            implementation(projects.data.network)
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
