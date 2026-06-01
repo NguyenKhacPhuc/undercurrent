@@ -18,6 +18,7 @@ import dev.weft.undercurrent.feature.onboarding.OnboardingRoute
 import dev.weft.undercurrent.feature.personas.PersonasRoute
 import dev.weft.undercurrent.feature.providers.ProvidersRoute
 import dev.weft.undercurrent.feature.settings.SettingsRoute
+import dev.weft.undercurrent.feature.signin.SignInRoute
 import dev.weft.undercurrent.feature.theme.AppearanceRoute
 import dev.weft.undercurrent.feature.traces.TracesRoute
 import dev.weft.undercurrent.feature.usage.UsageRoute
@@ -26,9 +27,11 @@ import org.koin.compose.koinInject
 @Composable
 internal fun ScreenRouter(platform: PlatformAdapter) {
     val navigationVm: NavigationViewModel = koinInject()
+    val appVm: AppViewModel = koinInject()
     NavDisplay(backStack = navigationVm.backStack) { entry ->
         when (entry) {
             Screen.Loading -> LoadingPlaceholder()
+            Screen.SignIn -> SignInRoute(onSignedIn = { appVm.resume() })
             Screen.Onboarding -> OnboardingRoute()
             Screen.KeyPaste -> KeyPasteRoute(onOpenConsole = platform.onOpenUrl)
             Screen.Chat -> ChatGate { platform.chatRoute() }

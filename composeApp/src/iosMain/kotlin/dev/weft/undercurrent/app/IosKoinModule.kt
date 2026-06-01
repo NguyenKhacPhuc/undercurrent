@@ -22,6 +22,7 @@ import dev.weft.undercurrent.feature.miniapps.miniAppsModule
 import dev.weft.undercurrent.feature.onboarding.onboardingModule
 import dev.weft.undercurrent.feature.personas.personasModule
 import dev.weft.undercurrent.feature.providers.ProviderViewModel
+import dev.weft.undercurrent.feature.signin.signInModule
 import dev.weft.undercurrent.feature.theme.themeModule
 import dev.weft.undercurrent.feature.traces.TraceExportViewModel
 import dev.weft.undercurrent.feature.traces.tracesModule
@@ -116,6 +117,7 @@ val iosAllModules = listOf(
     databaseIosModule,
     iosNetworkModule,
     authRepositoryModule,
+    signInModule,
     chatModule,
     themeModule,
     onboardingModule,
