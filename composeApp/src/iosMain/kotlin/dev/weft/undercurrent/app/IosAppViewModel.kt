@@ -8,10 +8,12 @@ import dev.weft.undercurrent.core.domain.SessionTokenStore
 import dev.weft.undercurrent.core.domain.ThemeRepository
 import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.AppState
+import dev.weft.undercurrent.core.model.PermissionDialogState
 import dev.weft.undercurrent.core.navigation.NavBackStack
 import dev.weft.undercurrent.core.navigation.NavigationIntent
 import dev.weft.undercurrent.core.navigation.NavigationViewModel
 import dev.weft.undercurrent.core.navigation.Screen
+import dev.weft.undercurrent.feature.chat.ChatEffect
 import dev.weft.undercurrent.feature.chat.ChatViewModel
 import dev.weft.undercurrent.feature.chat.components.DisplayMessage
 import dev.weft.undercurrent.feature.chat.SkillSummary
@@ -66,6 +68,16 @@ class IosAppViewModel(
             .map { it.currentConversationId }
             .distinctUntilChanged()
             .collectInto { copy(currentConversationId = it) }
+        chatVm.effects.observe { effect ->
+            if (effect is ChatEffect.PermissionNeeded) {
+                val dialog = PermissionDialogState(
+                    toolName = effect.payload.toolName,
+                    friendlyTitle = effect.payload.friendlyTitle,
+                    friendlyBody = effect.payload.friendlyBody,
+                )
+                update { it.copy(pendingPermissionDialog = dialog) }
+            }
+        }
     }
 
     private fun setRootScreen(screen: Screen) {
