@@ -67,12 +67,14 @@ kotlin {
             implementation(projects.data.weft)
         }
         iosMain.dependencies {
-            // The substrate's KMP agent loop. As of weft@6c6dc28 every
-            // Koog-using harness module + WeftAgent itself publishes
-            // iOS klibs (jvm + androidTarget + iosArm64 +
-            // iosSimulatorArm64). On iOS we instantiate WeftAgent
-            // directly without going through :android's WeftRuntime
-            // composition root (Application-class-bound).
+            // The substrate's KMP agent loop. Every Koog-using harness
+            // module + WeftAgent publishes iOS klibs. As of the
+            // weft-ios-parity work the composition root itself is KMP, so
+            // iOS now stands up the agent through `WeftRuntime.create(
+            // WeftPlatform(), …)` (the turnkey factory) rather than
+            // instantiating WeftAgent by hand.
+            implementation("dev.weft:weft-runtime")
+            implementation("dev.weft:weft-compose")
             implementation("dev.weft:weft-harness-agents")
             implementation("dev.weft:weft-harness-prompt")
             implementation("dev.weft:weft-harness-observability")
