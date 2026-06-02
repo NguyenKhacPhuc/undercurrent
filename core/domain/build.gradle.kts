@@ -29,6 +29,13 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.kotlinx.serialization.json)
+            // Substrate stores — shared now that WeftRuntime is KMP, so the
+            // Weft-backed history/memory/trace/usage repositories live in
+            // commonMain (Android + iOS) rather than androidMain only.
+            implementation("dev.weft:weft-harness-conversation")
+            implementation("dev.weft:weft-harness-memory")
+            implementation("dev.weft:weft-harness-observability")
+            implementation("dev.weft:weft-harness-cost")
         }
         commonTest.dependencies {
             // MockEngine for AuthRepositoryImpl tests (mobile-auth-wiring/04).
@@ -39,10 +46,6 @@ kotlin {
             implementation("dev.weft:weft-compose")
             implementation("dev.weft:weft-oauth")
             implementation("dev.weft:weft-contracts")
-            implementation("dev.weft:weft-harness-conversation")
-            implementation("dev.weft:weft-harness-memory")
-            implementation("dev.weft:weft-harness-observability")
-            implementation("dev.weft:weft-harness-cost")
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.koin.android)
             // EncryptedSharedPreferences for the BE session bearer (mobile-auth-wiring/02).
