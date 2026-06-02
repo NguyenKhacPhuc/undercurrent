@@ -39,7 +39,7 @@ import dev.weft.undercurrent.core.domain.ConversationStoreRepository
 import dev.weft.undercurrent.core.domain.IosSpeechRepository
 import dev.weft.undercurrent.core.domain.KeyValidationRepository
 import dev.weft.undercurrent.core.domain.KeyVaultRepository
-import dev.weft.undercurrent.core.domain.KeychainKeyVaultRepository
+import dev.weft.undercurrent.core.domain.WeftKeyVaultRepository
 import dev.weft.undercurrent.core.domain.KeychainSessionTokenStore
 import dev.weft.undercurrent.core.domain.MemoryStoreRepository
 import dev.weft.undercurrent.core.domain.SessionTokenStore
@@ -94,7 +94,7 @@ val iosAppModule = module {
         )
     }
 
-    single<KeyVaultRepository> { KeychainKeyVaultRepository() }
+    single<KeyVaultRepository> { WeftKeyVaultRepository(get<WeftRuntime>().keyVault) }
     single<SessionTokenStore> { KeychainSessionTokenStore() }
     single<KeyValidationRepository> { StubKeyValidationRepository() }
     single<OAuthRepository> { StubOAuthRepository() }

@@ -42,9 +42,10 @@ import platform.darwin.OSStatus
  * iOS impl of [SessionTokenStore]. Single-slot Keychain entry keyed off
  * (`SERVICE`, `SESSION_TOKEN_ACCOUNT`).
  *
- * Mirrors the shape of [KeychainKeyVaultRepository]: same `kSecAttrService`
- * so per-app Keychain items live together; `kSecAttrAccessibleAfterFirstUnlock`
- * so the token is available once the device has been unlocked after boot.
+ * Uses the same Keychain conventions as the substrate key vault: a
+ * per-app `kSecAttrService` so items live together, and
+ * `kSecAttrAccessibleAfterFirstUnlock` so the token is available once the
+ * device has been unlocked after boot.
  *
  * Keychain entries survive app uninstall by Apple's default — that's the
  * known iOS UX wart called out in the Inception. The Sign Out flow
