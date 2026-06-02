@@ -75,6 +75,9 @@ kotlin {
             // instantiating WeftAgent by hand.
             implementation("dev.weft:weft-runtime")
             implementation("dev.weft:weft-compose")
+            // OAuth (iOS launcher + token store) for the integrations
+            // sign-in wiring.
+            implementation("dev.weft:weft-oauth")
             implementation("dev.weft:weft-harness-agents")
             implementation("dev.weft:weft-harness-prompt")
             implementation("dev.weft:weft-harness-observability")

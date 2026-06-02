@@ -46,10 +46,13 @@ import dev.weft.undercurrent.core.domain.SessionTokenStore
 import dev.weft.undercurrent.core.domain.ModelCatalogRepository
 import dev.weft.undercurrent.core.domain.OAuthRepository
 import dev.weft.undercurrent.core.domain.SpeechRepository
+import dev.weft.oauth.IosOAuthClient
+import dev.weft.oauth.OAuthClient
+import dev.weft.oauth.OAuthTokenStore
 import dev.weft.undercurrent.core.domain.StubKeyValidationRepository
 import dev.weft.undercurrent.core.domain.StubModelCatalogRepository
-import dev.weft.undercurrent.core.domain.StubOAuthRepository
 import dev.weft.undercurrent.core.domain.StubUiBridgeRepository
+import dev.weft.undercurrent.core.domain.WeftOAuthRepository
 import dev.weft.undercurrent.core.domain.TraceStoreRepository
 import dev.weft.undercurrent.core.domain.UiBridgeRepository
 import dev.weft.undercurrent.core.domain.UsageRepository
@@ -98,7 +101,14 @@ val iosAppModule = module {
     single<KeyVaultRepository> { WeftKeyVaultRepository(get<WeftRuntime>().keyVault) }
     single<SessionTokenStore> { KeychainSessionTokenStore() }
     single<KeyValidationRepository> { StubKeyValidationRepository() }
-    single<OAuthRepository> { StubOAuthRepository() }
+    single<OAuthClient> { IosOAuthClient() }
+    single {
+        OAuthTokenStore(
+            keyVault = get<WeftRuntime>().keyVault,
+            oauthClient = get<OAuthClient>(),
+        )
+    }
+    single<OAuthRepository> { WeftOAuthRepository(get<OAuthClient>(), get<OAuthTokenStore>()) }
     single<ConversationStoreRepository> {
         WeftConversationStoreRepository(get<WeftRuntime>().conversationStore)
     }
