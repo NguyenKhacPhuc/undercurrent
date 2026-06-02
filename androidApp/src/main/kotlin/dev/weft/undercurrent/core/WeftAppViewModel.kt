@@ -17,7 +17,7 @@ import dev.weft.undercurrent.core.model.AppState
 import dev.weft.undercurrent.core.navigation.NavBackStack
 import dev.weft.undercurrent.core.navigation.NavigationChannel
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.feature.chat.ChatViewModel
 import dev.weft.undercurrent.feature.chat.components.DisplayMessage
@@ -39,7 +39,7 @@ internal class WeftAppViewModel(
     private val onboardingRepo: OnboardingRepository,
     private val providerPrefsRepo: ProviderPrefsRepository,
     navigationChannel: NavigationChannel,
-    private val navigationVm: NavigationViewModel,
+    private val navigationVm: Navigator,
     agentSlot: AgentSlot,
     private val agentFactory: WeftAgentFactory,
     private val chatVm: ChatViewModel,

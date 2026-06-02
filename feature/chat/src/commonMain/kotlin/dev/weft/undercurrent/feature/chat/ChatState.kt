@@ -11,7 +11,7 @@ import dev.weft.undercurrent.core.domain.AgentSummary
  * [activeAgentName], [availableAgents]) that the chat surface
  * renders + dispatches against.
  *
- * `agentReady` lives here (not in NavigationViewModel) because the
+ * `agentReady` lives here (not in Navigator) because the
  * "can the user send" question is fundamentally a chat concern — the
  * chat route gates on it before showing the input.
  */

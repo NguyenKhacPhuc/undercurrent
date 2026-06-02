@@ -14,7 +14,7 @@ import dev.weft.undercurrent.core.domain.ModelPrefsRepository
 import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.model.ProviderKind
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,7 +22,7 @@ import org.koin.compose.koinInject
 
 @Composable
 public fun ProvidersRoute(onOpenConsole: (String) -> Unit) {
-    val nav: NavigationViewModel = koinInject()
+    val nav: Navigator = koinInject()
     val provider: ProviderViewModel = koinInject()
     val catalog: ModelCatalogRepository = koinInject()
     val validator: KeyValidationRepository = koinInject()

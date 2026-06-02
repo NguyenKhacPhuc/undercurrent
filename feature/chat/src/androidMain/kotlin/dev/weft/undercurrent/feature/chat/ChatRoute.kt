@@ -24,7 +24,7 @@ import dev.weft.undercurrent.core.domain.MiniAppsRepository
 import dev.weft.undercurrent.core.domain.PersonaRepository
 import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.core.resources.Res
 import dev.weft.undercurrent.core.resources.app_name
@@ -46,7 +46,7 @@ fun ChatRoute(
 ) {
     val chatVm: ChatViewModel = koinInject()
     val themeVm: ThemeViewModel = koinInject()
-    val navigationVm: NavigationViewModel = koinInject()
+    val navigationVm: Navigator = koinInject()
     val miniAppVm: MiniAppViewModel = koinInject()
     val speechGateway: SpeechRepository = koinInject()
     val conversationStore: ConversationStoreRepository = koinInject()

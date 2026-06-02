@@ -5,17 +5,17 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 
 /**
- * BDD coverage for [NavigationViewModel]. Pure synchronous dispatch —
+ * BDD coverage for [Navigator]. Pure synchronous dispatch —
  * the VM doesn't extend [dev.weft.undercurrent.shared.mvi.MviViewModel],
  * so there's no coroutine machinery to drain. Every assertion is about
  * the back-stack shape after a sequence of [NavigationIntent] dispatches.
  *
  * KMP — runs on Android + iOS.
  */
-class NavigationViewModelTest : BehaviorSpec({
+class NavigatorTest : BehaviorSpec({
 
-    Given("a freshly constructed NavigationViewModel") {
-        val vm = NavigationViewModel()
+    Given("a freshly constructed Navigator") {
+        val vm = Navigator()
 
         Then("the back stack starts seeded with Loading") {
             vm.backStack.toList() shouldContainExactly listOf(Screen.Loading)
@@ -27,7 +27,7 @@ class NavigationViewModelTest : BehaviorSpec({
     }
 
     Given("a fresh VM with a single Navigate(Chat) dispatched") {
-        val vm = NavigationViewModel()
+        val vm = Navigator()
         vm.dispatch(NavigationIntent.Navigate(Screen.Chat))
 
         Then("Chat is pushed on top of Loading") {
@@ -40,7 +40,7 @@ class NavigationViewModelTest : BehaviorSpec({
     }
 
     Given("a VM where Navigate is dispatched twice for the same screen") {
-        val vm = NavigationViewModel()
+        val vm = Navigator()
         vm.dispatch(NavigationIntent.Navigate(Screen.Chat))
         vm.dispatch(NavigationIntent.Navigate(Screen.Chat))
 
@@ -50,7 +50,7 @@ class NavigationViewModelTest : BehaviorSpec({
     }
 
     Given("a VM with Loading → Chat → Settings on the stack") {
-        val vm = NavigationViewModel()
+        val vm = Navigator()
         vm.dispatch(NavigationIntent.Navigate(Screen.Chat))
         vm.dispatch(NavigationIntent.Navigate(Screen.Settings))
 
@@ -65,7 +65,7 @@ class NavigationViewModelTest : BehaviorSpec({
     }
 
     Given("a VM at root (single-entry stack)") {
-        val vm = NavigationViewModel()
+        val vm = Navigator()
 
         When("Back is dispatched") {
             vm.dispatch(NavigationIntent.Back)
@@ -77,7 +77,7 @@ class NavigationViewModelTest : BehaviorSpec({
     }
 
     Given("a VM with multiple entries pushed") {
-        val vm = NavigationViewModel()
+        val vm = Navigator()
         vm.dispatch(NavigationIntent.Navigate(Screen.Onboarding))
         vm.dispatch(NavigationIntent.Navigate(Screen.KeyPaste))
         vm.dispatch(NavigationIntent.Navigate(Screen.Chat))
@@ -93,7 +93,7 @@ class NavigationViewModelTest : BehaviorSpec({
     }
 
     Given("a fresh VM") {
-        val vm = NavigationViewModel()
+        val vm = Navigator()
 
         When("NavigateAndClear is dispatched on a single-entry stack") {
             vm.dispatch(NavigationIntent.NavigateAndClear(Screen.KeyPaste))
@@ -105,7 +105,7 @@ class NavigationViewModelTest : BehaviorSpec({
     }
 
     Given("a VM exercised across every intent variant") {
-        val vm = NavigationViewModel()
+        val vm = Navigator()
         vm.dispatch(NavigationIntent.Navigate(Screen.Chat))
         vm.dispatch(NavigationIntent.Navigate(Screen.Settings))
         vm.dispatch(NavigationIntent.Back)
