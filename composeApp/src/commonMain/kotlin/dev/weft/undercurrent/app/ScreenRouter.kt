@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import dev.weft.undercurrent.core.navigation.NavDisplay
+import dev.weft.undercurrent.core.navigation.graphOf
 import dev.weft.undercurrent.core.navigation.NavigationIntent
 import dev.weft.undercurrent.core.navigation.NavigationViewModel
 import dev.weft.undercurrent.core.navigation.Screen
@@ -28,7 +29,10 @@ import org.koin.compose.koinInject
 internal fun ScreenRouter(platform: PlatformAdapter) {
     val navigationVm: NavigationViewModel = koinInject()
     val appVm: AppViewModel = koinInject()
-    NavDisplay(backStack = navigationVm.backStack) { entry ->
+    NavDisplay(
+        backStack = navigationVm.backStack,
+        transition = { graphOf(it)?.transition },
+    ) { entry ->
         when (entry) {
             Screen.Loading -> LoadingPlaceholder()
             Screen.SignIn -> SignInRoute(onSignedIn = { appVm.resume() })
