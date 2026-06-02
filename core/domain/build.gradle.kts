@@ -36,16 +36,18 @@ kotlin {
             implementation("dev.weft:weft-harness-memory")
             implementation("dev.weft:weft-harness-observability")
             implementation("dev.weft:weft-harness-cost")
+            // KeyVault contract + the runtime's per-provider key aliases —
+            // needed by the shared WeftKeyVaultRepository.
+            implementation("dev.weft:weft-contracts")
+            implementation("dev.weft:weft-runtime")
         }
         commonTest.dependencies {
             // MockEngine for AuthRepositoryImpl tests (mobile-auth-wiring/04).
             implementation(libs.ktor.client.mock)
         }
         androidMain.dependencies {
-            implementation("dev.weft:weft-runtime")
             implementation("dev.weft:weft-compose")
             implementation("dev.weft:weft-oauth")
-            implementation("dev.weft:weft-contracts")
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.koin.android)
             // EncryptedSharedPreferences for the BE session bearer (mobile-auth-wiring/02).
