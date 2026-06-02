@@ -40,6 +40,7 @@ kotlin {
             // needed by the shared WeftKeyVaultRepository.
             implementation("dev.weft:weft-contracts")
             implementation("dev.weft:weft-runtime")
+            implementation("dev.weft:weft-oauth")
         }
         commonTest.dependencies {
             // MockEngine for AuthRepositoryImpl tests (mobile-auth-wiring/04).
@@ -47,7 +48,6 @@ kotlin {
         }
         androidMain.dependencies {
             implementation("dev.weft:weft-compose")
-            implementation("dev.weft:weft-oauth")
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.koin.android)
             // EncryptedSharedPreferences for the BE session bearer (mobile-auth-wiring/02).
