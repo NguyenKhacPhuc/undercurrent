@@ -46,6 +46,17 @@ class NavigationViewModel : ViewModel() {
                 backStack.clear()
                 backStack.add(intent.screen)
             }
+            is NavigationIntent.StartFlow -> {
+                if (backStack.lastOrNull() != intent.graph.start) {
+                    backStack.add(intent.graph.start)
+                }
+            }
+            NavigationIntent.EndFlow -> {
+                val flow = backStack.lastOrNull()?.let(::graphOf) ?: return
+                while (backStack.size > 1 && backStack.last() in flow.screens) {
+                    backStack.removeAt(backStack.lastIndex)
+                }
+            }
         }
     }
 

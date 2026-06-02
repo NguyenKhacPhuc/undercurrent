@@ -30,4 +30,20 @@ sealed interface NavigationIntent {
      * should replace any historical navigation.
      */
     data class NavigateAndClear(val screen: Screen) : NavigationIntent
+
+    /**
+     * Push [graph]'s start screen onto the back stack, kicking off the
+     * flow as a unit. Plain [Navigate] of the same screen is
+     * equivalent — this variant just reads as intent ("start the
+     * onboarding flow") and pairs with [EndFlow].
+     */
+    data class StartFlow(val graph: NavGraph) : NavigationIntent
+
+    /**
+     * Pop every contiguous top entry that belongs to the current
+     * flow, landing on whatever screen sat beneath it. No-op when the
+     * top screen isn't part of any graph, or when popping would empty
+     * the stack (the flow's start stays as root).
+     */
+    data object EndFlow : NavigationIntent
 }
