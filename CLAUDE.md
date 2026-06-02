@@ -50,10 +50,15 @@ undercurrent/
 └── build-logic/        convention plugins (undercurrent.kmp.feature etc.)
 ```
 
-**KMP discipline.** Feature modules MUST NOT depend on Weft directly —
-that breaks iOS compilation. The chat feature is the exception: its
-`androidMain` owns the agent host (`AgentSession`, `WeftAgentFactory`,
-`WeftChatRepository`) so the substrate dep stays scoped.
+**KMP discipline.** Feature modules MAY depend on **KMP-published**
+substrate modules (`weft-runtime`, `weft-harness-*`, `weft-contracts`,
+…) from `commonMain` — the substrate is KMP now, so this no longer
+breaks iOS. The chat feature's `commonMain` owns the shared agent host
+(`AgentSlot`, `WeftAgentFactory`, `AgentSession`). Still keep
+Android-only substrate bits (e.g. the Koog model catalog under
+`dev.weft.android.routing`) behind an `expect/actual` seam — see
+`feature/chat/.../agent/ModelPoolOverride.kt` (iOS returns the runtime's
+default pool).
 
 **Repository impls live with the interface.** `:core:domain/commonMain`
 holds every `*Repository` interface; `:core:domain/androidMain` holds
