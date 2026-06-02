@@ -46,17 +46,18 @@ import dev.weft.undercurrent.core.domain.SessionTokenStore
 import dev.weft.undercurrent.core.domain.ModelCatalogRepository
 import dev.weft.undercurrent.core.domain.OAuthRepository
 import dev.weft.undercurrent.core.domain.SpeechRepository
-import dev.weft.undercurrent.core.domain.StubChatRepository
 import dev.weft.undercurrent.core.domain.StubKeyValidationRepository
-import dev.weft.undercurrent.core.domain.StubMemoryStoreRepository
 import dev.weft.undercurrent.core.domain.StubModelCatalogRepository
 import dev.weft.undercurrent.core.domain.StubOAuthRepository
-import dev.weft.undercurrent.core.domain.StubTraceStoreRepository
 import dev.weft.undercurrent.core.domain.StubUiBridgeRepository
-import dev.weft.undercurrent.core.domain.StubUsageRepository
 import dev.weft.undercurrent.core.domain.TraceStoreRepository
 import dev.weft.undercurrent.core.domain.UiBridgeRepository
 import dev.weft.undercurrent.core.domain.UsageRepository
+import dev.weft.undercurrent.core.domain.WeftConversationStoreRepository
+import dev.weft.undercurrent.core.domain.WeftMemoryStoreRepository
+import dev.weft.undercurrent.core.domain.WeftTraceStoreRepository
+import dev.weft.undercurrent.core.domain.WeftUsageRepository
+import dev.weft.undercurrent.feature.chat.chatHostModule
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -98,14 +99,16 @@ val iosAppModule = module {
     single<SessionTokenStore> { KeychainSessionTokenStore() }
     single<KeyValidationRepository> { StubKeyValidationRepository() }
     single<OAuthRepository> { StubOAuthRepository() }
-    single<ConversationStoreRepository> { IosConversationStoreRepository(get()) }
-    single<MemoryStoreRepository> { StubMemoryStoreRepository() }
-    single<TraceStoreRepository> { StubTraceStoreRepository() }
-    single<UsageRepository> { StubUsageRepository() }
+    single<ConversationStoreRepository> {
+        WeftConversationStoreRepository(get<WeftRuntime>().conversationStore)
+    }
+    single<MemoryStoreRepository> { WeftMemoryStoreRepository(get<WeftRuntime>().memoryStore) }
+    single<TraceStoreRepository> { WeftTraceStoreRepository(get<WeftRuntime>().traceStore) }
+    single<UsageRepository> { WeftUsageRepository(get<WeftRuntime>().usageStore) }
     single<ModelCatalogRepository> { StubModelCatalogRepository() }
     single<SpeechRepository> { IosSpeechRepository() }
     single<UiBridgeRepository> { StubUiBridgeRepository() }
-    single<ChatRepository> { StubChatRepository() }
+    // ChatRepository (+ AgentSlot + WeftAgentFactory) come from chatHostModule.
 
     single<AppViewModel> {
         IosAppViewModel(
@@ -135,6 +138,7 @@ val iosAppModule = module {
 
 val iosAllModules = listOf(
     iosAppModule,
+    chatHostModule,
     navigationModule,
     repositoryModule,
     chatUseCasesModule,
