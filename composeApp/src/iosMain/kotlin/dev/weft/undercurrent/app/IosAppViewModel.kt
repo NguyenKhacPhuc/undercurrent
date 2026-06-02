@@ -11,7 +11,7 @@ import dev.weft.undercurrent.core.model.AppState
 import dev.weft.undercurrent.core.model.PermissionDialogState
 import dev.weft.undercurrent.core.navigation.NavBackStack
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.feature.chat.ChatEffect
 import dev.weft.undercurrent.feature.chat.ChatViewModel
@@ -32,7 +32,7 @@ class IosAppViewModel(
     private val onboardingRepo: OnboardingRepository,
     themeRepo: ThemeRepository,
     private val providerPrefsRepo: ProviderPrefsRepository,
-    private val navigationVm: NavigationViewModel,
+    private val navigationVm: Navigator,
     private val chatVm: ChatViewModel,
     private val sessionTokenStore: SessionTokenStore,
 ) : MviViewModel<AppState, Nothing, AppEffect>(

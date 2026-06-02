@@ -47,7 +47,7 @@ import dev.weft.undercurrent.core.domain.MiniAppsRepository
 import dev.weft.undercurrent.core.ext.openInBrowser
 import dev.weft.undercurrent.core.model.ThemeMode
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.core.resources.Res
 import dev.weft.undercurrent.core.resources.mini_app_preview_placeholder
@@ -83,7 +83,7 @@ class MainActivity : FragmentActivity() {
 @Composable
 private fun AndroidApp() {
     val store: AppViewModel = koinInject()
-    val navigationVm: NavigationViewModel = koinInject()
+    val navigationVm: Navigator = koinInject()
     val miniAppVm: MiniAppViewModel = koinInject()
     val creatorVm: CreatorViewModel = koinInject()
     val runtime: WeftRuntime = koinInject()

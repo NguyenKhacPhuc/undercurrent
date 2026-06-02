@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
@@ -30,7 +30,7 @@ fun iosPlatformAdapter(): PlatformAdapter = PlatformAdapter(
 
 @Composable
 private fun IosMiniAppsRoute() {
-    val navigationVm: NavigationViewModel = koinInject()
+    val navigationVm: Navigator = koinInject()
     val miniAppVm: MiniAppViewModel = koinInject()
     dev.weft.undercurrent.feature.miniapps.MiniAppsScreen(
         treePreview = { _, _ ->

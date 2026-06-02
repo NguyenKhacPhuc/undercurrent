@@ -5,7 +5,7 @@ import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.AppState
 import dev.weft.undercurrent.core.model.ChatStatus
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.feature.chat.ChatViewModel
 import dev.weft.undercurrent.feature.chat.agent.AgentSession
@@ -34,7 +34,7 @@ public class WeftCreatorViewModel(
     private val agentSession: AgentSession,
     private val chatVm: ChatViewModel,
     private val creatorSession: CreatorSession,
-    private val navigationVm: NavigationViewModel,
+    private val navigationVm: Navigator,
 ) : CreatorViewModel {
     override fun dispatch(intent: CreatorIntent) {
         when (intent) {

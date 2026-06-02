@@ -2,13 +2,13 @@ package dev.weft.undercurrent.feature.onboarding
 
 import dev.weft.undercurrent.core.domain.OnboardingRepository
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.shared.mvi.MviViewModel
 
 class OnboardingViewModel(
     private val repo: OnboardingRepository,
-    private val navigationVm: NavigationViewModel,
+    private val navigationVm: Navigator,
 ) : MviViewModel<Unit, OnboardingIntent, OnboardingEffect>(
     initialState = Unit,
 ) {

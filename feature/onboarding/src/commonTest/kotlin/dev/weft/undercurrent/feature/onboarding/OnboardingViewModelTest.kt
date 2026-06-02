@@ -4,7 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import dev.weft.undercurrent.core.domain.OnboardingRepository
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldContainExactly
@@ -55,7 +55,7 @@ class OnboardingViewModelTest : BehaviorSpec({
             runTest {
                 val ds = FakePreferencesDataStore()
                 val repo = OnboardingRepository(ds)
-                val navVm = NavigationViewModel()
+                val navVm = Navigator()
                 val vm = OnboardingViewModel(
                     repo = repo,
                     navigationVm = navVm,
@@ -72,7 +72,7 @@ class OnboardingViewModelTest : BehaviorSpec({
             runTest {
                 val ds = FakePreferencesDataStore()
                 val repo = OnboardingRepository(ds)
-                val navVm = NavigationViewModel()
+                val navVm = Navigator()
                 navVm.dispatch(dev.weft.undercurrent.core.navigation.NavigationIntent.Navigate(Screen.Onboarding))
                 val vm = OnboardingViewModel(
                     repo = repo,
@@ -93,7 +93,7 @@ class OnboardingViewModelTest : BehaviorSpec({
             runTest {
                 val ds = FakePreferencesDataStore()
                 val repo = OnboardingRepository(ds)
-                val navVm = NavigationViewModel()
+                val navVm = Navigator()
                 val vm = OnboardingViewModel(
                     repo = repo,
                     navigationVm = navVm,

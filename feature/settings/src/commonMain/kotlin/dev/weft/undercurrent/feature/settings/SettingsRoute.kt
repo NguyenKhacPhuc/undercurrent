@@ -5,13 +5,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import org.koin.compose.koinInject
 
 @Composable
 public fun SettingsRoute(onSignedOut: () -> Unit = {}) {
-    val nav: NavigationViewModel = koinInject()
+    val nav: Navigator = koinInject()
     val providerPrefs: ProviderPrefsRepository = koinInject()
     val activeProvider by providerPrefs.activeProvider.collectAsState()
     SettingsScreen(

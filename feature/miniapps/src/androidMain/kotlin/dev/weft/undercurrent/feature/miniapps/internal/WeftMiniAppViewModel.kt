@@ -6,7 +6,7 @@ import dev.weft.undercurrent.core.domain.MiniAppsRepository
 import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.AppState
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
@@ -27,7 +27,7 @@ public class WeftMiniAppViewModel(
     private val context: MviContext<AppState, AppEffect>,
     private val runtime: WeftRuntime,
     private val miniAppsRepo: MiniAppsRepository,
-    private val navigationVm: NavigationViewModel,
+    private val navigationVm: Navigator,
     private val sendChat: suspend (String) -> Unit,
 ) : MiniAppViewModel {
 

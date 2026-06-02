@@ -5,7 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.feature.chat.ChatIntent
 import dev.weft.undercurrent.feature.chat.ChatViewModel
@@ -13,7 +13,7 @@ import org.koin.compose.koinInject
 
 @Composable
 public fun ConversationsRoute() {
-    val nav: NavigationViewModel = koinInject()
+    val nav: Navigator = koinInject()
     val chat: ChatViewModel = koinInject()
     val chatState by chat.state.collectAsState()
     if (!chatState.agentReady) {

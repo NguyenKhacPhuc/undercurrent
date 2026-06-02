@@ -7,7 +7,7 @@ import androidx.compose.runtime.getValue
 import dev.weft.undercurrent.core.navigation.NavDisplay
 import dev.weft.undercurrent.core.navigation.graphOf
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.core.ui.LoadingPlaceholder
 import dev.weft.undercurrent.feature.chat.ChatViewModel
@@ -27,7 +27,7 @@ import org.koin.compose.koinInject
 
 @Composable
 internal fun ScreenRouter(platform: PlatformAdapter) {
-    val navigationVm: NavigationViewModel = koinInject()
+    val navigationVm: Navigator = koinInject()
     val appVm: AppViewModel = koinInject()
     NavDisplay(
         backStack = navigationVm.backStack,
@@ -57,7 +57,7 @@ internal fun ScreenRouter(platform: PlatformAdapter) {
 
 @Composable
 private fun ChatGate(content: @Composable () -> Unit) {
-    val nav: NavigationViewModel = koinInject()
+    val nav: Navigator = koinInject()
     val chat: ChatViewModel = koinInject()
     val chatState by chat.state.collectAsState()
     if (!chatState.agentReady) {

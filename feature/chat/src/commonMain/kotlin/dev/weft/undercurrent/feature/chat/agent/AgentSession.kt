@@ -5,7 +5,7 @@ import dev.weft.undercurrent.core.model.AgentSummary
 import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.AppState
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.shared.mvi.MviContext
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 
 class AgentSession(
     private val context: MviContext<AppState, AppEffect>,
-    private val navigationVm: NavigationViewModel,
+    private val navigationVm: Navigator,
     private val agentSlot: AgentSlot,
 ) {
 

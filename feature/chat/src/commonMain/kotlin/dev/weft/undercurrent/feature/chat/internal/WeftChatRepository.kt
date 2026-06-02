@@ -16,7 +16,7 @@ import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.model.ModelTier
 import dev.weft.undercurrent.core.ext.ioDispatcher
 import dev.weft.undercurrent.core.navigation.NavigationIntent
-import dev.weft.undercurrent.core.navigation.NavigationViewModel
+import dev.weft.undercurrent.core.navigation.Navigator
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.feature.chat.agent.AgentSlot
 import dev.weft.undercurrent.feature.chat.agent.WeftAgentFactory
@@ -47,7 +47,7 @@ internal class WeftChatRepository(
     private val agentSlot: AgentSlot,
     private val agentFactory: WeftAgentFactory,
     private val providerPrefsRepo: ProviderPrefsRepository,
-    private val navigationVm: NavigationViewModel,
+    private val navigationVm: Navigator,
 ) : ChatRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
