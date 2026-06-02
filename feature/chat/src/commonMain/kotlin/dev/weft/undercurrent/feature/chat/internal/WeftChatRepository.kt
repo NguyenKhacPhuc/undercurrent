@@ -14,6 +14,7 @@ import dev.weft.undercurrent.core.domain.ChatRole
 import dev.weft.undercurrent.core.domain.PermissionDialogPayload
 import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.model.ModelTier
+import dev.weft.undercurrent.core.ext.ioDispatcher
 import dev.weft.undercurrent.core.navigation.NavigationIntent
 import dev.weft.undercurrent.core.navigation.NavigationViewModel
 import dev.weft.undercurrent.core.navigation.Screen
@@ -167,7 +168,7 @@ internal class WeftChatRepository(
 
     override suspend fun resume() {
         val activeProvider = providerPrefsRepo.activeProviderNow()
-        val storedKey = withContext(Dispatchers.IO) {
+        val storedKey = withContext(ioDispatcher) {
             runtime.keyVault.get(activeProvider.keyAlias())
         }
         if (storedKey == null) {
@@ -203,7 +204,7 @@ internal class WeftChatRepository(
     override suspend fun deleteConversation(id: String) {
         val a = agentSlot.agent ?: return
         val wasActive = a.state.value.conversationId == id
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             runtime.conversationStore.deleteConversation(id)
         }
         if (wasActive) {
@@ -216,7 +217,7 @@ internal class WeftChatRepository(
         if (name == _activeAgentName.value) return
         if (_availableAgents.value.none { it.name == name }) return
         val provider = providerPrefsRepo.activeProviderNow()
-        val key = withContext(Dispatchers.IO) {
+        val key = withContext(ioDispatcher) {
             runtime.keyVault.get(provider.keyAlias())
         } ?: return
         val a = agentFactory.build(agentName = name, provider = provider, apiKey = key)
@@ -226,7 +227,7 @@ internal class WeftChatRepository(
     }
 
     override suspend fun loadMessages(conversationId: String): List<ChatMessage> {
-        val rows = withContext(Dispatchers.IO) {
+        val rows = withContext(ioDispatcher) {
             runtime.conversationStore.loadMessages(conversationId)
         }
         return rows.map { m ->
