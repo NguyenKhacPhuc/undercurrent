@@ -21,13 +21,16 @@ kotlin {
             implementation(projects.feature.miniapps)
             implementation(projects.feature.theme)
             implementation(projects.feature.voice)
-        }
-        androidMain.dependencies {
+            // The agent host (AgentSlot / WeftAgentFactory / AgentSession) is
+            // shared now that the substrate is KMP. The Koog-backed model
+            // catalog stays androidMain-only (Koog is JVM-only) behind an
+            // expect/actual seam.
             implementation("dev.weft:weft-runtime")
             implementation("dev.weft:weft-harness-agents")
             implementation("dev.weft:weft-harness-conversation")
             implementation("dev.weft:weft-contracts")
-
+        }
+        androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.compose.material3)
             implementation(libs.androidx.compose.material.icons.extended)
