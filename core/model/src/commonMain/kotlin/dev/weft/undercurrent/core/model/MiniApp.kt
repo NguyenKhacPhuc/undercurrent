@@ -29,4 +29,15 @@ data class MiniApp(
     val usageCount: Int = 0,
     val lastRenderTreeJson: String? = null,
     val lastRenderedAtEpochMs: Long? = null,
+    /**
+     * For an HTML mini-app: the saved HTML document rendered on tap.
+     * Null for a native-component (`ui_render`) mini-app.
+     */
+    val htmlDocument: String? = null,
+    /** Action names this mini-app declares it needs (what it requests). */
+    val declaredScopes: Set<String> = emptySet(),
+    /** Action names the user has approved for this mini-app (the grant). */
+    val approvedScopes: Set<String> = emptySet(),
+    /** Opaque per-mini-app state JSON saved via `window.weft.setState`. */
+    val stateJson: String? = null,
 )

@@ -16,6 +16,9 @@ kotlin {
             implementation(projects.core.domain)
             // Store<State, Intent, Effect> MVI base.
             implementation(projects.shared)
+            // Mini-app bridge contracts (MiniAppStateStore, MiniAppScopeResolver)
+            // the host catalog binds the HTML mini-app runtime against.
+            implementation("dev.weft:weft-compose-defaults")
         }
         androidMain.dependencies {
             // Substrate — WeftMiniAppViewModel seeds the cached
