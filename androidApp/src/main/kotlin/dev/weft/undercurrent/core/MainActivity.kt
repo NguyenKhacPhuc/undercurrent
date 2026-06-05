@@ -70,6 +70,12 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Don't let the system draw a contrast scrim behind the (3-button)
+        // nav + status bars — it shows as a band over full-screen mini-apps.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+            window.isStatusBarContrastEnforced = false
+        }
         intent?.data?.let { uri -> get<OAuthCallbackChannel>().submit(uri) }
         setContent { AndroidApp() }
     }
