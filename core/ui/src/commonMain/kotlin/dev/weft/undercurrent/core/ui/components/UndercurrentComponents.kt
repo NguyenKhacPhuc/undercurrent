@@ -1,6 +1,9 @@
 package dev.weft.undercurrent.core.ui.components
 
 import coil3.ImageLoader
+import dev.weft.compose.components.MiniAppActionInvoker
+import dev.weft.compose.components.MiniAppScopeResolver
+import dev.weft.compose.components.MiniAppStateStore
 import dev.weft.compose.components.WeftComponent
 
 /**
@@ -25,7 +28,12 @@ import dev.weft.compose.components.WeftComponent
  * All consume tokens from [dev.weft.undercurrent.core.designsystem.UndercurrentTheme]
  * so palette / typography / shape swaps in Settings apply automatically.
  */
-fun undercurrentComponents(imageLoader: ImageLoader): List<WeftComponent<*>> =
+fun undercurrentComponents(
+    imageLoader: ImageLoader,
+    miniAppInvoker: MiniAppActionInvoker? = null,
+    miniAppScopeResolver: MiniAppScopeResolver? = null,
+    miniAppStateStore: MiniAppStateStore? = null,
+): List<WeftComponent<*>> =
     displayComponents(imageLoader) +
         undercurrentLayoutComponents +
         undercurrentActionComponents +
@@ -67,12 +75,9 @@ fun undercurrentComponents(imageLoader: ImageLoader): List<WeftComponent<*>> =
         // ── Tenth wave — music + games ──────────────────────────────
         musicGamesComponents(imageLoader) +
         // ── Eleventh wave — embed (HTML / WebView) ──────────────────
-        // Platform-specific. On Android, lifted from the substrate's
-        // :android-compose-defaults (HtmlComponent + WebViewComponent
-        // backed by android.webkit.WebView). On iOS, an empty list for
-        // now — a WKWebView-backed implementation is the natural
-        // follow-up. Without these in the registry, the agent has no
-        // choice but to dump HTML source into a Text block, so the
-        // Android side keeps the interactive-game path working
-        // immediately.
-        platformEmbedComponents
+        // Platform-specific (android.webkit.WebView / WKWebView). The
+        // bridge bindings (invoker, scope resolver, state store) make a
+        // script-enabled HTML mini-app's window.weft bridge live; passed
+        // null they stay sandboxed. Without these in the registry the
+        // agent can only dump HTML into a Text block.
+        platformEmbedComponents(miniAppInvoker, miniAppScopeResolver, miniAppStateStore)
