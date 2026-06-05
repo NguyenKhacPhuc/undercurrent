@@ -177,6 +177,12 @@ class CreateHtmlMiniAppTool(
         description = "Save a self-contained interactive HTML mini-app the user can reopen with one tap. " +
             "Use for bespoke widgets the palette can't express — a calculator, tracker, small game, " +
             "custom tool. Keep the document focused so it fits in one response. " +
+            "It renders FULL-SCREEN, edge-to-edge: set `html,body{margin:0}`, make the body fill the " +
+            "viewport (min-height:100dvh) and lay content out to use the whole height (e.g. flex column, " +
+            "justify-content:space-between/center) so there's no empty gap at the bottom. Size " +
+            "responsively from the `screen-dp WxH` in the device context (CSS px ≈ dp); avoid fixed " +
+            "pixel widths. Add `padding:env(safe-area-inset-top) … env(safe-area-inset-bottom)` so the " +
+            "header/footer clear the status + nav bars. " +
             "USE THE window.weft BRIDGE, not standard web APIs: " +
             "(1) fetch()/XMLHttpRequest are BLOCKED — for network do " +
             "`await window.weft.callTool('http_fetch', { url })`, which resolves to { status, body } " +
