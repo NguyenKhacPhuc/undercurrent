@@ -125,6 +125,34 @@ class MiniAppsRepository(
         }
     }
 
+    /** Save the HTML document a mini-app renders + the scopes it declares it needs. */
+    suspend fun setHtmlDocument(id: String, html: String, declaredScopes: Set<String>) {
+        mutate(id) { it.copy(htmlDocument = html, declaredScopes = declaredScopes) }
+    }
+
+    /** Record the action scopes the user approved for a mini-app (the grant). */
+    suspend fun approveScopes(id: String, scopes: Set<String>) {
+        mutate(id) { it.copy(approvedScopes = scopes) }
+    }
+
+    /** The mini-app's saved state JSON, or null if it never saved any. */
+    suspend fun getState(id: String): String? =
+        miniApps.value.firstOrNull { it.id == id }?.stateJson
+
+    /** Persist a mini-app's state JSON, replacing any prior value. */
+    suspend fun setState(id: String, stateJson: String) {
+        mutate(id) { it.copy(stateJson = stateJson) }
+    }
+
+    private suspend fun mutate(id: String, transform: (MiniApp) -> MiniApp) {
+        dataStore.edit { prefs ->
+            val current = parse(prefs[KeyMiniApps])
+            prefs[KeyMiniApps] = json.encodeToString(
+                current.map { if (it.id == id) transform(it) else it },
+            )
+        }
+    }
+
     private fun parse(raw: String?): List<MiniApp> {
         if (raw.isNullOrEmpty()) return emptyList()
         return runCatching {
