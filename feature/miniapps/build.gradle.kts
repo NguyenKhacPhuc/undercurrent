@@ -19,6 +19,12 @@ kotlin {
             // Mini-app bridge contracts (MiniAppStateStore, MiniAppScopeResolver)
             // the host catalog binds the HTML mini-app runtime against.
             implementation("dev.weft:weft-compose-defaults")
+            // http_fetch action handler runs against a host-supplied client
+            // (the host installs its NetworkPolicy allowlist plugin on it).
+            implementation(libs.ktor.client.core)
+        }
+        commonTest.dependencies {
+            implementation(libs.ktor.client.mock)
         }
         androidMain.dependencies {
             // Substrate — WeftMiniAppViewModel seeds the cached
