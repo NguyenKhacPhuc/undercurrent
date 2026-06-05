@@ -22,6 +22,7 @@ import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.PermissionDialogState
 import dev.weft.undercurrent.core.model.ThemeMode
+import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.core.resources.Res
 import dev.weft.undercurrent.core.resources.permission_dialog_not_now
 import dev.weft.undercurrent.core.resources.permission_dialog_open_settings
@@ -58,7 +59,14 @@ fun App(
 
     UndercurrentTheme(palette = state.themePrefs.palette, darkMode = darkMode) {
         Surface(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+            // The rendered-tree screen draws edge-to-edge so a full-screen
+            // HTML mini-app can use the whole display (under the system bars);
+            // every other screen keeps the safe-area inset.
+            val edgeToEdge = state.screen is Screen.RenderedTree
+            Box(
+                modifier = Modifier.fillMaxSize()
+                    .then(if (edgeToEdge) Modifier else Modifier.safeDrawingPadding()),
+            ) {
                 ScreenRouter(platform = platform)
 
                 SnackbarHost(
