@@ -18,5 +18,8 @@ fun htmlMiniAppRenderTree(miniApp: MiniApp): ComponentNode = ComponentNode(
         put("html", miniApp.htmlDocument ?: "")
         put("miniAppId", miniApp.id)
         put("runScripts", true)
+        // Render full-screen: the chromeless rendered-tree screen drops its
+        // chrome for a single Html node, and "screen" makes the WebView fill it.
+        put("height", "screen")
     },
 )
