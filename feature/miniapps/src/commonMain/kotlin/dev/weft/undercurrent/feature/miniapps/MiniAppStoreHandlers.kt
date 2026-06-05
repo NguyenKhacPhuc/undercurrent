@@ -17,23 +17,24 @@ private suspend fun MiniAppStateStore.blobObject(miniAppId: String?): JsonObject
     get(miniAppId)?.let { STORE_JSON.parseToJsonElement(it).jsonObject } ?: JsonObject(emptyMap())
 
 /**
- * `store_get`: read one key from the mini-app's key-value state. The
- * mini-app's state blob is a JSON object; this returns the value at
- * `args.key` as JSON, or `null` when the key (or the blob) is absent.
+ * `store_get`: read one key from the calling mini-app's key-value state.
+ * The mini-app's state blob is a JSON object, isolated by the per-call
+ * `miniAppId`; this returns the value at `args.key` as JSON, or `null`
+ * when the key (or the blob) is absent.
  */
-fun storeGetHandler(store: MiniAppStateStore, miniAppId: String?): MiniAppActionHandler =
-    MiniAppActionHandler { argsJson ->
+fun storeGetHandler(store: MiniAppStateStore): MiniAppActionHandler =
+    MiniAppActionHandler { miniAppId, argsJson ->
         val key = requiredKey(argsJson, "store_get")
         (store.blobObject(miniAppId)[key] ?: JsonNull).toString()
     }
 
 /**
- * `store_set`: write one key into the mini-app's key-value state,
- * merging into the existing blob so sibling keys survive. Returns
- * `"true"` once persisted.
+ * `store_set`: write one key into the calling mini-app's key-value state,
+ * merging into that mini-app's existing blob so sibling keys survive.
+ * Returns `"true"` once persisted.
  */
-fun storeSetHandler(store: MiniAppStateStore, miniAppId: String?): MiniAppActionHandler =
-    MiniAppActionHandler { argsJson ->
+fun storeSetHandler(store: MiniAppStateStore): MiniAppActionHandler =
+    MiniAppActionHandler { miniAppId, argsJson ->
         val args = STORE_JSON.parseToJsonElement(argsJson).jsonObject
         val key = args["key"]?.jsonPrimitive?.content
             ?: throw IllegalArgumentException("store_set requires a 'key'")
