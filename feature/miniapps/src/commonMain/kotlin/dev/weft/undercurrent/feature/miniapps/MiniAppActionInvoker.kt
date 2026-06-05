@@ -1,6 +1,8 @@
 package dev.weft.undercurrent.feature.miniapps
 
 import dev.weft.compose.components.MiniAppActionInvoker
+import dev.weft.compose.components.MiniAppStateStore
+import io.ktor.client.HttpClient
 
 /**
  * One offerable action's implementation: given the call's `args` JSON,
@@ -33,3 +35,25 @@ class RoutingMiniAppActionInvoker(
         return handler.handle(argsJson)
     }
 }
+
+/**
+ * Assemble the invoker the bridged HTML mini-app runtime calls, wiring
+ * the v1 offerable set ([OfferableActions.readMostlyDefaults]) to real
+ * behavior: `store_get` / `store_set` over [stateStore] keyed by
+ * [miniAppId], and `http_fetch` over [httpClient] (the host installs its
+ * NetworkPolicy allowlist plugin on that client). One invoker per
+ * mini-app, since the store handlers are bound to a single [miniAppId].
+ */
+fun miniAppActionInvoker(
+    offerable: OfferableActions,
+    stateStore: MiniAppStateStore,
+    httpClient: HttpClient,
+    miniAppId: String?,
+): MiniAppActionInvoker = RoutingMiniAppActionInvoker(
+    offerable,
+    mapOf(
+        "store_get" to storeGetHandler(stateStore, miniAppId),
+        "store_set" to storeSetHandler(stateStore, miniAppId),
+        "http_fetch" to httpFetchHandler(httpClient),
+    ),
+)
