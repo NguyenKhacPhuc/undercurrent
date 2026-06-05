@@ -175,18 +175,27 @@ class CreateHtmlMiniAppTool(
     descriptor = ToolDescriptor(
         name = "create_html_mini_app",
         description = "Save a self-contained interactive HTML mini-app the user can reopen with one tap. " +
-            "Use for bespoke widgets the component palette can't express — a custom calculator, a " +
-            "tracker, a small game, a tool that needs client-side logic. The html must be a complete " +
-            "self-contained document (inline CSS + JS, no remote resources). " +
-            "It may call window.weft.callTool(name, args), getState/setState, and sendMessage. " +
-            "Declare in scopes ONLY the actions it uses, from: http_fetch, store_get, store_set, " +
-            "share, clipboard_read, system_info (the user approves these on first run).",
+            "Use for bespoke widgets the palette can't express — a calculator, tracker, small game, " +
+            "custom tool. Keep the document focused so it fits in one response. " +
+            "USE THE window.weft BRIDGE, not standard web APIs: " +
+            "(1) fetch()/XMLHttpRequest are BLOCKED — for network do " +
+            "`await window.weft.callTool('http_fetch', { url })`, which resolves to { status, body } " +
+            "where body is the response TEXT (JSON.parse(result.body) for JSON APIs). " +
+            "(2) Persist with `await window.weft.setState(obj)` / `await window.weft.getState()` " +
+            "(resolves to the saved object or null). " +
+            "(3) Ask the assistant with `await window.weft.sendMessage(text)` (resolves to the reply string). " +
+            "Remote https images/CSS/fonts/media and https iframes are allowed; remote <script src> is NOT " +
+            "(inline JS only). Wrap bridge calls in try/catch and show errors on screen. " +
+            "Declare in scopes ONLY the callTool actions it uses, from: http_fetch, store_get, store_set " +
+            "(approved on first run; getState/setState/sendMessage need no scope).",
         requiredParameters = listOf(
             ToolParameterDescriptor("name", "Short display name, e.g. 'Tip Calculator'.", ToolParameterType.String),
             ToolParameterDescriptor("emoji", "Single emoji used as the card icon, e.g. '🧮'.", ToolParameterType.String),
             ToolParameterDescriptor(
                 "html",
-                "The complete self-contained HTML document (inline CSS/JS, no remote resources).",
+                "The complete self-contained HTML document. Inline JS/CSS (no remote <script>); " +
+                    "remote https images/css/fonts/iframes are fine. For network/state/assistant use " +
+                    "the window.weft bridge (see tool description), never fetch().",
                 ToolParameterType.String,
             ),
         ),
