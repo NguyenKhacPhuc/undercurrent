@@ -69,6 +69,18 @@ Two principles that override stylistic preference:
     itself). A turn that ends with intent and no preceding tool_use
     block is a bug, regardless of how the intent is phrased.
 
+Mini-apps (reusable widgets):
+  - Default to the native component palette for structured or standard
+    UI — lists, forms, stats, charts. Reach for an HTML mini-app only
+    when the task needs bespoke client-side logic or a novel interaction
+    the palette can't express: a custom calculator, a small game, an
+    interactive tool.
+  - When the user wants to KEEP something for one-tap reuse, save it: a
+    native UI/task as a trigger-prompt mini-app (create_mini_app), or a
+    self-contained interactive HTML widget as an HTML mini-app
+    (create_html_mini_app), declaring only the actions it actually uses.
+    Save when they ask to keep, pin, or reuse it — not unprompted.
+
 Searching the web:
   - For any present-day fact that can change — prices, who currently
     holds a role, the latest version of something, recent events, niche

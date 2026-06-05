@@ -153,3 +153,72 @@ class CreateMiniAppTool(
             "Tap it on the Mini Apps screen to run it the first time — its UI gets cached automatically."
     }
 }
+
+/**
+ * Saves a *flexible (HTML) mini-app* the agent has authored: a
+ * self-contained HTML document plus the device/app actions it needs.
+ * Unlike [CreateMiniAppTool] (which saves a trigger prompt that re-runs
+ * the agent), this saves the document itself — rendered instantly on tap
+ * via the bridged Html component, with its `window.weft` bridge live and
+ * scope-gated to what the user approves on first run.
+ *
+ * KMP — Android-only (lives in `:data:weft`).
+ */
+class CreateHtmlMiniAppTool(
+    ctx: WeftContext,
+    private val miniAppsRepo: MiniAppsRepository,
+    private val nav: NavigationChannel,
+) : WeftTool<CreateHtmlMiniAppTool.Args, String>(
+    ctx = ctx,
+    argsType = KotlinTypeToken(typeOf<Args>()),
+    resultType = KotlinTypeToken(typeOf<String>()),
+    descriptor = ToolDescriptor(
+        name = "create_html_mini_app",
+        description = "Save a self-contained interactive HTML mini-app the user can reopen with one tap. " +
+            "Use for bespoke widgets the component palette can't express — a custom calculator, a " +
+            "tracker, a small game, a tool that needs client-side logic. The html must be a complete " +
+            "self-contained document (inline CSS + JS, no remote resources). " +
+            "It may call window.weft.callTool(name, args), getState/setState, and sendMessage. " +
+            "Declare in scopes ONLY the actions it uses, from: http_fetch, store_get, store_set, " +
+            "share, clipboard_read, system_info (the user approves these on first run).",
+        requiredParameters = listOf(
+            ToolParameterDescriptor("name", "Short display name, e.g. 'Tip Calculator'.", ToolParameterType.String),
+            ToolParameterDescriptor("emoji", "Single emoji used as the card icon, e.g. '🧮'.", ToolParameterType.String),
+            ToolParameterDescriptor(
+                "html",
+                "The complete self-contained HTML document (inline CSS/JS, no remote resources).",
+                ToolParameterType.String,
+            ),
+        ),
+        optionalParameters = listOf(
+            ToolParameterDescriptor(
+                "scopes",
+                "Action names the mini-app needs, from the offerable set. Omit/empty if it needs none.",
+                ToolParameterType.List(itemsType = ToolParameterType.String),
+            ),
+        ),
+    ),
+    sideEffecting = true,
+) {
+
+    @Serializable
+    data class Args(
+        val name: String,
+        val emoji: String,
+        val html: String,
+        val scopes: List<String> = emptyList(),
+    )
+
+    override suspend fun executeWeft(args: Args): String {
+        val created = miniAppsRepo.addHtml(
+            name = args.name.trim(),
+            emoji = args.emoji.trim().ifBlank { "✨" },
+            html = args.html,
+            declaredScopes = args.scopes.map { it.trim() }.filter { it.isNotEmpty() }.toSet(),
+        )
+        nav.requestNavigate(Screen.MiniApps)
+        return "Created HTML mini-app '${created.name}'. " +
+            "Tap it on the Mini Apps screen to open it — it renders instantly, and the first time it " +
+            "uses an action the user is asked to approve it."
+    }
+}

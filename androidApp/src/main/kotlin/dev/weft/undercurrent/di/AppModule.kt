@@ -36,6 +36,7 @@ import dev.weft.undercurrent.data.sqldelight.SqlDelightDataSource
 import dev.weft.undercurrent.data.sqldelight.databaseAndroidModule
 import dev.weft.undercurrent.core.domain.repositoryAndroidModule
 import dev.weft.undercurrent.data.weft.tools.CreateMiniAppTool
+import dev.weft.undercurrent.data.weft.tools.CreateHtmlMiniAppTool
 import dev.weft.undercurrent.data.weft.tools.CreatePersonaTool
 import dev.weft.undercurrent.data.weft.tools.OpenConversationsTool
 import dev.weft.undercurrent.data.weft.tools.OpenIntegrationsTool
@@ -220,6 +221,11 @@ val appModule = module {
                         miniAppsRepo = miniAppsRepo,
                         nav = navigation,
                         creatorSession = creatorSession,
+                    ),
+                    CreateHtmlMiniAppTool(
+                        ctx = ctx,
+                        miniAppsRepo = miniAppsRepo,
+                        nav = navigation,
                     ),
                 )
             },

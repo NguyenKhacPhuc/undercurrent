@@ -80,6 +80,35 @@ class MiniAppsRepository(
         return created
     }
 
+    /**
+     * Create a *flexible (HTML)* mini-app from a saved [html] document and
+     * the action [declaredScopes] it needs. Rendered on tap via the
+     * bridged Html component (no agent turn); the user approves its scopes
+     * on first run. No trigger prompt — it doesn't re-run the agent.
+     */
+    suspend fun addHtml(
+        name: String,
+        emoji: String,
+        html: String,
+        declaredScopes: Set<String>,
+    ): MiniApp {
+        val created = MiniApp(
+            id = "feature.${Uuid.random().toString().take(8)}",
+            name = name,
+            emoji = emoji,
+            triggerPrompt = "",
+            createdAtEpochMs = Clock.System.now().toEpochMilliseconds(),
+            usageCount = 0,
+            htmlDocument = html,
+            declaredScopes = declaredScopes,
+        )
+        dataStore.edit { prefs ->
+            val current = parse(prefs[KeyMiniApps])
+            prefs[KeyMiniApps] = json.encodeToString(current + created)
+        }
+        return created
+    }
+
     suspend fun update(
         id: String,
         name: String,
