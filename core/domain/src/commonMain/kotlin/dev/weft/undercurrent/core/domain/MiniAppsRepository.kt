@@ -135,6 +135,20 @@ class MiniAppsRepository(
         mutate(id) { it.copy(approvedScopes = scopes) }
     }
 
+    /**
+     * Record the user's first-run consent decision: the [approved] set
+     * (possibly empty, on deny) plus the decision timestamp, so the
+     * mini-app isn't prompted again. Approving nothing is a real decision.
+     */
+    suspend fun recordConsent(id: String, approved: Set<String>) {
+        mutate(id) {
+            it.copy(
+                approvedScopes = approved,
+                consentedAt = Clock.System.now().toEpochMilliseconds(),
+            )
+        }
+    }
+
     /** The mini-app's saved state JSON, or null if it never saved any. */
     suspend fun getState(id: String): String? =
         miniApps.value.firstOrNull { it.id == id }?.stateJson
