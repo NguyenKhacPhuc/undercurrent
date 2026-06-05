@@ -60,7 +60,7 @@ import dev.weft.undercurrent.feature.miniapps.internal.WeftMiniAppViewModel
 import dev.weft.undercurrent.feature.miniapps.miniAppsModule
 import dev.weft.undercurrent.feature.miniapps.MiniAppRepositoryStateStore
 import dev.weft.undercurrent.feature.miniapps.OfferableActions
-import dev.weft.undercurrent.feature.miniapps.miniAppHttpInvoker
+import dev.weft.undercurrent.feature.miniapps.miniAppActionInvoker
 import dev.weft.undercurrent.feature.miniapps.miniAppScopeResolver
 import dev.weft.undercurrent.core.ui.components.undercurrentComponents
 import dev.weft.undercurrent.data.network.PlatformHttpClientEngineFactory
@@ -100,13 +100,14 @@ val appModule = module {
             engine = get<PlatformHttpClientEngineFactory>().create(),
             policy = NetworkPolicy.OPEN,
         )
+        val miniAppStateStore = MiniAppRepositoryStateStore(miniAppsRepo)
         WeftUi(
             context = androidContext(),
             extraComponents = undercurrentComponents(
                 imageLoader = imageLoader,
-                miniAppInvoker = miniAppHttpInvoker(offerable, miniAppHttpClient),
+                miniAppInvoker = miniAppActionInvoker(offerable, miniAppStateStore, miniAppHttpClient),
                 miniAppScopeResolver = miniAppScopeResolver({ miniAppsRepo.miniApps.value }, offerable),
-                miniAppStateStore = MiniAppRepositoryStateStore(miniAppsRepo),
+                miniAppStateStore = miniAppStateStore,
             ),
             includeDefaults = false,
         )

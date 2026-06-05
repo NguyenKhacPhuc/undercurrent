@@ -22,7 +22,7 @@ class HttpFetchHandlerTest : BehaviorSpec({
             val client = HttpClient(MockEngine { respond("pong", HttpStatusCode.OK) })
             Then("it returns the status and body as JSON") {
                 runTest {
-                    val out = httpFetchHandler(client).handle("""{"url":"https://api.example.com/ping"}""")
+                    val out = httpFetchHandler(client).handle(null, """{"url":"https://api.example.com/ping"}""")
                     val obj = Json.parseToJsonElement(out).jsonObject
                     obj["status"]!!.jsonPrimitive.content shouldBe "200"
                     obj["body"]!!.jsonPrimitive.content shouldBe "pong"
@@ -44,7 +44,7 @@ class HttpFetchHandlerTest : BehaviorSpec({
                 runTest {
                     val args = """{"url":"https://api.example.com/x","method":"POST",""" +
                         """"headers":{"X-Token":"abc"},"body":"hello"}"""
-                    val out = httpFetchHandler(client).handle(args)
+                    val out = httpFetchHandler(client).handle(null, args)
                     Json.parseToJsonElement(out).jsonObject["status"]!!.jsonPrimitive.content shouldBe "201"
                     seenMethod shouldBe "POST"
                     seenHeader shouldBe "abc"
@@ -57,7 +57,7 @@ class HttpFetchHandlerTest : BehaviorSpec({
             val client = HttpClient(MockEngine { respondError(HttpStatusCode.NotFound) })
             Then("the status surfaces to the mini-app rather than throwing") {
                 runTest {
-                    val out = httpFetchHandler(client).handle("""{"url":"https://api.example.com/missing"}""")
+                    val out = httpFetchHandler(client).handle(null, """{"url":"https://api.example.com/missing"}""")
                     Json.parseToJsonElement(out).jsonObject["status"]!!.jsonPrimitive.content shouldBe "404"
                 }
             }
@@ -67,7 +67,7 @@ class HttpFetchHandlerTest : BehaviorSpec({
             val client = HttpClient(MockEngine { respond("x", HttpStatusCode.OK) })
             Then("it fails so the bridge rejects the call") {
                 runTest {
-                    shouldThrow<IllegalArgumentException> { httpFetchHandler(client).handle("""{}""") }
+                    shouldThrow<IllegalArgumentException> { httpFetchHandler(client).handle(null, """{}""") }
                 }
             }
         }
@@ -77,7 +77,7 @@ class HttpFetchHandlerTest : BehaviorSpec({
             Then("the failure propagates to the bridge") {
                 runTest {
                     shouldThrow<Throwable> {
-                        httpFetchHandler(client).handle("""{"url":"https://blocked.example.com"}""")
+                        httpFetchHandler(client).handle(null, """{"url":"https://blocked.example.com"}""")
                     }
                 }
             }

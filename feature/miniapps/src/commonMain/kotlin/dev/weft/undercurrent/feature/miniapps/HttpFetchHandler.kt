@@ -29,7 +29,7 @@ private val HTTP_JSON = Json { isLenient = true }
  * handler makes is already constrained.
  */
 fun httpFetchHandler(client: HttpClient): MiniAppActionHandler =
-    MiniAppActionHandler { argsJson ->
+    MiniAppActionHandler { _, argsJson ->
         val args = HTTP_JSON.parseToJsonElement(argsJson).jsonObject
         val url = args["url"]?.jsonPrimitive?.contentOrNull
             ?: throw IllegalArgumentException("http_fetch requires a 'url'")

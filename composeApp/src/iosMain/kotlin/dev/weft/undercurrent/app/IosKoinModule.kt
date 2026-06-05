@@ -16,7 +16,7 @@ import dev.weft.undercurrent.core.domain.MiniAppsRepository
 import dev.weft.undercurrent.data.network.PlatformHttpClientEngineFactory
 import dev.weft.undercurrent.feature.miniapps.MiniAppRepositoryStateStore
 import dev.weft.undercurrent.feature.miniapps.OfferableActions
-import dev.weft.undercurrent.feature.miniapps.miniAppHttpInvoker
+import dev.weft.undercurrent.feature.miniapps.miniAppActionInvoker
 import dev.weft.undercurrent.feature.miniapps.miniAppScopeResolver
 import dev.weft.undercurrent.core.domain.auth.BE_BASE_URL_QUALIFIER
 import dev.weft.undercurrent.core.domain.auth.authRepositoryModule
@@ -93,12 +93,13 @@ val iosAppModule = module {
             engine = get<PlatformHttpClientEngineFactory>().create(),
             policy = NetworkPolicy.OPEN,
         )
+        val miniAppStateStore = MiniAppRepositoryStateStore(miniAppsRepo)
         WeftComponentRegistry(
             undercurrentComponents(
                 imageLoader = get(),
-                miniAppInvoker = miniAppHttpInvoker(offerable, miniAppHttpClient),
+                miniAppInvoker = miniAppActionInvoker(offerable, miniAppStateStore, miniAppHttpClient),
                 miniAppScopeResolver = miniAppScopeResolver({ miniAppsRepo.miniApps.value }, offerable),
-                miniAppStateStore = MiniAppRepositoryStateStore(miniAppsRepo),
+                miniAppStateStore = miniAppStateStore,
             ),
         )
     }
