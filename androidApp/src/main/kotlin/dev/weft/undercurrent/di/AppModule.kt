@@ -171,6 +171,10 @@ val appModule = module {
                 ),
             ),
             networkPolicy = NetworkPolicy.OPEN,
+            // HTML mini-apps emit a full document as one tool-call argument;
+            // 8192 truncates complex ones. Raise the budget (the runtime
+            // clamps it to the active model's own ceiling, so this is safe).
+            maxOutputTokens = 16_384,
             componentMetadata = get<WeftUi>().components,
             agents = listOf(
                 AgentDeclaration(
