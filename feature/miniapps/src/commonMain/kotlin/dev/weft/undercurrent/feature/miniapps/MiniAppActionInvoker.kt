@@ -37,12 +37,38 @@ class RoutingMiniAppActionInvoker(
 }
 
 /**
+ * The invoker a singleton bridged `HtmlComponent` calls — wires only the
+ * mini-app-id-independent actions, since the substrate's
+ * `MiniAppActionInvoker.invoke(name, args)` carries no mini-app id and
+ * one component instance renders every mini-app. Today that's
+ * `http_fetch` over [httpClient] (the host installs its NetworkPolicy
+ * allowlist plugin on that client).
+ *
+ * `store_get` / `store_set` are intentionally absent: keyed by mini-app,
+ * they can't be routed correctly here until the substrate threads the id
+ * through `invoke`. Mini-apps persist via the bridge's `getState` /
+ * `setState` (the host [MiniAppStateStore]) meanwhile. See
+ * [miniAppActionInvoker] for the per-mini-app variant they belong to.
+ */
+fun miniAppHttpInvoker(
+    offerable: OfferableActions,
+    httpClient: HttpClient,
+): MiniAppActionInvoker = RoutingMiniAppActionInvoker(
+    offerable,
+    mapOf("http_fetch" to httpFetchHandler(httpClient)),
+)
+
+/**
  * Assemble the invoker the bridged HTML mini-app runtime calls, wiring
  * the v1 offerable set ([OfferableActions.readMostlyDefaults]) to real
  * behavior: `store_get` / `store_set` over [stateStore] keyed by
  * [miniAppId], and `http_fetch` over [httpClient] (the host installs its
  * NetworkPolicy allowlist plugin on that client). One invoker per
  * mini-app, since the store handlers are bound to a single [miniAppId].
+ *
+ * Not yet wired into the live bridge: the substrate registers a single
+ * `HtmlComponent` for all mini-apps and `invoke` has no id, so the
+ * singleton path uses [miniAppHttpInvoker] until `invoke` carries one.
  */
 fun miniAppActionInvoker(
     offerable: OfferableActions,
