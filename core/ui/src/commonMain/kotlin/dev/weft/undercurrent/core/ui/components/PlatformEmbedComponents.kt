@@ -1,6 +1,7 @@
 package dev.weft.undercurrent.core.ui.components
 
 import dev.weft.compose.components.MiniAppActionInvoker
+import dev.weft.compose.components.MiniAppAssistantHandler
 import dev.weft.compose.components.MiniAppScopeResolver
 import dev.weft.compose.components.MiniAppStateStore
 import dev.weft.compose.components.WeftComponent
@@ -28,4 +29,5 @@ expect fun platformEmbedComponents(
     invoker: MiniAppActionInvoker? = null,
     scopeResolver: MiniAppScopeResolver? = null,
     stateStore: MiniAppStateStore? = null,
+    assistant: MiniAppAssistantHandler? = null,
 ): List<WeftComponent<*>>

@@ -2,6 +2,7 @@ package dev.weft.undercurrent.core.ui.components
 
 import dev.weft.compose.components.HtmlComponent
 import dev.weft.compose.components.MiniAppActionInvoker
+import dev.weft.compose.components.MiniAppAssistantHandler
 import dev.weft.compose.components.MiniAppScopeResolver
 import dev.weft.compose.components.MiniAppStateStore
 import dev.weft.compose.components.WebViewComponent
@@ -18,7 +19,13 @@ actual fun platformEmbedComponents(
     invoker: MiniAppActionInvoker?,
     scopeResolver: MiniAppScopeResolver?,
     stateStore: MiniAppStateStore?,
+    assistant: MiniAppAssistantHandler?,
 ): List<WeftComponent<*>> = listOf(
     WebViewComponent(),
-    HtmlComponent(invoker = invoker, scopeResolver = scopeResolver, stateStore = stateStore),
+    HtmlComponent(
+        invoker = invoker,
+        scopeResolver = scopeResolver,
+        stateStore = stateStore,
+        assistant = assistant,
+    ),
 )
