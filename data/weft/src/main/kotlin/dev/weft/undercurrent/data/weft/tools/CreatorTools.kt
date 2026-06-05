@@ -185,7 +185,9 @@ class CreateHtmlMiniAppTool(
             "(resolves to the saved object or null). " +
             "(3) Ask the assistant with `await window.weft.sendMessage(text)` (resolves to the reply string). " +
             "Remote https images/CSS/fonts/media and https iframes are allowed; remote <script src> is NOT " +
-            "(inline JS only). Wrap bridge calls in try/catch and show errors on screen. " +
+            "(inline JS only). For images use a reliable https host like picsum.photos " +
+            "(e.g. https://picsum.photos/seed/<word>/600/300) — source.unsplash.com is discontinued and won't load. " +
+            "Wrap bridge calls in try/catch and show errors on screen. " +
             "Declare in scopes ONLY the callTool actions it uses, from: http_fetch, store_get, store_set " +
             "(approved on first run; getState/setState/sendMessage need no scope).",
         requiredParameters = listOf(
