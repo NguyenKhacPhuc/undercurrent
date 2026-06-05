@@ -19,6 +19,8 @@ kotlin {
             // Mini-app bridge contracts (MiniAppStateStore, MiniAppScopeResolver)
             // the host catalog binds the HTML mini-app runtime against.
             implementation("dev.weft:weft-compose-defaults")
+            // ComponentNode — the render tree emitted on tap for an HTML mini-app.
+            implementation("dev.weft:weft-contracts")
             // http_fetch action handler runs against a host-supplied client
             // (the host installs its NetworkPolicy allowlist plugin on it).
             implementation(libs.ktor.client.core)

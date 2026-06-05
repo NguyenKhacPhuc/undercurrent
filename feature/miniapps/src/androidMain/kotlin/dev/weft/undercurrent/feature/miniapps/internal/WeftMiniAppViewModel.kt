@@ -10,6 +10,7 @@ import dev.weft.undercurrent.core.navigation.NavigationViewModel
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
+import dev.weft.undercurrent.feature.miniapps.htmlMiniAppRenderTree
 import dev.weft.undercurrent.shared.mvi.MviContext
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -44,6 +45,18 @@ public class WeftMiniAppViewModel(
     }
 
     private suspend fun handleInvoke(intent: MiniAppIntent.InvokeMiniApp) {
+        val miniApp = miniAppsRepo.miniApps.value.firstOrNull { it.id == intent.miniAppId }
+        if (miniApp?.htmlDocument != null) {
+            // Flexible (HTML) mini-app: render its saved document instantly
+            // through the bridged Html component — no agent turn. The id in
+            // the tree resolves the bridge's scope gate + state store.
+            runtime.uiBridge.emit(UIUpdate.RenderTree(htmlMiniAppRenderTree(miniApp)))
+            if (context.current.screen !is Screen.RenderedTree) {
+                navigationVm.dispatch(NavigationIntent.Navigate(Screen.RenderedTree))
+            }
+            miniAppsRepo.recordUsage(intent.miniAppId)
+            return
+        }
         val cached = intent.cachedRenderTreeJson
         if (cached != null) {
             runCatching {
