@@ -99,6 +99,9 @@ class IosAppViewModel(
         when (intent) {
             is MiniAppIntent.InvokeMiniApp -> launch { chatVm.send(intent.triggerPrompt) }
             is MiniAppIntent.UiBridgeUpdate -> Unit
+            // Consent gates the HTML render path, which is Android-only today
+            // (iOS uses StubUiBridgeRepository) — no-op until iOS render lands.
+            is MiniAppIntent.ApproveConsent, is MiniAppIntent.DenyConsent -> Unit
         }
     }
 

@@ -19,6 +19,9 @@ sealed interface MiniAppsIntent {
         val triggerPrompt: String,
     ) : MiniAppsIntent
     data class Delete(val id: String) : MiniAppsIntent
+
+    /** Review/change a mini-app's granted actions after first-run consent. */
+    data class SetApprovedScopes(val id: String, val scopes: Set<String>) : MiniAppsIntent
 }
 
 sealed interface MiniAppsEffect
@@ -39,6 +42,7 @@ class MiniAppsViewModel(
                 intent.id, intent.name, intent.emoji, intent.triggerPrompt,
             )
             is MiniAppsIntent.Delete -> repo.delete(intent.id)
+            is MiniAppsIntent.SetApprovedScopes -> repo.approveScopes(intent.id, intent.scopes)
         }
     }
 }

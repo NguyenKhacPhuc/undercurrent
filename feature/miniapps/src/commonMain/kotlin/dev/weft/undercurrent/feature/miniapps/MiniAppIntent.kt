@@ -11,4 +11,10 @@ sealed interface MiniAppIntent {
     ) : MiniAppIntent
 
     data class UiBridgeUpdate(val event: UiRenderEvent?) : MiniAppIntent
+
+    /** The user approved a mini-app's first-run consent prompt. */
+    data class ApproveConsent(val miniAppId: String) : MiniAppIntent
+
+    /** The user denied a mini-app's first-run consent prompt. */
+    data class DenyConsent(val miniAppId: String) : MiniAppIntent
 }

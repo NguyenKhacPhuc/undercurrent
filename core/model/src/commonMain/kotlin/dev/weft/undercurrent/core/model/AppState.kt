@@ -28,6 +28,7 @@ data class AppState(
     val availableAgents: List<AgentSummary> = emptyList(),
     val providerKeyStatus: Map<ProviderKind, String> = emptyMap(),
     val pendingPermissionDialog: PermissionDialogState? = null,
+    val pendingMiniAppConsent: MiniAppConsentRequest? = null,
 ) {
     companion object {
         const val DEFAULT_AGENT_NAME: String = "default"
@@ -49,6 +50,24 @@ data class PermissionDialogState(
     val toolName: String,
     val friendlyTitle: String,
     val friendlyBody: String,
+)
+
+/**
+ * The first-run consent prompt for a mini-app: which mini-app is asking
+ * and the plain-language [actions] it wants. Shown as a modal sheet; the
+ * user approves or denies before the mini-app renders.
+ */
+data class MiniAppConsentRequest(
+    val miniAppId: String,
+    val miniAppName: String,
+    val miniAppEmoji: String,
+    val actions: List<ConsentAction>,
+)
+
+/** One action in a [MiniAppConsentRequest], with its user-facing label. */
+data class ConsentAction(
+    val name: String,
+    val description: String,
 )
 
 data class AgentSummary(

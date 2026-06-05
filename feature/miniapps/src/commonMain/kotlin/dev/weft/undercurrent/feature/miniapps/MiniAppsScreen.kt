@@ -99,6 +99,9 @@ fun MiniAppsScreen(
             viewModel.dispatch(MiniAppsIntent.Update(id, name, emoji, prompt))
         },
         onDelete = { viewModel.dispatch(MiniAppsIntent.Delete(it)) },
+        onSetApprovedScopes = { id, scopes ->
+            viewModel.dispatch(MiniAppsIntent.SetApprovedScopes(id, scopes))
+        },
     )
 }
 
@@ -115,6 +118,7 @@ fun MiniAppsScreen(
     onStartCreator: () -> Unit = {},
     onUpdate: (id: String, name: String, emoji: String, prompt: String) -> Unit = { _, _, _, _ -> },
     onDelete: (id: String) -> Unit = {},
+    onSetApprovedScopes: (id: String, scopes: Set<String>) -> Unit = { _, _ -> },
 ) {
     val miniApps = state.miniApps
     var editing by remember { mutableStateOf<MiniApp?>(null) }
@@ -180,6 +184,7 @@ fun MiniAppsScreen(
                 editing = null
                 onDelete(miniApp.id)
             },
+            onSetApprovedScopes = { scopes -> onSetApprovedScopes(miniApp.id, scopes) },
         )
     }
 }

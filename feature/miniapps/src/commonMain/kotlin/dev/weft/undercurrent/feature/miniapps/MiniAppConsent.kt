@@ -1,6 +1,8 @@
 package dev.weft.undercurrent.feature.miniapps
 
+import dev.weft.undercurrent.core.model.ConsentAction
 import dev.weft.undercurrent.core.model.MiniApp
+import dev.weft.undercurrent.core.model.MiniAppConsentRequest
 
 /**
  * True when this is a flexible HTML mini-app that declares actions and
@@ -29,3 +31,12 @@ fun MiniApp.requestedActions(offerable: OfferableActions): List<AppAction> {
  */
 fun MiniApp.approvableScopes(offerable: OfferableActions): Set<String> =
     offerable.screen(declaredScopes).offerable
+
+/** Build the consent prompt this mini-app shows on first run. */
+fun MiniApp.toConsentRequest(offerable: OfferableActions): MiniAppConsentRequest =
+    MiniAppConsentRequest(
+        miniAppId = id,
+        miniAppName = name,
+        miniAppEmoji = emoji,
+        actions = requestedActions(offerable).map { ConsentAction(it.name, it.description) },
+    )
