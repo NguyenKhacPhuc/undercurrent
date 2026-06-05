@@ -12,17 +12,17 @@ import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.core.ui.LoadingPlaceholder
 import dev.weft.undercurrent.feature.chat.ChatViewModel
 import dev.weft.undercurrent.feature.conversations.ConversationsRoute
-import dev.weft.undercurrent.feature.integrations.IntegrationsRoute
-import dev.weft.undercurrent.feature.keypaste.KeyPasteRoute
+import dev.weft.undercurrent.feature.settings.integrations.IntegrationsRoute
+import dev.weft.undercurrent.feature.onboarding.KeyPasteRoute
 import dev.weft.undercurrent.feature.memories.MemoriesRoute
 import dev.weft.undercurrent.feature.onboarding.OnboardingRoute
 import dev.weft.undercurrent.feature.personas.PersonasRoute
-import dev.weft.undercurrent.feature.providers.ProvidersRoute
+import dev.weft.undercurrent.feature.settings.providers.ProvidersRoute
 import dev.weft.undercurrent.feature.settings.SettingsRoute
 import dev.weft.undercurrent.feature.auth.SignInRoute
 import dev.weft.undercurrent.feature.theme.AppearanceRoute
 import dev.weft.undercurrent.feature.traces.TracesRoute
-import dev.weft.undercurrent.feature.usage.UsageRoute
+import dev.weft.undercurrent.feature.settings.usage.UsageRoute
 import org.koin.compose.koinInject
 
 @Composable

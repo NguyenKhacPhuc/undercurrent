@@ -42,11 +42,6 @@ fun UndercurrentTheme(
 ) {
     val m3Typography = typography.toMaterialTypography()
     val m3Shapes = shapes.toMaterialShapes()
-
-    // Crossfade on (palette + darkMode) so theme switches fade rather
-    // than pop. State inside the content keeps its identity across the
-    // swap because Crossfade reuses the same lambda body; only the
-    // rendered colors blend.
     Crossfade(
         targetState = palette to darkMode,
         animationSpec = tween(durationMillis = 280),

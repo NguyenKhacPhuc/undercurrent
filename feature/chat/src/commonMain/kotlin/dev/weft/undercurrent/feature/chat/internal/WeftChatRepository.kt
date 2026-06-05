@@ -251,10 +251,6 @@ internal class WeftChatRepository(
         a.dispatch(AgentIntent.SendEvent(action, sourceLabel, fieldValues))
     }
 
-    fun dispose() {
-        scope.cancel()
-    }
-
     private companion object {
         const val DEFAULT_AGENT_NAME = "default"
     }

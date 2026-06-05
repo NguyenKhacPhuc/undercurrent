@@ -33,36 +33,6 @@ import dev.weft.undercurrent.core.resources.creator_thinking
 import dev.weft.undercurrent.core.resources.creator_title_fallback
 import org.jetbrains.compose.resources.stringResource
 
-/**
- * Dedicated wizard surface for a [CreatorSession]. Unlike the chat
- * screen, there's no free-form text input — the user answers ONLY
- * through the widgets the agent has rendered via `ui_render`.
- *
- * Visual states:
- *   1. **Thinking, no tree yet** — kickoff turn in flight. Centered
- *      spinner + "Preparing the first question…".
- *   2. **Question rendered** — host's [body] Composable renders the
- *      agent-emitted tree and accumulates field state. The screen
- *      provides the chrome (cancel, header, busy indicator).
- *   3. **Subsequent thinking** — inline spinner in the header while
- *      the next agent turn runs.
- *
- * KMP — commonMain. Moved from
- * `app/.../features/creator/CreatorScreen.kt`. Adjustments:
- *   - `dev.weft.compose.ComposeUiBridge` + `TreeRenderer` +
- *     `WeftComponentRegistry` (all Android-only) hoisted out of the
- *     screen. The host passes the tree-rendering [body] Composable.
- *   - `ComponentEvent` (Weft contract) stays inside [body] — the
- *     host adapts events into the host's field-accumulator and
- *     action dispatch.
- *   - `Icons.Filled.Close` → Unicode "×" (same approach as
- *     `ScreenScaffold`'s "←").
- *   - Theme imports from `:core:design-system`.
- *
- * @param hasTree set by the host when the agent has emitted a
- *   render-tree event. False = show the thinking placeholder; true
- *   = render [body].
- */
 @Composable
 fun CreatorScreen(
     creatorSession: CreatorSession,

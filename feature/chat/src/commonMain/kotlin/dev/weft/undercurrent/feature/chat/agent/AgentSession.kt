@@ -19,8 +19,6 @@ class AgentSession(
     private val agentSlot: AgentSlot,
 ) {
 
-    val currentAgentFlow: StateFlow<WeftAgent?> get() = agentSlot.flow
-
     val currentAgent: WeftAgent? get() = agentSlot.agent
 
     fun setRootScreen(screen: Screen) {

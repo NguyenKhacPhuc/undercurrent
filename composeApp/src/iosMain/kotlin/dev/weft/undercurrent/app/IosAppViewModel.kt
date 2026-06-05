@@ -18,7 +18,7 @@ import dev.weft.undercurrent.feature.chat.ChatViewModel
 import dev.weft.undercurrent.feature.chat.components.DisplayMessage
 import dev.weft.undercurrent.feature.chat.SkillSummary
 import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
-import dev.weft.undercurrent.feature.providers.ProviderIntent
+import dev.weft.undercurrent.feature.settings.providers.ProviderIntent
 import dev.weft.undercurrent.core.domain.KeyVaultRepository
 import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.Dispatchers

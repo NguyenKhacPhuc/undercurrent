@@ -8,7 +8,7 @@ import dev.weft.undercurrent.core.model.ModelTier
  * to the chat slice.
  *
  * `SubmitKey` deliberately lives in `:feature:providers` ([dev.weft
- * .undercurrent.feature.providers.ProviderIntent]) — saving a key is
+ * .undercurrent.feature.settings.providers.ProviderIntent]) — saving a key is
  * a provider concern, even if KeyPaste happens to drop the user into
  * chat after.
  */

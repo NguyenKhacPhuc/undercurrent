@@ -14,9 +14,19 @@ kotlin {
         commonMain.dependencies {
             implementation(projects.core.domain)
             implementation(projects.feature.auth)
+            // Absorbed sub-features (providers / usage / integrations):
+            // MVI base + gateway mirrors, plus Today's ISO-date lookup
+            // for the usage by-day chart.
+            implementation(projects.shared)
+            implementation(libs.kotlinx.datetime)
         }
         androidMain.dependencies {
-            // androidMain-only deps (e.g. :data:weft, ML Kit)
+            // Providers sub-feature — WeftProviderViewModel rebuilds the
+            // WeftAgent via AgentSession + WeftAgentFactory on provider/
+            // key swap.
+            implementation("dev.weft:weft-runtime")
+            implementation("dev.weft:weft-harness-agents")
+            implementation(projects.feature.chat)
         }
     }
 }

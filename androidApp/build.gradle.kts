@@ -77,14 +77,9 @@ dependencies {
     implementation(projects.feature.traces)
     implementation(projects.feature.settings)
     implementation(projects.feature.onboarding)
-    implementation(projects.feature.providers)
-    implementation(projects.feature.voice)
     implementation(projects.feature.creator)
     implementation(projects.feature.theme)
-    implementation(projects.feature.usage)
     implementation(projects.feature.miniapps)
-    implementation(projects.feature.keypaste)
-    implementation(projects.feature.integrations)
 
     // Weft SDK — substrate. The host references WeftRuntime, ComposeUiBridge,
     // tool base classes, and the OAuth client directly.

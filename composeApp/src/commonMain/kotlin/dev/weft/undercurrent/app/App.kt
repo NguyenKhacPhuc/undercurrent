@@ -26,6 +26,7 @@ import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.core.resources.Res
 import dev.weft.undercurrent.core.resources.permission_dialog_not_now
 import dev.weft.undercurrent.core.resources.permission_dialog_open_settings
+import dev.weft.undercurrent.core.ui.MiniAppConsentSheet
 import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
 import org.jetbrains.compose.resources.stringResource

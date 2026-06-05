@@ -35,12 +35,12 @@ import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
 import dev.weft.undercurrent.feature.miniapps.miniAppsModule
 import dev.weft.undercurrent.feature.onboarding.onboardingModule
 import dev.weft.undercurrent.feature.personas.personasModule
-import dev.weft.undercurrent.feature.providers.ProviderViewModel
+import dev.weft.undercurrent.feature.settings.providers.ProviderViewModel
 import dev.weft.undercurrent.feature.auth.authModule
 import dev.weft.undercurrent.feature.theme.themeModule
 import dev.weft.undercurrent.feature.traces.TraceExportViewModel
 import dev.weft.undercurrent.feature.traces.tracesModule
-import dev.weft.undercurrent.feature.usage.usageModule
+import dev.weft.undercurrent.feature.settings.usage.usageModule
 import dev.weft.undercurrent.core.domain.ChatRepository
 import dev.weft.undercurrent.core.domain.ConversationStoreRepository
 import dev.weft.undercurrent.core.domain.IosSpeechRepository
@@ -161,7 +161,7 @@ val iosAppModule = module {
     single<TraceExportViewModel> { NoOpTraceExportViewModel() }
 
     viewModel {
-        dev.weft.undercurrent.feature.integrations.IntegrationsViewModel(
+        dev.weft.undercurrent.feature.settings.integrations.IntegrationsViewModel(
             repo = get(),
             oauth = get(),
             initialEnabled = emptySet(),

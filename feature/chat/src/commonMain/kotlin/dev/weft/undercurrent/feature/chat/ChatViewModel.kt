@@ -21,7 +21,7 @@ class ChatViewModel(
     private val selectConversation: SelectConversationUseCase,
     private val deleteCurrentConversation: DeleteCurrentConversationUseCase,
     private val selectAgent: SelectAgentUseCase,
-    private val observeChatState: ObserveChatStateUseCase,
+    observeChatState: ObserveChatStateUseCase,
     initialSkills: List<SkillSummary> = emptyList(),
 ) : MviViewModel<ChatState, ChatIntent, ChatEffect>(
     initialState = ChatState.initial(),

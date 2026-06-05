@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.resources.Res
 import dev.weft.undercurrent.core.resources.chat_input_placeholder
-import dev.weft.undercurrent.feature.voice.WaveformBars
+import dev.weft.undercurrent.core.ui.WaveformBars
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.jetbrains.compose.resources.stringResource

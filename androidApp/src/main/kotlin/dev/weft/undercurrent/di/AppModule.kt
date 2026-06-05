@@ -4,8 +4,11 @@ import dev.weft.android.WeftRuntime
 import dev.weft.android.create
 import dev.weft.compose.ComposeUiBridge
 import dev.weft.compose.WeftUi
+import dev.weft.compose.components.MiniAppAssistantHandler
 import dev.weft.contracts.KeyVault
 import dev.weft.harness.agents.AgentDeclaration
+import dev.weft.harness.agents.AgentIntent
+import dev.weft.harness.behavior.Turn
 import dev.weft.mcp.McpServerConfig
 import dev.weft.oauth.AndroidOAuthClient
 import dev.weft.oauth.OAuthCallbackChannel
@@ -13,30 +16,31 @@ import dev.weft.oauth.OAuthClient
 import dev.weft.oauth.OAuthTokenStore
 import dev.weft.osbridge.keyvault.AndroidKeyVault
 import dev.weft.security.NetworkPolicy
+import dev.weft.security.whitelistingHttpClient
 import dev.weft.undercurrent.app.AppViewModel
 import dev.weft.undercurrent.core.ASSISTANT_APP_PREAMBLE
 import dev.weft.undercurrent.core.WeftAppViewModel
 import dev.weft.undercurrent.core.domain.IntegrationsRepository
 import dev.weft.undercurrent.core.domain.MiniAppsRepository
-import dev.weft.undercurrent.core.domain.OnboardingRepository
 import dev.weft.undercurrent.core.domain.PersonaRepository
-import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.domain.ThemeRepository
 import dev.weft.undercurrent.core.domain.auth.BE_BASE_URL_QUALIFIER
 import dev.weft.undercurrent.core.domain.auth.authRepositoryModule
+import dev.weft.undercurrent.core.domain.repositoryAndroidModule
 import dev.weft.undercurrent.core.domain.repositoryModule
 import dev.weft.undercurrent.core.domain.usecase.chat.chatUseCasesModule
 import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.AppState
 import dev.weft.undercurrent.core.navigation.NavigationChannel
 import dev.weft.undercurrent.core.navigation.navigationModule
+import dev.weft.undercurrent.core.ui.components.undercurrentComponents
 import dev.weft.undercurrent.data.datastore.datastoreAndroidModule
+import dev.weft.undercurrent.data.network.PlatformHttpClientEngineFactory
 import dev.weft.undercurrent.data.network.androidNetworkModule
 import dev.weft.undercurrent.data.sqldelight.SqlDelightDataSource
 import dev.weft.undercurrent.data.sqldelight.databaseAndroidModule
-import dev.weft.undercurrent.core.domain.repositoryAndroidModule
-import dev.weft.undercurrent.data.weft.tools.CreateMiniAppTool
 import dev.weft.undercurrent.data.weft.tools.CreateHtmlMiniAppTool
+import dev.weft.undercurrent.data.weft.tools.CreateMiniAppTool
 import dev.weft.undercurrent.data.weft.tools.CreatePersonaTool
 import dev.weft.undercurrent.data.weft.tools.OpenConversationsTool
 import dev.weft.undercurrent.data.weft.tools.OpenIntegrationsTool
@@ -45,38 +49,32 @@ import dev.weft.undercurrent.data.weft.tools.OpenPersonasTool
 import dev.weft.undercurrent.data.weft.tools.OpenUsageTool
 import dev.weft.undercurrent.data.weft.tools.ShowLocationOnMapTool
 import dev.weft.undercurrent.data.weft.tools.WebSearchTool
+import dev.weft.undercurrent.feature.auth.authModule
+import dev.weft.undercurrent.feature.chat.ChatViewModel
+import dev.weft.undercurrent.feature.chat.agent.AgentSession
 import dev.weft.undercurrent.feature.chat.chatAndroidModule
 import dev.weft.undercurrent.feature.chat.chatModule
-import dev.weft.undercurrent.feature.chat.agent.AgentSession
-import dev.weft.compose.components.MiniAppAssistantHandler
-import dev.weft.harness.agents.AgentIntent
-import dev.weft.harness.behavior.Turn
 import dev.weft.undercurrent.feature.conversations.conversationsModule
 import dev.weft.undercurrent.feature.creator.CreatorKind
 import dev.weft.undercurrent.feature.creator.creatorAndroidModule
-import dev.weft.undercurrent.feature.integrations.Integration
-import dev.weft.undercurrent.feature.integrations.Integrations
-import dev.weft.undercurrent.feature.integrations.IntegrationsViewModel
+import dev.weft.undercurrent.feature.settings.integrations.Integration
+import dev.weft.undercurrent.feature.settings.integrations.Integrations
+import dev.weft.undercurrent.feature.settings.integrations.IntegrationsViewModel
 import dev.weft.undercurrent.feature.memories.memoriesModule
-import dev.weft.undercurrent.feature.chat.ChatViewModel
-import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
-import dev.weft.undercurrent.feature.miniapps.internal.WeftMiniAppViewModel
-import dev.weft.undercurrent.feature.miniapps.miniAppsModule
 import dev.weft.undercurrent.feature.miniapps.MiniAppRepositoryStateStore
+import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
 import dev.weft.undercurrent.feature.miniapps.OfferableActions
+import dev.weft.undercurrent.feature.miniapps.internal.WeftMiniAppViewModel
 import dev.weft.undercurrent.feature.miniapps.miniAppActionInvoker
 import dev.weft.undercurrent.feature.miniapps.miniAppScopeResolver
-import dev.weft.undercurrent.core.ui.components.undercurrentComponents
-import dev.weft.undercurrent.data.network.PlatformHttpClientEngineFactory
-import dev.weft.security.whitelistingHttpClient
+import dev.weft.undercurrent.feature.miniapps.miniAppsModule
 import dev.weft.undercurrent.feature.onboarding.onboardingModule
 import dev.weft.undercurrent.feature.personas.personasModule
-import dev.weft.undercurrent.feature.providers.providerAndroidModule
-import dev.weft.undercurrent.feature.auth.authModule
+import dev.weft.undercurrent.feature.settings.providers.providerAndroidModule
 import dev.weft.undercurrent.feature.theme.themeModule
 import dev.weft.undercurrent.feature.traces.traceExportAndroidModule
 import dev.weft.undercurrent.feature.traces.tracesModule
-import dev.weft.undercurrent.feature.usage.usageModule
+import dev.weft.undercurrent.feature.settings.usage.usageModule
 import dev.weft.undercurrent.shared.mvi.MviContext
 import dev.weft.undercurrent.tools.SetThemeModeTool
 import dev.weft.undercurrent.tools.SetThemePaletteTool
@@ -88,25 +86,17 @@ import org.koin.dsl.module
 
 val appModule = module {
 
-    // BE base URL consumed by authRepositoryModule. Hardcoded for v1
-    // per BE Inception D5; swap to BuildConfig when we add a staging
-    // environment.
     single<String>(named(BE_BASE_URL_QUALIFIER)) { BE_BASE_URL }
 
     single {
         val imageLoader = coil3.ImageLoader.Builder(androidContext()).build()
         val miniAppsRepo = get<MiniAppsRepository>()
         val offerable = OfferableActions.readMostlyDefaults()
-        // Dedicated client for mini-app http_fetch — NOT the BE-authenticated
-        // one, so a mini-app's request never carries the user's auth token.
-        // OPEN today (matches the runtime); the allowlist seam is in place.
         val miniAppHttpClient = whitelistingHttpClient(
             engine = get<PlatformHttpClientEngineFactory>().create(),
             policy = NetworkPolicy.OPEN,
         )
         val miniAppStateStore = MiniAppRepositoryStateStore(miniAppsRepo)
-        // Resolved lazily at call time, NOT here: WeftUi → AgentSession →
-        // AppViewModel → ComposeUiBridge → WeftUi would cycle if eager.
         val agentSessionProvider = { get<AgentSession>() }
         WeftUi(
             context = androidContext(),
@@ -312,8 +302,8 @@ val allModules = listOf(
     chatUseCasesModule,
     datastoreAndroidModule,
     databaseAndroidModule,
-    repositoryAndroidModule,
     androidNetworkModule,
+    repositoryAndroidModule,
     authRepositoryModule,
     authModule,
     chatModule,
@@ -352,11 +342,6 @@ private fun mcpServersFor(
 
 private const val OAUTH_KEY_VAULT: String = "oauth_key_vault"
 
-/**
- * Production BE — pinned 2026-05-31 after the BE Story 01 deploy
- * (`inception/260531-1733-backend-bootstrap-auth/api-contract.md#Conventions`).
- * Swap to a `BuildConfig` constant when we add a staging environment.
- */
 private const val BE_BASE_URL: String = "https://undercurrent-backend-production.up.railway.app"
 
 private fun dev.weft.undercurrent.core.domain.OAuthConfig.toWeft(): dev.weft.oauth.OAuthConfig =
