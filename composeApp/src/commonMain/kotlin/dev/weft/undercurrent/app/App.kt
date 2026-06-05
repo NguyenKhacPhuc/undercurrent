@@ -25,7 +25,10 @@ import dev.weft.undercurrent.core.model.ThemeMode
 import dev.weft.undercurrent.core.resources.Res
 import dev.weft.undercurrent.core.resources.permission_dialog_not_now
 import dev.weft.undercurrent.core.resources.permission_dialog_open_settings
+import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
+import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 
 @Composable
 fun App(
@@ -71,6 +74,15 @@ fun App(
                             store.dismissPermissionDialog()
                         },
                         onDismiss = { store.dismissPermissionDialog() },
+                    )
+                }
+
+                state.pendingMiniAppConsent?.let { consent ->
+                    val miniAppVm: MiniAppViewModel = koinInject()
+                    MiniAppConsentSheet(
+                        request = consent,
+                        onApprove = { miniAppVm.dispatch(MiniAppIntent.ApproveConsent(consent.miniAppId)) },
+                        onDeny = { miniAppVm.dispatch(MiniAppIntent.DenyConsent(consent.miniAppId)) },
                     )
                 }
 

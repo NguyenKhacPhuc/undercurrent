@@ -38,6 +38,13 @@ data class MiniApp(
     val declaredScopes: Set<String> = emptySet(),
     /** Action names the user has approved for this mini-app (the grant). */
     val approvedScopes: Set<String> = emptySet(),
+    /**
+     * When the user first decided this mini-app's grant (epoch ms), or
+     * null if they never have. Distinguishes "not yet asked" (null →
+     * prompt on first run) from "asked, approved nothing" (empty
+     * [approvedScopes] but non-null here → don't re-prompt).
+     */
+    val consentedAt: Long? = null,
     /** Opaque per-mini-app state JSON saved via `window.weft.setState`. */
     val stateJson: String? = null,
 )

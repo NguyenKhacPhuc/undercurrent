@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -61,6 +62,7 @@ fun SaveAsMiniAppDialog(
     onDismiss: () -> Unit,
     onSave: (name: String, emoji: String, triggerPrompt: String) -> Unit,
     onDelete: (() -> Unit)? = null,
+    onSetApprovedScopes: ((Set<String>) -> Unit)? = null,
 ) {
     val colors = UndercurrentTheme.colors
 
@@ -70,6 +72,7 @@ fun SaveAsMiniAppDialog(
     var emoji by remember { mutableStateOf(initial?.emoji ?: DEFAULT_EMOJI) }
     var prompt by remember { mutableStateOf(initial?.triggerPrompt ?: suggestedPrompt) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var approved by remember { mutableStateOf(initial?.approvedScopes ?: emptySet()) }
 
     val isEdit = initial != null
 
@@ -115,6 +118,35 @@ fun SaveAsMiniAppDialog(
                         color = colors.inkSubtle,
                     ),
                 )
+                if (isEdit && initial?.htmlDocument != null && onSetApprovedScopes != null) {
+                    val actions = initial.requestedActions(OfferableActions.readMostlyDefaults())
+                    if (actions.isNotEmpty()) {
+                        Text(
+                            text = "Permissions",
+                            style = UndercurrentTheme.typography.sansSmall.copy(color = colors.inkSubtle),
+                        )
+                        actions.forEach { action ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(
+                                    text = action.description.ifBlank { action.name },
+                                    style = UndercurrentTheme.typography.sansSmall,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Switch(
+                                    checked = action.name in approved,
+                                    onCheckedChange = { granted ->
+                                        approved = if (granted) approved + action.name else approved - action.name
+                                        onSetApprovedScopes(approved)
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {

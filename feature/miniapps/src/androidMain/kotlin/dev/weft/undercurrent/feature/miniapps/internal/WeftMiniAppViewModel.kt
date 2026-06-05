@@ -10,7 +10,11 @@ import dev.weft.undercurrent.core.navigation.NavigationViewModel
 import dev.weft.undercurrent.core.navigation.Screen
 import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
+import dev.weft.undercurrent.feature.miniapps.OfferableActions
+import dev.weft.undercurrent.feature.miniapps.approvableScopes
 import dev.weft.undercurrent.feature.miniapps.htmlMiniAppRenderTree
+import dev.weft.undercurrent.feature.miniapps.needsConsent
+import dev.weft.undercurrent.feature.miniapps.toConsentRequest
 import dev.weft.undercurrent.shared.mvi.MviContext
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -29,6 +33,7 @@ public class WeftMiniAppViewModel(
     private val runtime: WeftRuntime,
     private val miniAppsRepo: MiniAppsRepository,
     private val navigationVm: NavigationViewModel,
+    private val offerable: OfferableActions,
     private val sendChat: suspend (String) -> Unit,
 ) : MiniAppViewModel {
 
@@ -41,20 +46,24 @@ public class WeftMiniAppViewModel(
                 handleInvoke(intent)
             }
             is MiniAppIntent.UiBridgeUpdate -> handleUiBridgeUpdate(intent)
+            is MiniAppIntent.ApproveConsent -> context.scope.launch {
+                resolveConsent(intent.miniAppId, approve = true)
+            }
+            is MiniAppIntent.DenyConsent -> context.scope.launch {
+                resolveConsent(intent.miniAppId, approve = false)
+            }
         }
     }
 
     private suspend fun handleInvoke(intent: MiniAppIntent.InvokeMiniApp) {
         val miniApp = miniAppsRepo.miniApps.value.firstOrNull { it.id == intent.miniAppId }
         if (miniApp?.htmlDocument != null) {
-            // Flexible (HTML) mini-app: render its saved document instantly
-            // through the bridged Html component — no agent turn. The id in
-            // the tree resolves the bridge's scope gate + state store.
-            runtime.uiBridge.emit(UIUpdate.RenderTree(htmlMiniAppRenderTree(miniApp)))
-            if (context.current.screen !is Screen.RenderedTree) {
-                navigationVm.dispatch(NavigationIntent.Navigate(Screen.RenderedTree))
+            // First run with declared actions: ask before anything renders.
+            if (miniApp.needsConsent()) {
+                context.update { it.copy(pendingMiniAppConsent = miniApp.toConsentRequest(offerable)) }
+                return
             }
-            miniAppsRepo.recordUsage(intent.miniAppId)
+            renderHtmlMiniApp(miniApp)
             return
         }
         val cached = intent.cachedRenderTreeJson
@@ -77,6 +86,34 @@ public class WeftMiniAppViewModel(
         } finally {
             activeInvocationId = null
         }
+    }
+
+    /** Render a flexible HTML mini-app instantly via the bridged Html component. */
+    private suspend fun renderHtmlMiniApp(miniApp: dev.weft.undercurrent.core.model.MiniApp) {
+        runtime.uiBridge.emit(UIUpdate.RenderTree(htmlMiniAppRenderTree(miniApp)))
+        if (context.current.screen !is Screen.RenderedTree) {
+            navigationVm.dispatch(NavigationIntent.Navigate(Screen.RenderedTree))
+        }
+        miniAppsRepo.recordUsage(miniApp.id)
+    }
+
+    /**
+     * Apply the user's consent decision: record the grant (the offerable
+     * subset on approve, nothing on deny), dismiss the prompt, then render
+     * the mini-app — which now runs scope-gated to exactly what they allowed.
+     */
+    private suspend fun resolveConsent(miniAppId: String, approve: Boolean) {
+        val miniApp = miniAppsRepo.miniApps.value.firstOrNull { it.id == miniAppId }
+        if (miniApp == null) {
+            context.update { it.copy(pendingMiniAppConsent = null) }
+            return
+        }
+        miniAppsRepo.recordConsent(
+            miniAppId,
+            if (approve) miniApp.approvableScopes(offerable) else emptySet(),
+        )
+        context.update { it.copy(pendingMiniAppConsent = null) }
+        renderHtmlMiniApp(miniApp)
     }
 
     private fun handleUiBridgeUpdate(intent: MiniAppIntent.UiBridgeUpdate) {

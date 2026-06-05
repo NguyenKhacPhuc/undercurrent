@@ -272,6 +272,7 @@ val appModule = module {
             runtime = get(),
             miniAppsRepo = get(),
             navigationVm = get(),
+            offerable = OfferableActions.readMostlyDefaults(),
             sendChat = { text -> chatVm.send(text) },
         )
     }
