@@ -47,6 +47,9 @@ import dev.weft.undercurrent.data.weft.tools.WebSearchTool
 import dev.weft.undercurrent.feature.chat.chatAndroidModule
 import dev.weft.undercurrent.feature.chat.chatModule
 import dev.weft.undercurrent.feature.chat.agent.AgentSession
+import dev.weft.compose.components.MiniAppAssistantHandler
+import dev.weft.harness.agents.AgentIntent
+import dev.weft.harness.behavior.Turn
 import dev.weft.undercurrent.feature.conversations.conversationsModule
 import dev.weft.undercurrent.feature.creator.CreatorKind
 import dev.weft.undercurrent.feature.creator.creatorAndroidModule
@@ -101,6 +104,9 @@ val appModule = module {
             policy = NetworkPolicy.OPEN,
         )
         val miniAppStateStore = MiniAppRepositoryStateStore(miniAppsRepo)
+        // Resolved lazily at call time, NOT here: WeftUi → AgentSession →
+        // AppViewModel → ComposeUiBridge → WeftUi would cycle if eager.
+        val agentSessionProvider = { get<AgentSession>() }
         WeftUi(
             context = androidContext(),
             extraComponents = undercurrentComponents(
@@ -108,6 +114,7 @@ val appModule = module {
                 miniAppInvoker = miniAppActionInvoker(offerable, miniAppStateStore, miniAppHttpClient),
                 miniAppScopeResolver = miniAppScopeResolver({ miniAppsRepo.miniApps.value }, offerable),
                 miniAppStateStore = miniAppStateStore,
+                miniAppAssistant = miniAppAssistantHandler(agentSessionProvider),
             ),
             includeDefaults = false,
         )
@@ -365,4 +372,28 @@ private fun creatorPreambleFor(kind: CreatorKind): String = when (kind) {
         "You are guiding the user through creating a mini-app. " +
             "Use the ui_render tool to ask one question at a time. " +
             "Keep it short. End with the create_mini_app tool when done."
+}
+
+/**
+ * The host's [MiniAppAssistantHandler] for `window.weft.sendMessage`: runs
+ * the mini-app's request as a one-shot agent turn and returns the reply.
+ * [agentSession] is resolved lazily (per call) to avoid a DI cycle at
+ * WeftUi construction. No assistant ready → throws, which the bridge
+ * surfaces to the mini-app as a rejected Promise.
+ *
+ * v1 limitation: the turn runs on the user's *current* conversation, so
+ * the exchange lands in their chat history. Isolating it on an ephemeral
+ * conversation is a follow-up.
+ */
+private fun miniAppAssistantHandler(
+    agentSession: () -> AgentSession,
+): MiniAppAssistantHandler = MiniAppAssistantHandler { _, text ->
+    val agent = agentSession().currentAgent
+        ?: throw IllegalStateException("assistant not ready")
+    agent.dispatchAndAwait(AgentIntent.Send(text = text, streaming = false))
+    agent.state.value.history
+        .filterIsInstance<Turn.Assistant>()
+        .lastOrNull()
+        ?.text
+        ?: throw IllegalStateException("assistant returned no reply")
 }

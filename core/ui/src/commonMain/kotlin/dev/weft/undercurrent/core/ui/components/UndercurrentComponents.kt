@@ -2,6 +2,7 @@ package dev.weft.undercurrent.core.ui.components
 
 import coil3.ImageLoader
 import dev.weft.compose.components.MiniAppActionInvoker
+import dev.weft.compose.components.MiniAppAssistantHandler
 import dev.weft.compose.components.MiniAppScopeResolver
 import dev.weft.compose.components.MiniAppStateStore
 import dev.weft.compose.components.WeftComponent
@@ -33,6 +34,7 @@ fun undercurrentComponents(
     miniAppInvoker: MiniAppActionInvoker? = null,
     miniAppScopeResolver: MiniAppScopeResolver? = null,
     miniAppStateStore: MiniAppStateStore? = null,
+    miniAppAssistant: MiniAppAssistantHandler? = null,
 ): List<WeftComponent<*>> =
     displayComponents(imageLoader) +
         undercurrentLayoutComponents +
@@ -80,4 +82,4 @@ fun undercurrentComponents(
         // script-enabled HTML mini-app's window.weft bridge live; passed
         // null they stay sandboxed. Without these in the registry the
         // agent can only dump HTML into a Text block.
-        platformEmbedComponents(miniAppInvoker, miniAppScopeResolver, miniAppStateStore)
+        platformEmbedComponents(miniAppInvoker, miniAppScopeResolver, miniAppStateStore, miniAppAssistant)
