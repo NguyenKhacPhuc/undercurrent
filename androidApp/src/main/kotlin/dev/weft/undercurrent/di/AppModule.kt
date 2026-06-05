@@ -58,6 +58,13 @@ import dev.weft.undercurrent.feature.chat.ChatViewModel
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
 import dev.weft.undercurrent.feature.miniapps.internal.WeftMiniAppViewModel
 import dev.weft.undercurrent.feature.miniapps.miniAppsModule
+import dev.weft.undercurrent.feature.miniapps.MiniAppRepositoryStateStore
+import dev.weft.undercurrent.feature.miniapps.OfferableActions
+import dev.weft.undercurrent.feature.miniapps.miniAppHttpInvoker
+import dev.weft.undercurrent.feature.miniapps.miniAppScopeResolver
+import dev.weft.undercurrent.core.ui.components.undercurrentComponents
+import dev.weft.undercurrent.data.network.PlatformHttpClientEngineFactory
+import dev.weft.security.whitelistingHttpClient
 import dev.weft.undercurrent.feature.onboarding.onboardingModule
 import dev.weft.undercurrent.feature.personas.personasModule
 import dev.weft.undercurrent.feature.providers.providerAndroidModule
@@ -84,9 +91,23 @@ val appModule = module {
 
     single {
         val imageLoader = coil3.ImageLoader.Builder(androidContext()).build()
+        val miniAppsRepo = get<MiniAppsRepository>()
+        val offerable = OfferableActions.readMostlyDefaults()
+        // Dedicated client for mini-app http_fetch — NOT the BE-authenticated
+        // one, so a mini-app's request never carries the user's auth token.
+        // OPEN today (matches the runtime); the allowlist seam is in place.
+        val miniAppHttpClient = whitelistingHttpClient(
+            engine = get<PlatformHttpClientEngineFactory>().create(),
+            policy = NetworkPolicy.OPEN,
+        )
         WeftUi(
             context = androidContext(),
-            extraComponents = dev.weft.undercurrent.core.ui.components.undercurrentComponents(imageLoader),
+            extraComponents = undercurrentComponents(
+                imageLoader = imageLoader,
+                miniAppInvoker = miniAppHttpInvoker(offerable, miniAppHttpClient),
+                miniAppScopeResolver = miniAppScopeResolver({ miniAppsRepo.miniApps.value }, offerable),
+                miniAppStateStore = MiniAppRepositoryStateStore(miniAppsRepo),
+            ),
             includeDefaults = false,
         )
     }

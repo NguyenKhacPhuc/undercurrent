@@ -11,6 +11,13 @@ import dev.weft.compose.components.WeftComponentRegistry
 import dev.weft.harness.agents.AgentDeclaration
 import dev.weft.harness.prompt.WeftSystemPromptDefaults
 import dev.weft.security.NetworkPolicy
+import dev.weft.security.whitelistingHttpClient
+import dev.weft.undercurrent.core.domain.MiniAppsRepository
+import dev.weft.undercurrent.data.network.PlatformHttpClientEngineFactory
+import dev.weft.undercurrent.feature.miniapps.MiniAppRepositoryStateStore
+import dev.weft.undercurrent.feature.miniapps.OfferableActions
+import dev.weft.undercurrent.feature.miniapps.miniAppHttpInvoker
+import dev.weft.undercurrent.feature.miniapps.miniAppScopeResolver
 import dev.weft.undercurrent.core.domain.auth.BE_BASE_URL_QUALIFIER
 import dev.weft.undercurrent.core.domain.auth.authRepositoryModule
 import dev.weft.undercurrent.core.domain.repositoryModule
@@ -78,7 +85,22 @@ val iosAppModule = module {
             .build()
     }
     single<WeftComponentRegistry> {
-        WeftComponentRegistry(undercurrentComponents(get()))
+        val miniAppsRepo = get<MiniAppsRepository>()
+        val offerable = OfferableActions.readMostlyDefaults()
+        // Dedicated client for mini-app http_fetch — NOT the BE-authenticated
+        // one, so a mini-app's request never carries the user's auth token.
+        val miniAppHttpClient = whitelistingHttpClient(
+            engine = get<PlatformHttpClientEngineFactory>().create(),
+            policy = NetworkPolicy.OPEN,
+        )
+        WeftComponentRegistry(
+            undercurrentComponents(
+                imageLoader = get(),
+                miniAppInvoker = miniAppHttpInvoker(offerable, miniAppHttpClient),
+                miniAppScopeResolver = miniAppScopeResolver({ miniAppsRepo.miniApps.value }, offerable),
+                miniAppStateStore = MiniAppRepositoryStateStore(miniAppsRepo),
+            ),
+        )
     }
 
     single<ComposeUiBridge> { ComposeUiBridge(componentRegistry = get<WeftComponentRegistry>()) }
