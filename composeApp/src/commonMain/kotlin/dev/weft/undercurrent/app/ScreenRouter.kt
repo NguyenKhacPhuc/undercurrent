@@ -31,7 +31,7 @@ internal fun ScreenRouter(platform: PlatformAdapter) {
     val appVm: AppViewModel = koinInject()
     NavDisplay(
         backStack = navigationVm.backStack,
-        transition = { graphOf(it)?.transition },
+        transition = { target, forward -> graphOf(target)?.transition(forward) },
     ) { entry ->
         when (entry) {
             Screen.Loading -> LoadingPlaceholder()
