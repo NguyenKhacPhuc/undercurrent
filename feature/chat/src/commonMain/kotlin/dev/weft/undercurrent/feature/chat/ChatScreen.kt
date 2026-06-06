@@ -206,6 +206,7 @@ fun ChatScreen(
                 }
             },
             onMicRelease = { input.speechGateway.stop() },
+            onStop = input.onStop,
         )
 
         if (addToChatOpen && addToChatConfig != null) {
@@ -263,6 +264,7 @@ class ChatInputConfig(
     val hasMicPermission: Boolean,
     val onRequestMicPermission: () -> Unit,
     val onSend: (text: String, modelTier: ModelTier?) -> Unit,
+    val onStop: () -> Unit = {},
 )
 
 class ChatAgentConfig(

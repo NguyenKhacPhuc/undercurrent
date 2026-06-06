@@ -88,6 +88,13 @@ class ChatViewModel(
                 runStreamingTurn(intent.text, repo.send(intent.text, intent.modelTier))
             ChatIntent.RegenerateLast ->
                 runStreamingTurn(userTextForRegenerate = null, repo.regenerateLast())
+            ChatIntent.StopResponse -> {
+                repo.cancelCurrentTurn()
+                streamingTurn?.cancel()
+                streamingTurn = null
+                streamingMessageId = null
+                if (current.inFlight) update { it.copy(inFlight = false) }
+            }
             ChatIntent.NewChat -> {
                 repo.newChat()
                 displayMessages.clear()

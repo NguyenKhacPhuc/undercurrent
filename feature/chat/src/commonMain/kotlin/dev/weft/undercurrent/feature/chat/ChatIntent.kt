@@ -26,6 +26,9 @@ sealed interface ChatIntent {
     /** "Ask again" — re-send the last user message. */
     data object RegenerateLast : ChatIntent
 
+    /** Cancel the in-flight agent turn — stop the streaming response. */
+    data object StopResponse : ChatIntent
+
     data object NewChat : ChatIntent
 
     data class SelectConversation(val id: String) : ChatIntent
