@@ -21,7 +21,7 @@ class ChatViewModel(
     private val selectConversation: SelectConversationUseCase,
     private val deleteCurrentConversation: DeleteCurrentConversationUseCase,
     private val selectAgent: SelectAgentUseCase,
-    private val observeChatState: ObserveChatStateUseCase,
+    observeChatState: ObserveChatStateUseCase,
     initialSkills: List<SkillSummary> = emptyList(),
 ) : MviViewModel<ChatState, ChatIntent, ChatEffect>(
     initialState = ChatState.initial(),
@@ -88,6 +88,13 @@ class ChatViewModel(
                 runStreamingTurn(intent.text, repo.send(intent.text, intent.modelTier))
             ChatIntent.RegenerateLast ->
                 runStreamingTurn(userTextForRegenerate = null, repo.regenerateLast())
+            ChatIntent.StopResponse -> {
+                repo.cancelCurrentTurn()
+                streamingTurn?.cancel()
+                streamingTurn = null
+                streamingMessageId = null
+                if (current.inFlight) update { it.copy(inFlight = false) }
+            }
             ChatIntent.NewChat -> {
                 repo.newChat()
                 displayMessages.clear()

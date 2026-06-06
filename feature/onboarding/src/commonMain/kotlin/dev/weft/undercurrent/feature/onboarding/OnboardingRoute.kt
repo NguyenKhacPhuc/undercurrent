@@ -2,8 +2,8 @@ package dev.weft.undercurrent.feature.onboarding
 
 import androidx.compose.runtime.Composable
 import dev.weft.undercurrent.core.domain.ModelCatalogRepository
-import dev.weft.undercurrent.feature.providers.ProviderIntent
-import dev.weft.undercurrent.feature.providers.ProviderViewModel
+import dev.weft.undercurrent.feature.settings.providers.ProviderIntent
+import dev.weft.undercurrent.feature.settings.providers.ProviderViewModel
 import org.koin.compose.koinInject
 
 @Composable

@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.resources.Res
 import dev.weft.undercurrent.core.resources.chat_input_placeholder
-import dev.weft.undercurrent.feature.voice.WaveformBars
+import dev.weft.undercurrent.core.ui.WaveformBars
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.jetbrains.compose.resources.stringResource
@@ -48,6 +48,7 @@ internal fun InputRow(
     voiceRms: StateFlow<Float>,
     onMicPress: () -> Boolean,
     onMicRelease: () -> Unit,
+    onStop: () -> Unit = {},
 ) {
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
@@ -98,14 +99,13 @@ internal fun InputRow(
             }
         }
 
-        if (voiceAvailable) {
+        // TEMP: voice mic button is disabled — replaced with a stop-response
+        // button shown while the agent is streaming. To restore voice input,
+        // swap this block back for the `if (voiceAvailable) { MicButton(...) }`
+        // call (MicButton is still defined below).
+        if (inFlight) {
             Spacer(Modifier.width(4.dp))
-            MicButton(
-                isRecording = isRecording,
-                enabled = !inFlight,
-                onMicPress = onMicPress,
-                onMicRelease = onMicRelease,
-            )
+            StopButton(onClick = onStop)
         }
 
         Spacer(Modifier.width(4.dp))
@@ -154,6 +154,31 @@ private fun AddToChatButton(onClick: () -> Unit, enabled: Boolean) {
     }
 }
 
+@Composable
+private fun StopButton(onClick: () -> Unit) {
+    val colors = UndercurrentTheme.colors
+    val typography = UndercurrentTheme.typography
+    val shapes = UndercurrentTheme.shapes
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(shapes.medium)
+            .background(colors.ink)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "■",
+            style = typography.sansHeader.copy(
+                color = colors.background,
+                fontSize = 16.sp,
+            ),
+        )
+    }
+}
+
+// TEMP: retained but unused while voice input is disabled (see InputRow).
+@Suppress("unused")
 @Composable
 private fun MicButton(
     isRecording: Boolean,

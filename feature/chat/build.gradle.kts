@@ -20,7 +20,6 @@ kotlin {
             implementation(projects.core.domain)
             implementation(projects.feature.miniapps)
             implementation(projects.feature.theme)
-            implementation(projects.feature.voice)
             // The agent host (AgentSlot / WeftAgentFactory / AgentSession) is
             // shared now that the substrate is KMP. The Koog-backed model
             // catalog stays androidMain-only (Koog is JVM-only) behind an

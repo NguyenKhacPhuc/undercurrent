@@ -79,17 +79,12 @@ val networkModule = module {
                 )
             }
             install(HttpRequestRetry) {
-                // Network-level retries only — server 5xx (except 503,
-                // which we treat as "maintenance mode" and surface
-                // unchanged) retry with exponential backoff.
                 maxRetries = 3
                 retryIf { _, response ->
                     val code = response.status.value
                     code >= 500 && code != HttpStatusCode.ServiceUnavailable.value
                 }
                 retryOnExceptionIf { _, cause ->
-                    // DNS failure → real "no network" — don't retry,
-                    // surface as NetworkException via the validator.
                     cause !is UnresolvedAddressException
                 }
                 exponentialDelay()

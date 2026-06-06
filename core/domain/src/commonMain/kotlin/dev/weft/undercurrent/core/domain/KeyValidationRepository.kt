@@ -8,7 +8,7 @@ import dev.weft.undercurrent.core.model.ProviderKind
  * Android (which is the only place Koog's clients run); iOS stub
  * returns [ValidationResult.Invalid] with a "not supported" message.
  *
- * Used by [dev.weft.undercurrent.feature.keypaste.KeyPasteScreen]'s
+ * Used by [dev.weft.undercurrent.feature.onboarding.KeyPasteScreen]'s
  * "Connect" path: paste a key → ping the provider with one token →
  * surface OK or a typed error.
  *

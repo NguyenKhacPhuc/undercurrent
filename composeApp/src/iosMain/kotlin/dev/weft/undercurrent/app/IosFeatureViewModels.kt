@@ -4,8 +4,8 @@ import dev.weft.undercurrent.feature.creator.CreatorIntent
 import dev.weft.undercurrent.feature.creator.CreatorViewModel
 import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
-import dev.weft.undercurrent.feature.providers.ProviderIntent
-import dev.weft.undercurrent.feature.providers.ProviderViewModel
+import dev.weft.undercurrent.feature.settings.providers.ProviderIntent
+import dev.weft.undercurrent.feature.settings.providers.ProviderViewModel
 import dev.weft.undercurrent.feature.traces.TraceExportViewModel
 import dev.weft.undercurrent.feature.traces.TraceIntent
 

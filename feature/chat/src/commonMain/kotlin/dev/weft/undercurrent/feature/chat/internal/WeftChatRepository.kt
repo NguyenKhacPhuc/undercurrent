@@ -82,6 +82,10 @@ internal class WeftChatRepository(
     override fun regenerateLast(): Flow<ChatChunk> =
         streamingTurn { agent -> agent.dispatch(AgentIntent.Regenerate()) }
 
+    override suspend fun cancelCurrentTurn() {
+        agentSlot.agent?.dispatch(AgentIntent.CancelCurrentTurn)
+    }
+
     private fun streamingTurn(
         kickoff: (WeftAgent) -> Unit,
     ): Flow<ChatChunk> = channelFlow {
@@ -249,10 +253,6 @@ internal class WeftChatRepository(
     ) {
         val a = agentSlot.agent ?: return
         a.dispatch(AgentIntent.SendEvent(action, sourceLabel, fieldValues))
-    }
-
-    fun dispose() {
-        scope.cancel()
     }
 
     private companion object {

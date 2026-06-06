@@ -41,12 +41,6 @@ fun ScreenScaffold(
     title: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    /**
-     * Trailing actions, laid out as a horizontal row at the right
-     * edge of the header. Lambda runs inside `RowScope` so emitting
-     * multiple [ScaffoldTextAction]s back-to-back flows them
-     * left-to-right with a small gap.
-     */
     trailing: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -64,11 +58,6 @@ fun ScreenScaffold(
                 .padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Back affordance — Unicode glyph in a clickable text
-            // surface. Same hit-area as an IconButton thanks to the
-            // padding; reads as "←" in both LTR and RTL (RTL Compose
-            // automatically mirrors text-only glyphs the same way it
-            // does AutoMirrored.* icons).
             Text(
                 text = "←",
                 style = typography.sansHeader.copy(color = colors.ink),

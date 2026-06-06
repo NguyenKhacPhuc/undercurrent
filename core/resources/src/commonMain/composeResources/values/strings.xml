@@ -227,6 +227,9 @@
     <string name="miniapps_dialog_delete_title">Delete \"%1$s\"?</string>
     <string name="miniapps_dialog_delete_body">The mini-app will be permanently removed. Existing chats are not affected.</string>
     <string name="mini_app_preview_placeholder">(preview)</string>
+    <string name="miniapp_consent_title_format">%1$s %2$s wants to:</string>
+    <string name="miniapp_consent_deny">Deny</string>
+    <string name="miniapp_consent_approve">Approve</string>
 
     <!-- ============================================================ -->
     <!-- Conversations                                                -->

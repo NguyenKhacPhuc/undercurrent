@@ -4,7 +4,7 @@ package dev.weft.undercurrent.core.model
  * Pure-data per-provider helpers — where to send the user to grab a
  * key, plus the cost expectations to surface alongside the link.
  *
- * Lives in :core:model (not :feature:providers or :feature:keypaste)
+ * Lives in :core:model (not :feature:providers or :feature:onboarding)
  * because both features consume it. Keeping it as plain
  * [ProviderKind] extensions avoids dragging either feature module
  * into the other's dep graph.

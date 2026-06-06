@@ -156,6 +156,7 @@ fun ChatRoute(
                         micLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     },
                     onSend = { text, tier -> chatVm.dispatch(ChatIntent.SendChat(text, tier)) },
+                    onStop = { chatVm.dispatch(ChatIntent.StopResponse) },
                 ),
                 agent = ChatAgentConfig(
                     agents = chatState.availableAgents.map {

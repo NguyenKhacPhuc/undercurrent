@@ -52,7 +52,7 @@ abstract class MviViewModel<State, Intent, Effect>(
         _loading.value = value
     }
 
-    protected suspend inline fun <T> withLoading(block: () -> T): T {
+    protected inline fun <T> withLoading(block: () -> T): T {
         setLoading(true)
         try {
             return block()

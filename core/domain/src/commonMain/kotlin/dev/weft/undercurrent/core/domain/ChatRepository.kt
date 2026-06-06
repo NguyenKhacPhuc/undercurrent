@@ -18,6 +18,9 @@ interface ChatRepository {
 
     fun regenerateLast(): Flow<ChatChunk>
 
+    /** Cancel the in-flight agent turn, if any. */
+    suspend fun cancelCurrentTurn(): Unit = Unit
+
     suspend fun resume()
 
     suspend fun newChat()

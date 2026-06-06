@@ -206,35 +206,35 @@ fun ChatScreen(
                 }
             },
             onMicRelease = { input.speechGateway.stop() },
+            onStop = input.onStop,
         )
 
-        val sheetCfg = addToChatConfig
-        if (addToChatOpen && sheetCfg != null) {
+        if (addToChatOpen && addToChatConfig != null) {
             AddToChatSheet(
                 activePersonaLabel = messages.activePersonaName,
-                activePalette = sheetCfg.activePalette,
-                activeMode = sheetCfg.activeMode,
-                connectedIntegrationsCount = sheetCfg.connectedIntegrationsCount,
-                miniApps = sheetCfg.miniApps,
-                onSelectPalette = sheetCfg.onSelectPalette,
-                onSelectMode = sheetCfg.onSelectMode,
-                onShowPersonas = sheetCfg.onShowPersonas,
-                onShowIntegrations = sheetCfg.onShowIntegrations,
-                onShowMiniApps = sheetCfg.onShowMiniApps,
-                onInvokeMiniApp = sheetCfg.onInvokeMiniApp,
+                activePalette = addToChatConfig.activePalette,
+                activeMode = addToChatConfig.activeMode,
+                connectedIntegrationsCount = addToChatConfig.connectedIntegrationsCount,
+                miniApps = addToChatConfig.miniApps,
+                onSelectPalette = addToChatConfig.onSelectPalette,
+                onSelectMode = addToChatConfig.onSelectMode,
+                onShowPersonas = addToChatConfig.onShowPersonas,
+                onShowIntegrations = addToChatConfig.onShowIntegrations,
+                onShowMiniApps = addToChatConfig.onShowMiniApps,
+                onInvokeMiniApp = addToChatConfig.onInvokeMiniApp,
                 onDismiss = { addToChatOpen = false },
             )
         }
 
         val saveDraft = saveFeaturePromptDraft
-        if (saveDraft != null && sheetCfg != null) {
+        if (saveDraft != null && addToChatConfig != null) {
             SaveAsMiniAppDialog(
                 initial = null,
                 suggestedPrompt = saveDraft,
                 onDismiss = { saveFeaturePromptDraft = null },
                 onSave = { name, emoji, prompt ->
                     saveFeaturePromptDraft = null
-                    sheetCfg.onAddMiniApp(name, emoji, prompt)
+                    addToChatConfig.onAddMiniApp(name, emoji, prompt)
                 },
             )
         }
@@ -264,6 +264,7 @@ class ChatInputConfig(
     val hasMicPermission: Boolean,
     val onRequestMicPermission: () -> Unit,
     val onSend: (text: String, modelTier: ModelTier?) -> Unit,
+    val onStop: () -> Unit = {},
 )
 
 class ChatAgentConfig(

@@ -10,7 +10,7 @@ import dev.weft.undercurrent.core.navigation.Screen
 import org.koin.compose.koinInject
 
 @Composable
-public fun SettingsRoute(onSignedOut: () -> Unit = {}) {
+fun SettingsRoute(onSignedOut: () -> Unit = {}) {
     val nav: NavigationViewModel = koinInject()
     val providerPrefs: ProviderPrefsRepository = koinInject()
     val activeProvider by providerPrefs.activeProvider.collectAsState()
