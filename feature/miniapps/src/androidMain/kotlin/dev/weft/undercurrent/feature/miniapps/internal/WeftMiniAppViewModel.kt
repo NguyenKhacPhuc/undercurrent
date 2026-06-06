@@ -52,7 +52,22 @@ public class WeftMiniAppViewModel(
             is MiniAppIntent.DenyConsent -> context.scope.launch {
                 resolveConsent(intent.miniAppId, approve = false)
             }
+            is MiniAppIntent.SaveCurrentRenderAsMiniApp -> context.scope.launch {
+                saveCurrentRender(intent)
+            }
         }
+    }
+
+    /**
+     * Persist the on-screen tree as a new mini-app: create the catalog
+     * entry, then snapshot the rendered tree (if any) so the next open
+     * paints instantly instead of re-running the agent.
+     */
+    private suspend fun saveCurrentRender(intent: MiniAppIntent.SaveCurrentRenderAsMiniApp) {
+        val created = miniAppsRepo.add(intent.name, intent.emoji, intent.triggerPrompt)
+        val tree = intent.renderedTree ?: return
+        val json = Json.encodeToString(dev.weft.contracts.ComponentNode.serializer(), tree)
+        miniAppsRepo.setCachedRender(created.id, json)
     }
 
     private suspend fun handleInvoke(intent: MiniAppIntent.InvokeMiniApp) {

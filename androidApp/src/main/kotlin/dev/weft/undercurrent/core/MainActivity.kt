@@ -43,7 +43,6 @@ import dev.weft.undercurrent.app.App
 import dev.weft.undercurrent.app.AppViewModel
 import dev.weft.undercurrent.app.PlatformAdapter
 import dev.weft.undercurrent.core.designsystem.colors
-import dev.weft.undercurrent.core.domain.MiniAppsRepository
 import dev.weft.undercurrent.core.ext.openInBrowser
 import dev.weft.undercurrent.core.model.ThemeMode
 import dev.weft.undercurrent.core.navigation.NavigationIntent
@@ -70,8 +69,6 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        // Don't let the system draw a contrast scrim behind the (3-button)
-        // nav + status bars — it shows as a band over full-screen mini-apps.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
             window.isStatusBarContrastEnforced = false
@@ -95,8 +92,8 @@ private fun AndroidApp() {
     val runtime: WeftRuntime = koinInject()
     val uiBridge: ComposeUiBridge = koinInject()
     val weftUi: WeftUi = koinInject()
-    val appMiniAppsRepo: MiniAppsRepository = koinInject()
-    val appMiniAppsScope = rememberCoroutineScope()
+    // Scope for forwarding rendered-surface UI actions to the AppViewModel.
+    val uiEventScope = rememberCoroutineScope()
     val context = LocalContext.current
     val state by store.state.collectAsState()
 
@@ -144,7 +141,7 @@ private fun AndroidApp() {
                     uiBridge = uiBridge,
                     registry = weftUi.componentRegistry,
                     onAction = { action, label, fields ->
-                        appMiniAppsScope.launch {
+                        uiEventScope.launch {
                             store.sendUiEvent(action, label, fields)
                         }
                     },
@@ -220,7 +217,7 @@ private fun AndroidApp() {
                             uiBridge = uiBridge,
                             registry = weftUi.componentRegistry,
                             onAction = { action, label, fields ->
-                                appMiniAppsScope.launch {
+                                uiEventScope.launch {
                                     store.sendUiEvent(action, label, fields)
                                 }
                             },
@@ -254,14 +251,14 @@ private fun AndroidApp() {
                     onDismiss = { saveFromRenderDraft = null },
                     onSave = { name, emoji, triggerPrompt ->
                         saveFromRenderDraft = null
-                        appMiniAppsScope.launch {
-                            val created = appMiniAppsRepo.add(name, emoji, triggerPrompt)
-                            val tree = (uiBridge.lastUpdate as? UIUpdate.RenderTree)?.tree
-                            if (tree != null) {
-                                val json = Json.encodeToString(ComponentNode.serializer(), tree)
-                                appMiniAppsRepo.setCachedRender(created.id, json)
-                            }
-                        }
+                        miniAppVm.dispatch(
+                            MiniAppIntent.SaveCurrentRenderAsMiniApp(
+                                name = name,
+                                emoji = emoji,
+                                triggerPrompt = triggerPrompt,
+                                renderedTree = (uiBridge.lastUpdate as? UIUpdate.RenderTree)?.tree,
+                            ),
+                        )
                     },
                 )
             }
