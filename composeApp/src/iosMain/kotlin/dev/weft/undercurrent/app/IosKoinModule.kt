@@ -35,12 +35,14 @@ import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
 import dev.weft.undercurrent.feature.miniapps.miniAppsModule
 import dev.weft.undercurrent.feature.onboarding.onboardingModule
 import dev.weft.undercurrent.feature.personas.personasModule
+import dev.weft.undercurrent.feature.settings.providers.ProviderStateStore
 import dev.weft.undercurrent.feature.settings.providers.ProviderViewModel
 import dev.weft.undercurrent.feature.auth.authModule
 import dev.weft.undercurrent.feature.theme.themeModule
 import dev.weft.undercurrent.feature.traces.TraceExportViewModel
 import dev.weft.undercurrent.feature.traces.tracesModule
 import dev.weft.undercurrent.feature.settings.usage.usageModule
+import dev.weft.undercurrent.feature.settings.settingsModule
 import dev.weft.undercurrent.core.domain.ChatRepository
 import dev.weft.undercurrent.core.domain.ConversationStoreRepository
 import dev.weft.undercurrent.core.domain.IosSpeechRepository
@@ -155,7 +157,18 @@ val iosAppModule = module {
         )
     }
 
-    single<ProviderViewModel> { IosProviderViewModel(get<AppViewModel>() as IosAppViewModel) }
+    single<ProviderViewModel> {
+        IosProviderViewModel(
+            app = get<AppViewModel>() as IosAppViewModel,
+            store = ProviderStateStore(
+                providerPrefs = get(),
+                modelPrefs = get(),
+                catalog = get(),
+                keyVault = get(),
+                validator = get(),
+            ),
+        )
+    }
     single<MiniAppViewModel> { IosMiniAppViewModel(get<AppViewModel>() as IosAppViewModel) }
     single<CreatorViewModel> { NoOpCreatorViewModel() }
     single<TraceExportViewModel> { NoOpTraceExportViewModel() }
@@ -189,6 +202,7 @@ val iosAllModules = listOf(
     memoriesModule,
     tracesModule,
     usageModule,
+    settingsModule,
 )
 
 /**

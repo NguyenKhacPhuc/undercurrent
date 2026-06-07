@@ -154,6 +154,11 @@ class IosAppViewModel(
                 providerPrefsRepo.setDefaultTier(intent.tier)
             }
             is ProviderIntent.SetModelForTier -> Unit
+            // Validation + its idle-reset are handled in IosProviderViewModel
+            // (against the shared ProviderStateStore); they never reach here.
+            is ProviderIntent.ValidateAndSaveProviderKey,
+            ProviderIntent.ClearKeyValidation,
+            -> Unit
         }
     }
 
