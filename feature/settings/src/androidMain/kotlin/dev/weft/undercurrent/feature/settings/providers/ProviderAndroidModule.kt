@@ -13,6 +13,9 @@ val providerAndroidModule = module {
             providerPrefsRepo = get(),
             modelPrefsRepo = get(),
             chatVm = get(),
+            keyVaultRepo = get(),
+            modelCatalog = get(),
+            validator = get(),
         )
     }
 }

@@ -26,10 +26,10 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,12 +78,8 @@ import dev.weft.undercurrent.core.resources.providers_title
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import dev.weft.undercurrent.core.ui.SectionLabel
 import dev.weft.undercurrent.core.ui.TipBox
-import dev.weft.undercurrent.core.domain.KeyValidationRepository
-import dev.weft.undercurrent.core.domain.ModelCatalogRepository
 import dev.weft.undercurrent.core.domain.ModelInfo
 import dev.weft.undercurrent.core.domain.ModelPool
-import dev.weft.undercurrent.core.domain.ValidationResult
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -94,39 +90,21 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * with the API key field + Save/Remove + the models customization
  * row. Inactive cards collapse.
  *
- * KMP — commonMain. Moved from
- * `app/.../features/providers/ProvidersScreen.kt`. Adjustments:
- *   - `ai.koog.prompt.llm.LLModel` → [ModelInfo] mirror.
- *   - `dev.weft.android.routing.{catalogFor, defaultPoolFor}` →
- *     [ModelCatalogRepository] gateway.
- *   - `validateKey` (Koog-backed, Android-only) → [KeyValidationRepository].
- *   - `openInBrowser` (CCT) lifted to [onOpenConsole] lambda.
- *   - Material icons-extended (Visibility, ArrowDropDown,
- *     KeyboardArrowRight) → Unicode glyphs + "Show"/"Hide" labels.
- *   - `dev.weft.harness.agents.routing.ModelTier` → `:core:model`
- *     mirror.
- *   - Imports from `:core:ui` / `:core:design-system`.
+ * Stateless: everything is read from [ProviderState] and every action
+ * is a callback. The owning [ProviderViewModel] holds the repositories
+ * and validation logic — this screen never touches them.
  */
 @Composable
 fun ProvidersScreen(
-    activeProvider: ProviderKind,
-    defaultTier: ModelTier?,
-    /**
-     * Per-provider key status. Map entries with non-blank values are
-     * the last-4 of the stored key (already masked by the caller —
-     * the real secret never reaches this screen).
-     */
-    providerKeyStatus: Map<ProviderKind, String>,
-    modelCatalog: ModelCatalogRepository,
-    keyValidator: KeyValidationRepository,
-    onProviderSelected: (ProviderKind) -> Unit,
-    onProviderKeySaved: (ProviderKind, String) -> Unit,
-    onProviderKeyRemoved: (ProviderKind) -> Unit,
-    onDefaultTierSelected: (ModelTier?) -> Unit,
-    getModelOverride: (ProviderKind, ModelTier) -> String?,
-    onModelOverrideSelected: (ProviderKind, ModelTier, String?) -> Unit,
-    onOpenConsole: (url: String) -> Unit,
-    onBack: () -> Unit,
+    state: ProviderState,
+    onProviderSelected: (ProviderKind) -> Unit = {},
+    onSaveKey: (ProviderKind, String) -> Unit = { _, _ -> },
+    onKeyInputChanged: () -> Unit = {},
+    onProviderKeyRemoved: (ProviderKind) -> Unit = {},
+    onDefaultTierSelected: (ModelTier?) -> Unit = {},
+    onModelOverrideSelected: (ProviderKind, ModelTier, String?) -> Unit = { _, _, _ -> },
+    onOpenConsole: (url: String) -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     ScreenScaffold(title = stringResource(Res.string.providers_title), onBack = onBack) {
         LazyColumn(
@@ -140,14 +118,15 @@ fun ProvidersScreen(
             items(ProviderKind.entries) { provider ->
                 ProviderCard(
                     provider = provider,
-                    active = provider == activeProvider,
-                    storedKeyLast4 = providerKeyStatus[provider],
-                    modelCatalog = modelCatalog,
-                    keyValidator = keyValidator,
+                    active = provider == state.activeProvider,
+                    storedKey = state.keyStatus[provider],
+                    models = state.modelsFor(provider),
+                    keyValidation = state.keyValidation,
+                    overrideFor = { tier -> state.overrideFor(provider, tier) },
                     onTap = { onProviderSelected(provider) },
-                    onKeySaved = { key -> onProviderKeySaved(provider, key) },
+                    onSaveKey = { key -> onSaveKey(provider, key) },
+                    onKeyInputChanged = onKeyInputChanged,
                     onKeyRemoved = { onProviderKeyRemoved(provider) },
-                    getModelOverride = { tier -> getModelOverride(provider, tier) },
                     onModelOverrideSelected = { tier, id ->
                         onModelOverrideSelected(provider, tier, id)
                     },
@@ -158,7 +137,7 @@ fun ProvidersScreen(
             item("default-label") { SectionLabel(text = stringResource(Res.string.providers_section_default_tier)) }
             item("default-control") {
                 TierSegmented(
-                    selected = defaultTier,
+                    selected = state.defaultTier,
                     onSelected = onDefaultTierSelected,
                 )
             }
@@ -177,13 +156,14 @@ fun ProvidersScreen(
 private fun ProviderCard(
     provider: ProviderKind,
     active: Boolean,
-    storedKeyLast4: String?,
-    modelCatalog: ModelCatalogRepository,
-    keyValidator: KeyValidationRepository,
+    storedKey: String?,
+    models: ProviderModels?,
+    keyValidation: KeyValidationStatus,
+    overrideFor: (ModelTier) -> String?,
     onTap: () -> Unit,
-    onKeySaved: (String) -> Unit,
+    onSaveKey: (String) -> Unit,
+    onKeyInputChanged: () -> Unit,
     onKeyRemoved: () -> Unit,
-    getModelOverride: (ModelTier) -> String?,
     onModelOverrideSelected: (ModelTier, String?) -> Unit,
     onOpenConsole: (url: String) -> Unit,
 ) {
@@ -222,7 +202,7 @@ private fun ProviderCard(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = subtitleFor(active, storedKeyLast4),
+                    text = subtitleFor(active, storedKey),
                     style = typography.mono.copy(
                         color = colors.inkMuted,
                         fontSize = 13.sp,
@@ -244,12 +224,13 @@ private fun ProviderCard(
             HorizontalThinDivider()
             ExpandedBody(
                 provider = provider,
-                storedKeyLast4 = storedKeyLast4,
-                modelCatalog = modelCatalog,
-                keyValidator = keyValidator,
-                onKeySaved = onKeySaved,
+                storedKey = storedKey,
+                models = models,
+                keyValidation = keyValidation,
+                overrideFor = overrideFor,
+                onSaveKey = onSaveKey,
+                onKeyInputChanged = onKeyInputChanged,
                 onKeyRemoved = onKeyRemoved,
-                getModelOverride = getModelOverride,
                 onModelOverrideSelected = onModelOverrideSelected,
                 onOpenConsole = onOpenConsole,
             )
@@ -267,25 +248,41 @@ private fun subtitleFor(active: Boolean, last4: String?): String = when {
 @Composable
 private fun ExpandedBody(
     provider: ProviderKind,
-    storedKeyLast4: String?,
-    modelCatalog: ModelCatalogRepository,
-    keyValidator: KeyValidationRepository,
-    onKeySaved: (String) -> Unit,
+    storedKey: String?,
+    models: ProviderModels?,
+    keyValidation: KeyValidationStatus,
+    overrideFor: (ModelTier) -> String?,
+    onSaveKey: (String) -> Unit,
+    onKeyInputChanged: () -> Unit,
     onKeyRemoved: () -> Unit,
-    getModelOverride: (ModelTier) -> String?,
     onModelOverrideSelected: (ModelTier, String?) -> Unit,
     onOpenConsole: (url: String) -> Unit,
 ) {
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
     val shapes = UndercurrentTheme.shapes
-    val scope = rememberCoroutineScope()
 
     var keyInput by remember { mutableStateOf("") }
     var keyVisible by remember { mutableStateOf(false) }
-    var saveStatus by remember { mutableStateOf<SaveStatus>(SaveStatus.Idle) }
     var confirmRemove by remember { mutableStateOf(false) }
     var modelsExpanded by remember { mutableStateOf(false) }
+    var wasChecking by remember { mutableStateOf(false) }
+
+    // Clear the field only after a successful save (Checking -> Idle).
+    // A bare "idle => clear" would wipe input mid-typing, since editing
+    // an invalid key dispatches ClearKeyValidation (-> Idle).
+    LaunchedEffect(keyValidation) {
+        when (keyValidation) {
+            KeyValidationStatus.Checking -> wasChecking = true
+            KeyValidationStatus.Idle -> if (wasChecking) {
+                keyInput = ""
+                wasChecking = false
+            }
+            is KeyValidationStatus.Invalid -> wasChecking = false
+        }
+    }
+
+    val checking = keyValidation is KeyValidationStatus.Checking
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
         Row(
@@ -324,19 +321,19 @@ private fun ExpandedBody(
                     value = keyInput,
                     onValueChange = {
                         keyInput = it.trim()
-                        if (saveStatus is SaveStatus.Invalid) saveStatus = SaveStatus.Idle
+                        if (keyValidation is KeyValidationStatus.Invalid) onKeyInputChanged()
                     },
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = typography.mono.copy(color = colors.ink),
                     cursorBrush = SolidColor(colors.accent),
                     singleLine = true,
-                    enabled = saveStatus !is SaveStatus.Checking,
+                    enabled = !checking,
                     visualTransformation = if (keyVisible) VisualTransformation.None
                     else PasswordVisualTransformation(),
                 )
                 if (keyInput.isEmpty()) {
-                    val placeholder = if (storedKeyLast4 != null) {
-                        "•••••••••••••••• $storedKeyLast4"
+                    val placeholder = if (storedKey != null) {
+                        "•••••••••••••••• $storedKey"
                     } else {
                         provider.keyPlaceholder()
                     }
@@ -354,39 +351,22 @@ private fun ExpandedBody(
                     .padding(horizontal = 6.dp, vertical = 2.dp),
             )
         }
-        if (saveStatus is SaveStatus.Invalid) {
+        if (keyValidation is KeyValidationStatus.Invalid) {
             Spacer(Modifier.height(6.dp))
             Text(
-                text = (saveStatus as SaveStatus.Invalid).message,
+                text = keyValidation.message,
                 style = typography.sansSmall.copy(color = colors.error),
             )
         }
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val checking = saveStatus is SaveStatus.Checking
             InlineAction(
                 label = if (checking) stringResource(Res.string.providers_checking) else stringResource(Res.string.providers_save_key),
                 enabled = keyInput.isNotBlank() && !checking,
                 isDestructive = false,
-                onClick = {
-                    val pending = keyInput
-                    saveStatus = SaveStatus.Checking
-                    scope.launch {
-                        val result = keyValidator.validateKey(provider, pending)
-                        when (result) {
-                            is ValidationResult.Ok -> {
-                                onKeySaved(pending)
-                                keyInput = ""
-                                saveStatus = SaveStatus.Idle
-                            }
-                            is ValidationResult.Invalid -> {
-                                saveStatus = SaveStatus.Invalid(result.message)
-                            }
-                        }
-                    }
-                },
+                onClick = { onSaveKey(keyInput) },
             )
-            if (storedKeyLast4 != null) {
+            if (storedKey != null) {
                 Spacer(Modifier.width(20.dp))
                 InlineAction(
                     label = stringResource(Res.string.providers_remove_key),
@@ -424,12 +404,11 @@ private fun ExpandedBody(
                 ),
             )
         }
-        if (modelsExpanded) {
+        if (modelsExpanded && models != null) {
             Spacer(Modifier.height(14.dp))
             ModelCustomizationGrid(
-                provider = provider,
-                modelCatalog = modelCatalog,
-                getModelOverride = getModelOverride,
+                models = models,
+                overrideFor = overrideFor,
                 onModelOverrideSelected = onModelOverrideSelected,
             )
         }
@@ -453,12 +432,6 @@ private fun ExpandedBody(
             },
         )
     }
-}
-
-private sealed interface SaveStatus {
-    data object Idle : SaveStatus
-    data object Checking : SaveStatus
-    data class Invalid(val message: String) : SaveStatus
 }
 
 @Composable
@@ -502,17 +475,16 @@ private fun HorizontalThinDivider() {
 
 @Composable
 private fun ModelCustomizationGrid(
-    provider: ProviderKind,
-    modelCatalog: ModelCatalogRepository,
-    getModelOverride: (ModelTier) -> String?,
+    models: ProviderModels,
+    overrideFor: (ModelTier) -> String?,
     onModelOverrideSelected: (ModelTier, String?) -> Unit,
 ) {
-    val defaults = remember(provider) { modelCatalog.defaultPoolForProvider(provider) }
-    val catalog = remember(provider) { modelCatalog.modelsForProvider(provider) }
+    val defaults = models.defaultPool
+    val catalog = models.models
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ModelTier.entries.forEach { tier ->
-            val currentId = getModelOverride(tier)
+            val currentId = overrideFor(tier)
             val defaultModel = defaults.tierModel(tier)
             val resolvedModel = catalog.firstOrNull { it.id == currentId } ?: defaultModel
             ModelDropdown(
@@ -656,51 +628,26 @@ private fun TierSegmented(
 @Preview
 @Composable
 private fun ProvidersScreenPreview() {
-    val stubCatalog = object : ModelCatalogRepository {
-        override fun modelsForProvider(provider: ProviderKind): List<ModelInfo> = when (provider) {
-            ProviderKind.Anthropic -> listOf(
-                ModelInfo("claude-sonnet-4-5", "Sonnet 4.5", hasVision = true, hasTools = true),
-                ModelInfo("claude-haiku-4-5", "Haiku 4.5", hasVision = false, hasTools = true),
-            )
-            ProviderKind.OpenAI -> listOf(
-                ModelInfo("gpt-5", "GPT-5", hasVision = true, hasTools = true),
-                ModelInfo("gpt-5-mini", "GPT-5 Mini", hasVision = false, hasTools = true),
-            )
-            else -> emptyList()
-        }
-        override fun defaultPoolForProvider(provider: ProviderKind): ModelPool {
-            val models = modelsForProvider(provider)
-            val first = models.firstOrNull()
-                ?: ModelInfo("none", "None", hasVision = false, hasTools = false)
-            return ModelPool(
-                cheap = first,
-                standard = first,
-                heavy = first,
-                vision = models.firstOrNull { it.hasVision } ?: first,
-            )
-        }
-    }
-    val stubValidator = object : KeyValidationRepository {
-        override suspend fun validateKey(
-            provider: ProviderKind,
-            apiKey: String,
-        ): ValidationResult = ValidationResult.Ok
-    }
+    val anthropicModels = listOf(
+        ModelInfo("claude-sonnet-4-5", "Sonnet 4.5", hasVision = true, hasTools = true),
+        ModelInfo("claude-haiku-4-5", "Haiku 4.5", hasVision = false, hasTools = true),
+    )
+    val pool = ModelPool(
+        cheap = anthropicModels[1],
+        standard = anthropicModels[0],
+        heavy = anthropicModels[0],
+        vision = anthropicModels[0],
+    )
     UndercurrentTheme {
         ProvidersScreen(
-            activeProvider = ProviderKind.Anthropic,
-            defaultTier = null,
-            providerKeyStatus = mapOf(ProviderKind.Anthropic to "abcd"),
-            modelCatalog = stubCatalog,
-            keyValidator = stubValidator,
-            onProviderSelected = {},
-            onProviderKeySaved = { _, _ -> },
-            onProviderKeyRemoved = {},
-            onDefaultTierSelected = {},
-            getModelOverride = { _, _ -> null },
-            onModelOverrideSelected = { _, _, _ -> },
-            onOpenConsole = {},
-            onBack = {},
+            state = ProviderState(
+                activeProvider = ProviderKind.Anthropic,
+                defaultTier = null,
+                keyStatus = mapOf(ProviderKind.Anthropic to "•••"),
+                catalogs = mapOf(
+                    ProviderKind.Anthropic to ProviderModels(anthropicModels, pool),
+                ),
+            ),
         )
     }
 }

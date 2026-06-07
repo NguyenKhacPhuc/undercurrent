@@ -29,6 +29,20 @@ sealed interface ProviderIntent {
         val apiKey: String,
     ) : ProviderIntent
 
+    /**
+     * Validate [apiKey] for [provider]; on success persist it (same
+     * effect as [SaveProviderKey]) and reflect it in state. Drives the
+     * Providers screen's "Save key" action — validation status is
+     * surfaced via [ProviderState.keyValidation].
+     */
+    data class ValidateAndSaveProviderKey(
+        val provider: ProviderKind,
+        val apiKey: String,
+    ) : ProviderIntent
+
+    /** Reset [ProviderState.keyValidation] to idle (e.g. on key edit). */
+    data object ClearKeyValidation : ProviderIntent
+
     data class RemoveProviderKey(val provider: ProviderKind) : ProviderIntent
 
     data class SetDefaultTier(val tier: ModelTier?) : ProviderIntent
