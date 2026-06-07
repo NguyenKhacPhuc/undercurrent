@@ -137,24 +137,44 @@ each `Screen.X` branch calls `<Name>Route()`. The Route owns its own
 VM injection + intent dispatch + state collection; ScreenRouter never
 injects feature VMs.
 
+**The Route injects ViewModels — never repositories.** A repository in
+the view layer is the anti-pattern: the View must not read a
+`*Repository` flow or call a repo method directly. If a screen needs
+data or an action, it goes through a ViewModel — state out, `Intent`
+in. The Route may `koinInject` ViewModels (+ `NavigationViewModel`)
+and pass plain state + callbacks down. The *only* DI a Route does is
+resolve VMs; it never resolves a `*Repository`, a `*Store`, or a
+`DataStore`.
+
 ```kotlin
 // :feature:settings/.../SettingsRoute.kt
 @Composable
 fun SettingsRoute() {
     val nav: NavigationViewModel = koinInject()
-    val providerPrefs: ProviderPrefsRepository = koinInject()
-    val activeProvider by providerPrefs.activeProvider.collectAsState()
+    val vm: SettingsViewModel = koinViewModel()
+    val state by vm.state.collectAsState()
     SettingsScreen(
-        activeProvider = activeProvider,
+        activeProvider = state.activeProvider,
         onShowProvider = { nav.dispatch(NavigationIntent.Navigate(Screen.Providers)) },
         ...
     )
 }
 ```
 
+The owning VM holds the repository; the Route reads its `state`. Two
+corollaries:
+
+- When a screen pulls from several repos that aren't its core concern,
+  put that bundle in its own VM rather than injecting the repos in the
+  view or bloating the primary VM.
+- When a VM is an interface with per-platform impls, build its `state`
+  once in a shared `commonMain` producer both impls delegate to; let
+  only the side-effecting `dispatch` differ.
+
 Platform-specific callbacks (`onOpenConsole`, `onRestartProcess`) come
 in as Route parameters — `ScreenRouter` passes them through from
-`PlatformAdapter`.
+`PlatformAdapter`. Platform-specific Routes take the platform bits as
+params but still inject only VMs.
 
 **Stateful / stateless screen split.** The Screen Composable takes
 state + callbacks (testable + previewable). The Route is the stateful
@@ -423,10 +443,20 @@ adb logcat | grep Undercurrent
   `:core:domain/androidMain`.
 - Don't inject feature ViewModels into `ScreenRouter`. Each feature's
   `Route` composable does its own injection.
+- Don't inject or touch a `*Repository` (or `*Store` / `DataStore`)
+  from a Route **or** a Screen. Repositories live in ViewModels; the
+  view reads `state` and sends `Intent`s. A `*Repository = koinInject()`
+  in a view, or a `repo.someFlow.collectAsState()` in a view, is the
+  anti-pattern — fold it into the VM and expose state + intents instead.
+- Don't give a Screen a second "stateful overload" that self-injects
+  its VM (`fun XxxScreen(…, viewModel: XxxViewModel = koinViewModel())`).
+  That re-introduces DI into the view. The Route injects the VM; the
+  Screen has exactly one signature — state in, callbacks out.
 - Don't call `koinInject` / `koinViewModel` / `collectAsState` inside
   a stateless Screen Composable. That's the `Route`'s job — the Screen
   takes state + callbacks only so `@Preview` and snapshot tests can
-  render it.
+  render it. Hoist any session / `StateFlow` a screen reads into a
+  plain value parameter.
 - Don't ship a Composable file over 300 lines or one without a
   `@Preview`. Split into a `components/` subpackage when it grows.
 - Don't put the JVM `mockk` artifact or kotest-runner-junit5 in
