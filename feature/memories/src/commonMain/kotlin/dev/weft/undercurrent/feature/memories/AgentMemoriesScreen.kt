@@ -53,30 +53,6 @@ import kotlin.time.Instant
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.koin.compose.viewmodel.koinViewModel
-
-/**
- * Agent memories surface (ADR-002). Lists every fact the agent has
- * stored about the user; delete individually or wipe everything. This
- * is the user's accountability gate on persistent state — anything not
- * visible here, the substrate isn't remembering.
- *
- * Stateful entry point — hoists state from [MemoriesViewModel] and
- * forwards to the stateless overload.
- */
-@Composable
-fun AgentMemoriesScreen(
-    onBack: () -> Unit,
-    viewModel: MemoriesViewModel = koinViewModel(),
-) {
-    val state by viewModel.state.collectAsState()
-    AgentMemoriesScreen(
-        state = state,
-        onBack = onBack,
-        onDelete = { viewModel.dispatch(MemoriesIntent.Delete(it)) },
-        onClearAll = { viewModel.dispatch(MemoriesIntent.ClearAll) },
-    )
-}
 
 /**
  * Stateless variant — takes [state] and per-action callbacks. Used by

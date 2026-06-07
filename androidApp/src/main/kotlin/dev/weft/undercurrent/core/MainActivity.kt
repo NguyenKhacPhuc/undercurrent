@@ -58,7 +58,7 @@ import dev.weft.undercurrent.feature.creator.CreatorScreen
 import dev.weft.undercurrent.feature.creator.CreatorViewModel
 import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
-import dev.weft.undercurrent.feature.miniapps.MiniAppsScreen
+import dev.weft.undercurrent.feature.miniapps.MiniAppsRoute
 import dev.weft.undercurrent.feature.miniapps.SaveAsMiniAppDialog
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -164,7 +164,7 @@ private fun AndroidApp() {
                 )
             },
             miniAppsRoute = {
-                MiniAppsScreen(
+                MiniAppsRoute(
                     treePreview = { treeJson, onTap ->
                         val tree = remember(treeJson) {
                             runCatching {

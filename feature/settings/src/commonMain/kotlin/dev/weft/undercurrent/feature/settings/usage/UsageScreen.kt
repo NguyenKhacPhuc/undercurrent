@@ -49,29 +49,12 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * User-facing usage + cost screen. Mirrors `WeftDevTools` CostTab content
- * but themed for the document aesthetic and reachable from Settings →
- * Usage (not just the debug FAB).
- *
- * Layout: hero row with today's + lifetime totals, a token breakdown,
- * a cache-savings callout, then a by-day bar chart of recent spend.
- *
- * Stateful entry point — hoists state from [UsageViewModel] and
- * forwards to the stateless overload. The screen is read-only so
- * there's no intent dispatch surface.
+ * User-facing usage + cost screen. Reachable from Settings → Usage.
+ * Read-only: hero totals, token breakdown, cache-savings callout, and a
+ * by-day spend chart. Stateless — [UsageRoute] hoists [UsageState].
  */
-@Composable
-fun UsageScreen(
-    onBack: () -> Unit,
-    viewModel: UsageViewModel = koinViewModel(),
-) {
-    val state by viewModel.state.collectAsState()
-    UsageScreen(state = state, onBack = onBack)
-}
-
 @OptIn(ExperimentalTime::class)
 @Composable
 fun UsageScreen(

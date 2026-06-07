@@ -78,7 +78,6 @@ import dev.weft.undercurrent.core.ui.ScreenScaffold
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Persona picker — the user picks one "voice" + optional "role" that
@@ -86,32 +85,8 @@ import org.koin.compose.viewmodel.koinViewModel
  * sections (Voices, Roles); built-ins plus user-created customs in
  * each; a "+ New" affordance per section.
  *
- * Stateful entry point — hoists state from [PersonasViewModel] and
- * forwards to the stateless overload. Host screens / routers
- * typically call this one; the stateless variant exists for previews
- * and tests.
+ * Stateless — [PersonasRoute] hoists state + dispatches intents.
  */
-@Composable
-fun PersonasScreen(
-    onBack: () -> Unit,
-    onStartCreator: (PersonaKind) -> Unit = {},
-    viewModel: PersonasViewModel = koinViewModel(),
-) {
-    val state by viewModel.state.collectAsState()
-    PersonasScreen(
-        state = state,
-        onBack = onBack,
-        onStartCreator = onStartCreator,
-        onTapPersona = { viewModel.dispatch(PersonasIntent.TapPersona(it)) },
-        onAddCustom = { name, tagline, text, kind ->
-            viewModel.dispatch(PersonasIntent.AddCustom(name, tagline, text, kind))
-        },
-        onUpdateCustom = { id, name, tagline, text ->
-            viewModel.dispatch(PersonasIntent.UpdateCustom(id, name, tagline, text))
-        },
-        onDeleteCustom = { id -> viewModel.dispatch(PersonasIntent.DeleteCustom(id)) },
-    )
-}
 
 /**
  * Stateless variant — takes [state] and per-action callbacks. Used by

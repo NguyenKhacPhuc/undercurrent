@@ -52,7 +52,6 @@ import dev.weft.undercurrent.core.resources.miniapps_usage_count
 import dev.weft.undercurrent.core.ui.ScreenScaffold
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Drawer-reached management screen for [MiniApp]s.
@@ -71,7 +70,6 @@ import org.koin.compose.viewmodel.koinViewModel
  *     lambda — Android wires it to a `TreeRenderer` call; iOS can
  *     wire a placeholder or a future native renderer.
  *   - Imports from `:core:ui` / `:core:design-system` / `:core:model`.
- *   - `org.koin.compose.viewmodel.koinViewModel`.
  *
  * @param treePreview Composable that renders the cached `ui_render`
  *   JSON. Receives the raw JSON string + a click handler. The
@@ -79,35 +77,8 @@ import org.koin.compose.viewmodel.koinViewModel
  *   stays non-interactive — any tap inside falls through to "open
  *   the mini-app for real" instead of firing stale actions against
  *   the agent.
- */
-@Composable
-fun MiniAppsScreen(
-    treePreview: @Composable (treeJson: String, onTap: () -> Unit) -> Unit,
-    onBack: () -> Unit,
-    onOpenMiniApp: (MiniApp) -> Unit,
-    onStartCreator: () -> Unit = {},
-    viewModel: MiniAppsViewModel = koinViewModel(),
-) {
-    val state by viewModel.state.collectAsState()
-    MiniAppsScreen(
-        state = state,
-        treePreview = treePreview,
-        onBack = onBack,
-        onOpenMiniApp = onOpenMiniApp,
-        onStartCreator = onStartCreator,
-        onUpdate = { id, name, emoji, prompt ->
-            viewModel.dispatch(MiniAppsIntent.Update(id, name, emoji, prompt))
-        },
-        onDelete = { viewModel.dispatch(MiniAppsIntent.Delete(it)) },
-        onSetApprovedScopes = { id, scopes ->
-            viewModel.dispatch(MiniAppsIntent.SetApprovedScopes(id, scopes))
-        },
-    )
-}
-
-/**
- * Stateless variant — takes [state] and per-action callbacks. Used by
- * the stateful overload above plus `@Preview` / snapshot harnesses.
+ *
+ * Stateless — [MiniAppsRoute] hoists state + dispatches intents.
  */
 @Composable
 fun MiniAppsScreen(
