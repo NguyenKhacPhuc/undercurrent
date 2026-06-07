@@ -208,8 +208,11 @@ private fun AndroidApp() {
                 )
             },
             creatorRoute = {
+                val creatorSession: dev.weft.undercurrent.feature.creator.CreatorSession =
+                    koinInject()
+                val creatorKind by creatorSession.state.collectAsState()
                 CreatorScreen(
-                    creatorSession = koinInject(),
+                    kind = creatorKind,
                     isThinking = state.chat.inFlight,
                     inFlight = state.chat.inFlight,
                     hasTree = (uiBridge.lastUpdate is UIUpdate.RenderTree),
