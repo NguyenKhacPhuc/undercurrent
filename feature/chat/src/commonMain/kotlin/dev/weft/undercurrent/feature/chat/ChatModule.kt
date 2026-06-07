@@ -12,4 +12,14 @@ val chatModule = module {
             observeChatState = get(),
         )
     }
+    single {
+        ChatShellViewModel(
+            speech = get(),
+            conversationStore = get(),
+            providerPrefs = get(),
+            personaRepo = get(),
+            integrationsRepo = get(),
+            miniAppsRepo = get(),
+        )
+    }
 }

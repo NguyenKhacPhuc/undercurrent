@@ -42,8 +42,8 @@ import dev.weft.undercurrent.feature.chat.components.MessageBlock
 import dev.weft.undercurrent.feature.chat.components.PreviewSpeechGateway
 import dev.weft.undercurrent.feature.chat.components.TierChipRow
 import dev.weft.undercurrent.feature.miniapps.SaveAsMiniAppDialog
-import dev.weft.undercurrent.core.domain.SpeechRepository
 import dev.weft.undercurrent.core.domain.VoiceState
+import kotlinx.coroutines.flow.StateFlow
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -72,7 +72,7 @@ fun ChatScreen(
         }
     }
 
-    val voiceState by input.speechGateway.state.collectAsState()
+    val voiceState = input.voiceState
     var voicePrefix by remember { mutableStateOf("") }
 
     LaunchedEffect(voiceState) {
@@ -85,18 +85,18 @@ fun ChatScreen(
                     inputText = if (voicePrefix.isBlank()) s.text else "$voicePrefix ${s.text}"
                 }
                 voicePrefix = ""
-                input.speechGateway.acknowledge()
+                input.onAcknowledgeVoice()
             }
             is VoiceState.Error -> {
                 voicePrefix = ""
-                input.speechGateway.acknowledge()
+                input.onAcknowledgeVoice()
             }
             else -> Unit
         }
     }
 
-    DisposableEffect(input.speechGateway) {
-        onDispose { input.speechGateway.cancel() }
+    DisposableEffect(Unit) {
+        onDispose { input.onCancelListening() }
     }
 
     Column(modifier = Modifier.fillMaxSize().background(colors.background)) {
@@ -192,20 +192,20 @@ fun ChatScreen(
                 inputText = ""
                 messageTierOverride = null
             },
-            voiceAvailable = input.speechGateway.isAvailable,
+            voiceAvailable = input.voiceAvailable,
             isRecording = isRecording,
-            voiceRms = input.speechGateway.rmsdB,
+            voiceRms = input.voiceRms,
             onMicPress = {
                 if (!input.hasMicPermission) {
                     input.onRequestMicPermission()
                     false
                 } else {
                     voicePrefix = inputText.trimEnd()
-                    input.speechGateway.start()
+                    input.onStartListening()
                     true
                 }
             },
-            onMicRelease = { input.speechGateway.stop() },
+            onMicRelease = { input.onStopListening() },
             onStop = input.onStop,
         )
 
@@ -260,10 +260,16 @@ class ChatMessagesConfig(
 )
 
 class ChatInputConfig(
-    val speechGateway: SpeechRepository,
+    val voiceState: VoiceState,
+    val voiceRms: StateFlow<Float>,
+    val voiceAvailable: Boolean,
     val hasMicPermission: Boolean,
     val onRequestMicPermission: () -> Unit,
     val onSend: (text: String, modelTier: ModelTier?) -> Unit,
+    val onStartListening: () -> Unit = {},
+    val onStopListening: () -> Unit = {},
+    val onCancelListening: () -> Unit = {},
+    val onAcknowledgeVoice: () -> Unit = {},
     val onStop: () -> Unit = {},
 )
 
@@ -316,7 +322,9 @@ private fun ChatScreenPreview() {
                 onRegenerate = { },
             ),
             input = ChatInputConfig(
-                speechGateway = PreviewSpeechGateway,
+                voiceState = PreviewSpeechGateway.state.value,
+                voiceRms = PreviewSpeechGateway.rmsdB,
+                voiceAvailable = PreviewSpeechGateway.isAvailable,
                 hasMicPermission = true,
                 onRequestMicPermission = { },
                 onSend = { _, _ -> },

@@ -19,10 +19,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
-import dev.weft.undercurrent.core.domain.IntegrationsRepository
-import dev.weft.undercurrent.core.domain.MiniAppsRepository
-import dev.weft.undercurrent.core.domain.PersonaRepository
-import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.navigation.NavigationIntent
 import dev.weft.undercurrent.core.navigation.NavigationViewModel
 import dev.weft.undercurrent.core.navigation.Screen
@@ -33,8 +29,6 @@ import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
 import dev.weft.undercurrent.feature.theme.ThemeIntent
 import dev.weft.undercurrent.feature.theme.ThemeViewModel
-import dev.weft.undercurrent.core.domain.ConversationStoreRepository
-import dev.weft.undercurrent.core.domain.SpeechRepository
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -45,46 +39,26 @@ fun ChatRoute(
     onCopyText: (String) -> Unit,
 ) {
     val chatVm: ChatViewModel = koinInject()
+    val shellVm: ChatShellViewModel = koinInject()
     val themeVm: ThemeViewModel = koinInject()
     val navigationVm: NavigationViewModel = koinInject()
     val miniAppVm: MiniAppViewModel = koinInject()
-    val speechGateway: SpeechRepository = koinInject()
-    val conversationStore: ConversationStoreRepository = koinInject()
-    val providerPrefs: ProviderPrefsRepository = koinInject()
-    val personaRepo: PersonaRepository = koinInject()
-    val integrationsRepo: IntegrationsRepository = koinInject()
-    val miniAppsRepo: MiniAppsRepository = koinInject()
 
     val chatState by chatVm.state.collectAsState()
     val themeState by themeVm.state.collectAsState()
-    val activeProvider by providerPrefs.activeProvider.collectAsState()
-    val defaultTier by providerPrefs.defaultTier.collectAsState()
-    val activeVoice by personaRepo.activeVoice.collectAsState()
-    val activeRole by personaRepo.activeRole.collectAsState()
-    val miniApps by miniAppsRepo.miniApps.collectAsState()
-    val enabledIntegrationIds by integrationsRepo.enabledIdsFlow.collectAsState(initial = emptySet())
+    val shellState by shellVm.state.collectAsState()
 
     val agentCurrentConvId = chatState.currentConversationId.orEmpty()
-    val conversations by remember { conversationStore.search("") }
-        .collectAsState(initial = emptyList())
+    val conversations = shellState.conversations
 
-    val threadTitle = conversations
-        .firstOrNull { it.id == agentCurrentConvId }
-        ?.title
-        ?.takeIf { it.isNotBlank() }
+    val threadTitle = shellState.conversationTitle(chatState.currentConversationId)
         ?: stringResource(Res.string.app_name)
-
-    val personaLabel = run {
-        val voiceLabel = activeVoice.name.takeIf { it != "Default" }
-        val roleLabel = activeRole?.name
-        listOfNotNull(voiceLabel, roleLabel).joinToString(" + ").ifEmpty { "Default" }
-    }
-    val threadSubtitle = listOf(activeProvider.displayName, personaLabel).joinToString(" · ")
+    val personaLabel = shellState.personaLabel
+    val threadSubtitle = shellState.threadSubtitle
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val miniAppsScope = rememberCoroutineScope()
 
     var hasMicPermission by remember {
         mutableStateOf(
@@ -150,12 +124,18 @@ fun ChatRoute(
                     onRegenerate = { chatVm.dispatch(ChatIntent.RegenerateLast) },
                 ),
                 input = ChatInputConfig(
-                    speechGateway = speechGateway,
+                    voiceState = shellState.voiceState,
+                    voiceRms = shellVm.voiceRms,
+                    voiceAvailable = shellVm.voiceAvailable,
                     hasMicPermission = hasMicPermission,
                     onRequestMicPermission = {
                         micLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     },
                     onSend = { text, tier -> chatVm.dispatch(ChatIntent.SendChat(text, tier)) },
+                    onStartListening = { shellVm.dispatch(ChatShellIntent.StartListening) },
+                    onStopListening = { shellVm.dispatch(ChatShellIntent.StopListening) },
+                    onCancelListening = { shellVm.dispatch(ChatShellIntent.CancelListening) },
+                    onAcknowledgeVoice = { shellVm.dispatch(ChatShellIntent.AcknowledgeVoice) },
                     onStop = { chatVm.dispatch(ChatIntent.StopResponse) },
                 ),
                 agent = ChatAgentConfig(
@@ -164,13 +144,13 @@ fun ChatRoute(
                     },
                     activeAgentName = chatState.activeAgentName,
                     onSelectAgent = { name -> chatVm.dispatch(ChatIntent.SelectAgent(name)) },
-                    defaultTier = defaultTier,
+                    defaultTier = shellState.defaultTier,
                 ),
                 addToChatConfig = AddToChatConfig(
                     activePalette = themeState.prefs.palette,
                     activeMode = themeState.prefs.mode,
-                    connectedIntegrationsCount = enabledIntegrationIds.size,
-                    miniApps = miniApps,
+                    connectedIntegrationsCount = shellState.connectedIntegrationsCount,
+                    miniApps = shellState.miniApps,
                     onSelectPalette = { p -> themeVm.dispatch(ThemeIntent.SetPalette(p)) },
                     onSelectMode = { m -> themeVm.dispatch(ThemeIntent.SetThemeMode(m)) },
                     onShowPersonas = { navigationVm.dispatch(NavigationIntent.Navigate(Screen.Personas)) },
@@ -188,9 +168,7 @@ fun ChatRoute(
                         )
                     },
                     onAddMiniApp = { name, emoji, prompt ->
-                        miniAppsScope.launch {
-                            miniAppsRepo.add(name, emoji, prompt)
-                        }
+                        shellVm.dispatch(ChatShellIntent.AddMiniApp(name, emoji, prompt))
                     },
                 ),
             )
