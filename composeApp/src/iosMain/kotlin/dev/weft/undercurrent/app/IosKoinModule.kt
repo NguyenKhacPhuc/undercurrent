@@ -41,6 +41,7 @@ import dev.weft.undercurrent.feature.theme.themeModule
 import dev.weft.undercurrent.feature.traces.TraceExportViewModel
 import dev.weft.undercurrent.feature.traces.tracesModule
 import dev.weft.undercurrent.feature.settings.usage.usageModule
+import dev.weft.undercurrent.feature.settings.settingsModule
 import dev.weft.undercurrent.core.domain.ChatRepository
 import dev.weft.undercurrent.core.domain.ConversationStoreRepository
 import dev.weft.undercurrent.core.domain.IosSpeechRepository
@@ -189,6 +190,7 @@ val iosAllModules = listOf(
     memoriesModule,
     tracesModule,
     usageModule,
+    settingsModule,
 )
 
 /**

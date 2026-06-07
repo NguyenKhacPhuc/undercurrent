@@ -7,6 +7,16 @@ val onboardingModule = module {
         OnboardingViewModel(
             repo = get(),
             navigationVm = get(),
+            provider = get(),
+            catalog = get(),
+        )
+    }
+    single {
+        KeyPasteViewModel(
+            validator = get(),
+            keyVault = get(),
+            providerPrefs = get(),
+            provider = get(),
         )
     }
 }

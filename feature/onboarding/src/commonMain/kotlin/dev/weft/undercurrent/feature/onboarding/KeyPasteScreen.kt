@@ -18,11 +18,9 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,28 +51,22 @@ import dev.weft.undercurrent.core.resources.keypaste_paste_label
 import dev.weft.undercurrent.core.resources.keypaste_show
 import dev.weft.undercurrent.core.resources.keypaste_subtitle
 import dev.weft.undercurrent.core.resources.keypaste_title
-import dev.weft.undercurrent.core.domain.KeyValidationRepository
-import dev.weft.undercurrent.core.domain.ValidationResult
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun KeyPasteScreen(
     provider: ProviderKind,
-    validator: KeyValidationRepository,
-    onKeyAccepted: (String) -> Unit,
-    saveKey: suspend (String) -> Unit,
+    status: KeyPasteStatus,
+    onSubmitKey: (String) -> Unit,
     onOpenConsole: (url: String) -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
     val shapes = UndercurrentTheme.shapes
 
     var key by remember { mutableStateOf("") }
     var keyVisible by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf<Status>(Status.Idle) }
 
     Column(
         modifier = Modifier
@@ -159,7 +151,7 @@ fun KeyPasteScreen(
                         textStyle = typography.mono.copy(color = colors.ink),
                         cursorBrush = SolidColor(colors.accent),
                         singleLine = true,
-                        enabled = status !is Status.Validating,
+                        enabled = status !is KeyPasteStatus.Validating,
                         visualTransformation = if (keyVisible) VisualTransformation.None
                         else PasswordVisualTransformation(),
                     )
@@ -181,24 +173,15 @@ fun KeyPasteScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            val enabled = key.isNotBlank() && status !is Status.Validating
+            val enabled = key.isNotBlank() && status !is KeyPasteStatus.Validating
             SecondaryButton(
-                label = if (status is Status.Validating) stringResource(Res.string.keypaste_checking) else stringResource(Res.string.keypaste_connect),
+                label = if (status is KeyPasteStatus.Validating) stringResource(Res.string.keypaste_checking) else stringResource(Res.string.keypaste_connect),
                 enabled = enabled,
-                onClick = {
-                    status = Status.Validating
-                    scope.launch {
-                        val result = validator.validateKey(provider, key)
-                        status = when (result) {
-                            is ValidationResult.Ok -> Status.Validated
-                            is ValidationResult.Invalid -> Status.Failed(result.message)
-                        }
-                    }
-                },
+                onClick = { onSubmitKey(key) },
             )
 
             when (val s = status) {
-                is Status.Failed -> {
+                is KeyPasteStatus.Failed -> {
                     Spacer(Modifier.height(12.dp))
                     Text(
                         text = s.message,
@@ -215,13 +198,6 @@ fun KeyPasteScreen(
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
             )
-        }
-    }
-
-    LaunchedEffect(status) {
-        if (status is Status.Validated) {
-            saveKey(key)
-            onKeyAccepted(key)
         }
     }
 }
@@ -307,27 +283,14 @@ private fun OrDivider() {
     }
 }
 
-private sealed class Status {
-    data object Idle : Status()
-    data object Validating : Status()
-    data object Validated : Status()
-    data class Failed(val message: String) : Status()
-}
-
 @Preview
 @Composable
 private fun KeyPasteScreenPreview() {
     UndercurrentTheme {
         KeyPasteScreen(
             provider = ProviderKind.Anthropic,
-            validator = object : KeyValidationRepository {
-                override suspend fun validateKey(
-                    provider: ProviderKind,
-                    apiKey: String,
-                ): ValidationResult = ValidationResult.Ok
-            },
-            onKeyAccepted = {},
-            saveKey = {},
+            status = KeyPasteStatus.Idle,
+            onSubmitKey = {},
             onOpenConsole = {},
         )
     }
