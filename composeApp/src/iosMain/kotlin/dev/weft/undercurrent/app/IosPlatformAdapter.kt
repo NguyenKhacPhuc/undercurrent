@@ -32,7 +32,7 @@ fun iosPlatformAdapter(): PlatformAdapter = PlatformAdapter(
 private fun IosMiniAppsRoute() {
     val navigationVm: NavigationViewModel = koinInject()
     val miniAppVm: MiniAppViewModel = koinInject()
-    dev.weft.undercurrent.feature.miniapps.MiniAppsScreen(
+    dev.weft.undercurrent.feature.miniapps.MiniAppsRoute(
         treePreview = { _, _ ->
             Box(
                 modifier = Modifier.fillMaxSize(),

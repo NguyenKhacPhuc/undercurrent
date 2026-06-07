@@ -57,7 +57,7 @@ import dev.weft.undercurrent.feature.creator.CreatorScreen
 import dev.weft.undercurrent.feature.creator.CreatorViewModel
 import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
-import dev.weft.undercurrent.feature.miniapps.MiniAppsScreen
+import dev.weft.undercurrent.feature.miniapps.MiniAppsRoute
 import dev.weft.undercurrent.feature.miniapps.SaveAsMiniAppDialog
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -161,7 +161,7 @@ private fun AndroidApp() {
                 )
             },
             miniAppsRoute = {
-                MiniAppsScreen(
+                MiniAppsRoute(
                     treePreview = { treeJson, onTap ->
                         val tree = remember(treeJson) {
                             runCatching {
@@ -205,8 +205,11 @@ private fun AndroidApp() {
                 )
             },
             creatorRoute = {
+                val creatorSession: dev.weft.undercurrent.feature.creator.CreatorSession =
+                    koinInject()
+                val creatorKind by creatorSession.state.collectAsState()
                 CreatorScreen(
-                    creatorSession = koinInject(),
+                    kind = creatorKind,
                     isThinking = state.chat.inFlight,
                     inFlight = state.chat.inFlight,
                     hasTree = (uiBridge.lastUpdate is UIUpdate.RenderTree),

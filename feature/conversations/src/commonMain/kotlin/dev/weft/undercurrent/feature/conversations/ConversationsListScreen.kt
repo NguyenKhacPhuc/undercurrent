@@ -20,7 +20,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,36 +55,6 @@ import dev.weft.undercurrent.core.ui.TokenDivider
 import dev.weft.undercurrent.core.domain.ConversationSummary
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.koin.compose.viewmodel.koinViewModel
-
-/**
- * Lists every persisted conversation thread, grouped by recency
- * (Today / Yesterday / Earlier this week / Older). Tap a row to resume;
- * each row has an inline Delete action that opens a confirm dialog.
- *
- * Stateful entry point — hoists state from [ConversationsViewModel]
- * and forwards to the stateless overload.
- */
-@Composable
-fun ConversationsListScreen(
-    activeConversationId: String?,
-    onSelect: (String) -> Unit,
-    onNewChat: () -> Unit,
-    onBack: () -> Unit,
-    viewModel: ConversationsViewModel = koinViewModel(),
-) {
-    val state by viewModel.state.collectAsState()
-    ConversationsListScreen(
-        state = state,
-        activeConversationId = activeConversationId,
-        onSelect = onSelect,
-        onNewChat = onNewChat,
-        onBack = onBack,
-        onQueryChange = { viewModel.dispatch(ConversationsIntent.SetQuery(it)) },
-        onDelete = { viewModel.dispatch(ConversationsIntent.Delete(it)) },
-        onClearAll = { viewModel.dispatch(ConversationsIntent.ClearAll) },
-    )
-}
 
 /**
  * Stateless variant — takes [state] and per-action callbacks. Used by

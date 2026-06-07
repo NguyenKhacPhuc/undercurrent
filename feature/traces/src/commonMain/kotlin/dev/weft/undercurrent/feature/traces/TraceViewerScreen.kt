@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -91,34 +90,6 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.koin.compose.viewmodel.koinViewModel
-
-/**
- * Lists recent agent traces and lets the user drill into a single turn
- * to see every LLM call + tool call. The "what just happened" view +
- * the surface that turns into a debug bundle the user can paste into a
- * chat with the SDK author when something misbehaves.
- *
- * Stateful entry point — hoists state from [TracesViewModel] and
- * forwards to the stateless overload.
- */
-@Composable
-fun TraceViewerScreen(
-    onBack: () -> Unit,
-    onExportTrace: ((AgentTrace) -> Unit)? = null,
-    viewModel: TracesViewModel = koinViewModel(),
-) {
-    val state by viewModel.state.collectAsState()
-    TraceViewerScreen(
-        state = state,
-        onBack = onBack,
-        onExportTrace = onExportTrace,
-        onSetFeedback = { traceId, fb ->
-            viewModel.dispatch(TracesIntent.SetFeedback(traceId, fb))
-        },
-        onClearAll = { viewModel.dispatch(TracesIntent.ClearAll) },
-    )
-}
 
 /**
  * Stateless variant — takes [state] and per-action callbacks. Used by

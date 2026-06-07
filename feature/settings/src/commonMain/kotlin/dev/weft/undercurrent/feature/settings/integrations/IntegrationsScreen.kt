@@ -17,8 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,7 +39,6 @@ import dev.weft.undercurrent.core.ui.ScreenScaffold
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Settings → Integrations. Lists every supported third-party
@@ -53,28 +50,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * — the agent's tool registry is fixed at runtime construction time,
  * so newly-toggled integrations only become available after restart.
  *
- * Stateful entry point — hoists state from [IntegrationsViewModel]
- * and forwards to the stateless overload.
- */
-@Composable
-fun IntegrationsScreen(
-    onBack: () -> Unit,
-    onRestart: () -> Unit,
-    viewModel: IntegrationsViewModel = koinViewModel(),
-) {
-    val state by viewModel.state.collectAsState()
-    IntegrationsScreen(
-        state = state,
-        onBack = onBack,
-        onRestart = onRestart,
-        onConnect = { viewModel.dispatch(IntegrationsIntent.Connect(it)) },
-        onDisconnect = { viewModel.dispatch(IntegrationsIntent.Disconnect(it)) },
-    )
-}
-
-/**
- * Stateless variant — takes [state] and per-action callbacks. Used by
- * the stateful overload above plus `@Preview` / snapshot harnesses.
+ * Stateless — [IntegrationsRoute] hoists state + dispatches intents.
  */
 @Composable
 fun IntegrationsScreen(
