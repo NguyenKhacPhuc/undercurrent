@@ -7,28 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		02A1C0C02FC824A800483AA1 /* ComposeApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02A1C0BF2FC824A800483AA1 /* ComposeApp.framework */; };
-		02A1C0C12FC824A800483AA1 /* ComposeApp.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 02A1C0BF2FC824A800483AA1 /* ComposeApp.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		02A1C0C42FC826AD00483AA1 /* ComposeApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02A1C0BF2FC824A800483AA1 /* ComposeApp.framework */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		02A1C0C22FC824A800483AA1 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				02A1C0C12FC824A800483AA1 /* ComposeApp.framework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		02A1C0AE2FC821B900483AA1 /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		02A1C0BF2FC824A800483AA1 /* ComposeApp.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ComposeApp.framework; path = "../composeApp/build/xcode-frameworks/Debug/iphonesimulator/ComposeApp.framework"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -57,8 +39,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				02A1C0C02FC824A800483AA1 /* ComposeApp.framework in Frameworks */,
-				02A1C0C42FC826AD00483AA1 /* ComposeApp.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -69,7 +49,6 @@
 			isa = PBXGroup;
 			children = (
 				02A1C0B02FC821B900483AA1 /* iosApp */,
-				02A1C0BE2FC824A800483AA1 /* Frameworks */,
 				02A1C0AF2FC821B900483AA1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -82,14 +61,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		02A1C0BE2FC824A800483AA1 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				02A1C0BF2FC824A800483AA1 /* ComposeApp.framework */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -100,7 +71,6 @@
 				02A1C0AA2FC821B900483AA1 /* Sources */,
 				02A1C0AB2FC821B900483AA1 /* Frameworks */,
 				02A1C0AC2FC821B900483AA1 /* Resources */,
-				02A1C0C22FC824A800483AA1 /* Embed Frameworks */,
 				02A1C0C32FC824D400483AA1 /* ShellScript */,
 			);
 			buildRules = (
@@ -177,7 +147,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\ncd \"$SRCROOT/..\"\nif [ \"$SDK_NAME\" = \"iphonesimulator\" ]; then\n    ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64\nelse\n    ./gradlew :composeApp:linkDebugFrameworkIosArm64\nfi\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\ncd \"$SRCROOT/..\"\nif [ \"$SDK_NAME\" = \"iphonesimulator\" ]; then\n    ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64\nelse\n    ./gradlew :composeApp:linkDebugFrameworkIosArm64\nfi\n./gradlew :composeApp:syncComposeResourcesForIos\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -323,7 +293,8 @@
 				DEVELOPMENT_TEAM = YC7G67SKRA;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				"FRAMEWORK_SEARCH_PATHS[arch=*]" = "$(SRCROOT)/../composeApp/build/bin/iosSimulatorArm64/debugFramework";
+				"FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/../composeApp/build/bin/iosSimulatorArm64/debugFramework";
+				"FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/../composeApp/build/bin/iosArm64/debugFramework";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -364,7 +335,8 @@
 				DEVELOPMENT_TEAM = YC7G67SKRA;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				"FRAMEWORK_SEARCH_PATHS[arch=*]" = "$(SRCROOT)/../composeApp/build/bin/iosSimulatorArm64/debugFramework";
+				"FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/../composeApp/build/bin/iosSimulatorArm64/debugFramework";
+				"FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/../composeApp/build/bin/iosArm64/debugFramework";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
