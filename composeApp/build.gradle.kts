@@ -21,6 +21,18 @@ plugins {
 }
 
 kotlin {
+    targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget>().configureEach {
+        binaries.withType<org.jetbrains.kotlin.gradle.plugin.mpp.Framework>().configureEach {
+            // Expose the iOS view-bridge types (NativeActionButton /
+            // NativeViewRegistry) to Swift. We export :core:ext — a tiny leaf
+            // with no `api` deps — so the ObjC header stays small, rather than
+            // :core:ui which would drag Skiko/Coil/Koin into the ABI.
+            export(projects.core.ext)
+            // With an exported dep whose package differs from composeApp's, the
+            // bundle ID can't be inferred — set it explicitly to silence the warn.
+            binaryOption("bundleId", "ComposeApp")
+        }
+    }
     sourceSets {
         commonMain.dependencies {
             // Every feature module the host needs to render. The
@@ -29,6 +41,9 @@ kotlin {
             implementation(projects.core.designSystem)
             implementation(projects.core.navigation)
             implementation(projects.core.ui)
+            // `api` + framework `export` (above) so Swift sees the iOS
+            // view-bridge types declared in :core:ext/iosMain.
+            api(projects.core.ext)
             implementation(projects.core.resources)
             implementation(projects.core.model)
             implementation(projects.shared)

@@ -5,9 +5,6 @@
 // needs via convention plugins from `build-logic/`).
 
 plugins {
-    // Stock plugins — applied per-module via convention plugins or
-    // directly in module build.gradle.kts. `apply false` here just
-    // pins the version on the root classpath.
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.compose) apply false

@@ -7,10 +7,9 @@ import kotlinx.serialization.Serializable
  * Read-only conversation list + delete operations. Backed by Weft's
  * `ConversationStore` on Android; iOS stub emits an empty list.
  *
- * The chat feature's history rebuild + append paths flow through
- * [dev.weft.undercurrent.shared.agent.AgentEngine] (via Weft directly on
- * Android) — this gateway is just the "manage threads" surface the
- * conversations list screen and side drawer consume.
+ * The chat feature's history rebuild + append paths flow through Weft's
+ * agent loop directly (Android) — this gateway is just the "manage
+ * threads" surface the conversations list screen and side drawer consume.
  */
 interface ConversationStoreRepository {
 
