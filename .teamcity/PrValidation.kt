@@ -4,18 +4,33 @@ import jetbrains.buildServer.configs.kotlin.buildFeatures.pullRequests
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
 /**
- * PR gate. A composite build that goes green only when both the Android
- * (compile + tests + coverage) and iOS (compile) builds pass. Reports a
- * single commit status back to GitHub.
+ * PR gate — the staged validation pipeline (no deployment):
+ *   preflight -> quality (lint) -> test (shared + android + ios) ->
+ *   build (debug APK + iOS framework).
+ * Reports a single commit status back to GitHub.
  */
 object PrValidation : BuildType({
-    name = "PR validation"
-    description = "Gate for pull requests: Android compile+tests+coverage and iOS compile must pass."
-    type = BuildTypeSettings.Type.COMPOSITE
+    name = "PR validation · build + test + lint"
+    description = "Pull-request gate: lint, tests (shared/android/ios), and debug build must pass."
 
-    vcs {
-        root(AbsoluteId(UNDERCURRENT_VCS_ID))
-        showDependenciesChanges = true
+    artifactRules = """
+        androidApp/build/outputs/apk/debug/*.apk => apk
+        build/reports/kover/report.xml => coverage
+        **/build/reports/tests/** => test-reports
+    """.trimIndent()
+
+    undercurrentCheckout()
+
+    steps {
+        // Stage 1 — environment
+        preflightStep()
+        // Stage 2 — code quality (undercurrent uses Android lint + Kover, not detekt)
+        gradleStep("quality · lint", "lint")
+        // Stage 2 — testing: Android unit (Robolectric/kotest — undercurrent has
+        // no jvm target, so commonTest runs here), iOS (simulator), + coverage.
+        gradleStep("test · android + ios", "testDebugUnitTest iosSimulatorArm64Test koverXmlReport")
+        // Stage 3 — build: debug APK + iOS framework
+        gradleStep("build · debug apk + ios", ":androidApp:assembleDebug :composeApp:compileKotlinIosSimulatorArm64")
     }
 
     triggers {
@@ -28,7 +43,6 @@ object PrValidation : BuildType({
         pullRequests {
             vcsRootExtId = UNDERCURRENT_VCS_ID
             provider = github {
-                // Reuses the existing VCS root's stored credentials.
                 authType = vcsRoot()
                 filterTargetBranch = "+:refs/heads/main"
             }
@@ -40,16 +54,13 @@ object PrValidation : BuildType({
                 authType = personalToken { token = "%github.token%" }
             }
         }
+        feature {
+            type = "xml-report-plugin"
+            param("xmlReportParsing.reportType", "junit")
+            param("xmlReportParsing.reportDirs", "+:**/build/test-results/**/*.xml")
+        }
     }
 
-    dependencies {
-        snapshot(BuildAndroid) {
-            onDependencyFailure = FailureAction.FAIL_TO_START
-            onDependencyCancel = FailureAction.CANCEL
-        }
-        snapshot(BuildIos) {
-            onDependencyFailure = FailureAction.FAIL_TO_START
-            onDependencyCancel = FailureAction.CANCEL
-        }
-    }
+    requireMacOs()
+    requireAndroidSdk()
 })

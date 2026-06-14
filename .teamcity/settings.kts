@@ -6,13 +6,11 @@ import jetbrains.buildServer.configs.kotlin.*
  * Keep `version` matching the <version> in pom.xml and your TeamCity server.
  * The server rewrites both on import.
  *
- * Pipeline shape:
- *   BuildAndroid ───┐
- *                   ├──► PrValidation (composite gate, triggered on PRs)
- *   BuildIos ───────┘
- *   AssembleDebugApk   (debug APK artifact)
- *   UatRelease         (UAT distribution build, main branch)
- *   PublishPlayConsole / PublishAppStore   (next-phase scaffolds, paused)
+ * Pipeline (two staged configs):
+ *   PrValidation — preflight -> quality(lint) -> test(shared+android+ios) ->
+ *                  build(debug apk + ios). On PRs. No deployment.
+ *   Publish      — same stages + deploy(Firebase/TestFlight beta, Play/App
+ *                  Store store), gated behind publish.enabled. Manual.
  *
  * weft is consumed as a published artifact (dev.weft:weft-* from GitHub
  * Packages), NOT a composite build, so CI uses a single root and builds at
@@ -27,13 +25,8 @@ project {
     // The VCS root already exists on the server — referenced by ID from
     // Common.kt (UNDERCURRENT_VCS_ID), not redefined here.
 
-    buildType(BuildAndroid)
-    buildType(BuildIos)
-    buildType(AssembleDebugApk)
     buildType(PrValidation)
-    buildType(UatRelease)
-    buildType(PublishPlayConsole)
-    buildType(PublishAppStore)
+    buildType(Publish)
 
     params {
         // JDK 17 on the agent. TeamCity bundled agents expose JDK paths as
