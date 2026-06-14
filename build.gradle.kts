@@ -81,3 +81,12 @@ subprojects {
         }
     }
 }
+
+// Gradle 9 fails a JVM test task that has sources but discovers no tests.
+// Some KMP modules compile shared specs into a test task that legitimately
+// runs zero. Don't fail on that.
+subprojects {
+    tasks.withType<Test>().configureEach {
+        failOnNoDiscoveredTests = false
+    }
+}
