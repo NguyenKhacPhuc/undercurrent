@@ -22,15 +22,21 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         // Weft SDK artifacts — used only when the `../weft` composite build is
-        // absent (CI). Locally the composite below supplies them from source.
-        maven {
-            name = "WeftGitHubPackages"
-            url = uri("https://maven.pkg.github.com/NguyenKhacPhuc/android-harness")
-            credentials {
-                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
-                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+        // absent (CI). Locally the composite below supplies them from source,
+        // so the repo is only declared when credentials exist (Gradle rejects a
+        // maven repo with a null username).
+        val gprUser = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
+        val gprKey = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+        if (gprUser != null && gprKey != null) {
+            maven {
+                name = "WeftGitHubPackages"
+                url = uri("https://maven.pkg.github.com/NguyenKhacPhuc/android-harness")
+                credentials {
+                    username = gprUser
+                    password = gprKey
+                }
+                content { includeGroupByRegex("dev\\.weft.*") }
             }
-            content { includeGroupByRegex("dev\\.weft.*") }
         }
     }
 }
