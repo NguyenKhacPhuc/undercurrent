@@ -20,7 +20,7 @@ import jetbrains.buildServer.configs.kotlin.*
  * and runs Gradle with workingDir = "undercurrent". See sharedComposeCheckout().
  */
 
-version = "2024.12"
+version = "2025.03"
 
 project {
     description = "Undercurrent CI — KMP personal-assistant app (Android + iOS)"

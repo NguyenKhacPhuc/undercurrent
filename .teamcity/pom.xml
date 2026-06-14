@@ -15,7 +15,7 @@
   <parent>
     <groupId>org.jetbrains.teamcity</groupId>
     <artifactId>configs-dsl-kotlin-parent</artifactId>
-    <version>2024.12</version>
+    <version>2025.03</version>
   </parent>
 
   <repositories>
