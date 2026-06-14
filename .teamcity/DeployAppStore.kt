@@ -1,9 +1,10 @@
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
 /**
  * iOS store release. Archives iosApp and uploads it to App Store Connect
  * (TestFlight + store) via fastlane, authenticated with an App Store Connect
- * API key. macOS agent with Xcode required. Manual trigger.
+ * API key. macOS agent with Xcode required. Auto-triggers on release* branches.
  *
  * Secrets/ids reference UI-defined params — see docs/deployment.md.
  */
@@ -23,6 +24,12 @@ object DeployAppStore : BuildType({
     steps {
         preflightStep()
         fastlaneStep("fastlane · ios appstore", "ios appstore")
+    }
+
+    triggers {
+        vcs {
+            branchFilter = "+:release*"
+        }
     }
 
     requireMacOs()

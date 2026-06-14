@@ -1,8 +1,9 @@
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
 /**
  * Android beta distribution. Builds a signed release APK and uploads it to
- * Firebase App Distribution via fastlane. Manual trigger.
+ * Firebase App Distribution via fastlane. Auto-triggers on main.
  *
  * Secrets/ids below reference params you define in the UI (Password params for
  * secrets, secure-file paths for the keystore + service-account JSON). See
@@ -31,6 +32,12 @@ object DeployFirebase : BuildType({
     steps {
         preflightStep()
         fastlaneStep("fastlane · android firebase", "android firebase")
+    }
+
+    triggers {
+        vcs {
+            branchFilter = "+:<default>"   // main
+        }
     }
 
     requireAndroidSdk()

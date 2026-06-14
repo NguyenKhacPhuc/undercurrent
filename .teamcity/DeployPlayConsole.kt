@@ -1,8 +1,10 @@
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
 /**
  * Android store release. Builds a signed release AAB and uploads it to the
- * Google Play Console (draft on the chosen track) via fastlane supply. Manual.
+ * Google Play Console (draft on the chosen track) via fastlane supply.
+ * Auto-triggers on release* branches.
  *
  * Secrets/ids reference UI-defined params — see docs/deployment.md.
  */
@@ -28,6 +30,12 @@ object DeployPlayConsole : BuildType({
     steps {
         preflightStep()
         fastlaneStep("fastlane · android play", "android play")
+    }
+
+    triggers {
+        vcs {
+            branchFilter = "+:release*"
+        }
     }
 
     requireAndroidSdk()

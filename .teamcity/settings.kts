@@ -9,9 +9,9 @@ import jetbrains.buildServer.configs.kotlin.*
  * Pipeline:
  *   PrValidation       — preflight -> lint -> test -> build(debug apk + ios). On PRs.
  *   Publish            — release-candidate: lint + test + build. Manual.
- *   DeployFirebase     — signed release APK -> Firebase App Distribution. Manual.
- *   DeployPlayConsole  — signed release AAB -> Play Console. Manual.
- *   DeployAppStore     — iosApp archive -> App Store Connect. Manual, macOS.
+ *   DeployFirebase     — signed release APK -> Firebase App Distribution. On main.
+ *   DeployPlayConsole  — signed release AAB -> Play Console. On release* branches.
+ *   DeployAppStore     — iosApp archive -> App Store Connect. On release*, macOS.
  * Deploy configs build + upload via fastlane — see docs/deployment.md.
  *
  * weft is consumed as a published artifact (dev.weft:weft-* from GitHub
