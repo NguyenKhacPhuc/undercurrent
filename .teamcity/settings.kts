@@ -46,5 +46,11 @@ project {
         param("github.username", "NguyenKhacPhuc")
         param("env.GITHUB_ACTOR", "%github.username%")
         param("env.GITHUB_TOKEN", "%github.token%")
+
+        // base64 of the module-root google-services.json (covers the .dev + .uat
+        // clients). The writeGoogleServices Gradle task materializes it for
+        // debug/uat builds; left empty -> google-services processing is skipped
+        // so builds still pass. Define `google.services.b64` as a Password param.
+        param("env.GOOGLE_SERVICES_JSON_B64", "%google.services.b64%")
     }
 }

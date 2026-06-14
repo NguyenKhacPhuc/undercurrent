@@ -13,13 +13,13 @@ Firebase uses the **Firebase App Distribution Gradle plugin** (configured in
 Play + App Store use fastlane lanes in [`fastlane/Fastfile`](../fastlane/Fastfile).
 All read config from env vars wired by the TeamCity configs.
 
-The `com.google.gms.google-services` plugin **is** applied (for future Firebase
-SDK use), but a `google-services.json` is provided only for the **UAT** variant
-(`androidApp/src/uat/`). Its processing is disabled for `debug`/`release` (they
-have no base-package file) so those builds don't fail. To use Firebase SDK in
-debug/release, add a `google-services.json` for `dev.weft.undercurrent`
-(register that app in Firebase) and remove the disable block in
-`androidApp/build.gradle.kts`.
+The `com.google.gms.google-services` plugin **is** applied (for Firebase SDK
+use). A module-root `google-services.json` covers the `.dev` (debug) and `.uat`
+clients; `release` has no client so its google-services processing is disabled.
+The file is gitignored and materialized from `GOOGLE_SERVICES_JSON_B64` at build
+time (or skipped entirely if that's unset, so builds still pass). For Firebase
+SDK in production, register a `dev.weft.undercurrent` app, add its client to the
+json, and drop the `processReleaseGoogleServices` disable.
 
 ## Agent prerequisites (one-time)
 
@@ -59,7 +59,7 @@ activates **only** when `RELEASE_KEYSTORE` is set, so normal builds are unaffect
 |---|---|
 | `firebase.app.id` | Firebase Android App ID (`1:123…:android:abc…`) — register the Firebase app for package **`dev.weft.undercurrent.uat`** (the UAT build's id), not the base package |
 | `firebase.service.credentials.path` | Path to the Firebase service-account JSON (secure file) |
-| `google.services.uat.b64` | **base64 of the UAT `google-services.json`** (`base64 -i google-services.json`). The `writeUatGoogleServices` Gradle task materializes it to `src/uat/` at build time, so the file stays out of git. |
+| `google.services.b64` | **base64 of the module-root `google-services.json`** (`base64 -i google-services.json`), covering the `.dev` + `.uat` clients. `writeGoogleServices` materializes it at build time (file stays out of git); left empty → google-services processing is skipped so builds still pass. |
 | (optional) `FIREBASE_GROUPS` | Tester groups, comma-separated (default `testers`) |
 
 ### Google Play Console

@@ -20,9 +20,7 @@ object DeployFirebase : BuildType({
         param("env.FIREBASE_APP_ID", "%firebase.app.id%")
         param("env.FIREBASE_SERVICE_CREDENTIALS", "%firebase.service.credentials.path%")
         param("env.FIREBASE_GROUPS", "testers")
-        // base64 of the UAT google-services.json — materialized at build time by
-        // the writeUatGoogleServices Gradle task (keeps the file out of git).
-        param("env.GOOGLE_SERVICES_JSON_UAT_B64", "%google.services.uat.b64%")
+        // GOOGLE_SERVICES_JSON_B64 is set at the project level (inherited here).
     }
 
     undercurrentCheckout()

@@ -73,6 +73,12 @@ android {
         }
     }
     buildTypes {
+        // debug — local dev, installable alongside uat/release via `.dev`.
+        getByName("debug") {
+            applicationIdSuffix = ".dev"          // dev.weft.undercurrent.dev
+            versionNameSuffix = "-dev"
+        }
+
         create("uat") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".uat"          // dev.weft.undercurrent.uat
@@ -114,9 +120,14 @@ android {
     }
 }
 
-// CI materializes the UAT google-services.json from a base64 param
-// (GOOGLE_SERVICES_JSON_UAT_B64) before the plugin processes it — keeps the
-// file out of git. Locally the file is already at src/uat/ and this no-ops.
+// CI materializes the module-root google-services.json (covers the .dev + .uat
+// clients) from a base64 param (GOOGLE_SERVICES_JSON_B64) before the plugin
+// processes it — keeps the key out of git. Locally the file is already present
+// and this no-ops. Unresolved TeamCity refs ("%…%") / blanks are ignored.
+val googleServicesB64 = ((findProperty("googleServicesJsonB64") as String?)
+    ?: System.getenv("GOOGLE_SERVICES_JSON_B64"))
+    ?.takeIf { it.isNotBlank() && !it.startsWith("%") }
+
 abstract class WriteGoogleServices : DefaultTask() {
     @get:Input
     @get:Optional
@@ -133,29 +144,30 @@ abstract class WriteGoogleServices : DefaultTask() {
             return
         }
         val b64 = googleServicesJsonB64.orNull
-            ?: throw GradleException(
-                "google-services.json missing and GOOGLE_SERVICES_JSON_UAT_B64 not set",
-            )
+            ?: throw GradleException("google-services.json missing and GOOGLE_SERVICES_JSON_B64 not set")
         out.parentFile.mkdirs()
         out.writeBytes(Base64.getDecoder().decode(b64))
         logger.lifecycle("Wrote $out")
     }
 }
 
-val writeUatGoogleServices = tasks.register<WriteGoogleServices>("writeUatGoogleServices") {
-    val b64 = (findProperty("googleServicesJsonUatB64") as String?)
-        ?: System.getenv("GOOGLE_SERVICES_JSON_UAT_B64")
-    if (b64 != null) googleServicesJsonB64.set(b64)
-    outputFile.set(layout.projectDirectory.file("src/uat/google-services.json"))
+val writeGoogleServices = tasks.register<WriteGoogleServices>("writeGoogleServices") {
+    if (googleServicesB64 != null) googleServicesJsonB64.set(googleServicesB64)
+    outputFile.set(layout.projectDirectory.file("google-services.json"))
 }
 
-// uat processing waits for the file; other variants have no json — disabled.
-tasks.matching { it.name == "processUatGoogleServices" }
-    .configureEach { dependsOn(writeUatGoogleServices) }
-tasks.matching {
-    it.name.startsWith("process") && it.name.endsWith("GoogleServices") &&
-        !it.name.contains("Uat")
-}.configureEach { enabled = false }
+// release has no client → always disabled. debug + uat process google-services
+// only when the file/base64 is available, so PR/dev builds don't fail without it.
+val hasGoogleServices = layout.projectDirectory.file("google-services.json").asFile.exists() ||
+    googleServicesB64 != null
+tasks.matching { it.name.startsWith("process") && it.name.endsWith("GoogleServices") }
+    .configureEach {
+        when {
+            name == "processReleaseGoogleServices" -> enabled = false
+            hasGoogleServices -> dependsOn(writeGoogleServices)
+            else -> enabled = false
+        }
+    }
 
 dependencies {
     implementation(projects.composeApp)
