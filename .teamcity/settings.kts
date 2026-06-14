@@ -42,10 +42,10 @@ project {
         // or set a custom agent property. Used as `jdkHome` in every Gradle step.
         param("jdk.home", "%env.JDK_17_0%")
 
-        // Token for the PR commit-status publisher only (VCS auth comes from the
-        // existing server-managed roots). Define `github.token` as a PASSWORD
-        // param in the project UI — do NOT commit a real token. Remove this if
-        // such a param already exists at a higher scope.
-        password("github.token", "credentialsJSON:REPLACE_WITH_TOKEN", display = ParameterDisplay.HIDDEN)
+        // `github.token` (PR commit-status publisher) is a SECRET — do not
+        // declare it here. Add it in the TeamCity UI (Project → Parameters →
+        // Add → type Password). TeamCity stores it securely and writes the
+        // credentialsJSON token back on the next sync. VCS auth itself comes
+        // from the existing server-managed roots, not this param.
     }
 }
