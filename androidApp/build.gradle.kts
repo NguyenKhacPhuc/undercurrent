@@ -20,12 +20,15 @@ val tavilyApiKey: String = run {
         ?: ""
 }
 
-// versionCode derives from CI (the TeamCity build counter, passed as
-// VERSION_CODE) so auto-deploys never collide on an already-uploaded code.
-// Defaults to 1 locally. versionName likewise overridable for tagged releases.
+// versionCode/Name derive from CI (the TeamCity build counter, passed as
+// VERSION_CODE / VERSION_NAME) so auto-deploys never collide. When TeamCity
+// doesn't supply them (local dev, PR builds), these defaults are used.
+val buildVersionCode = 1
+val buildVersionName = "0.0.1"
+
 val appVersionCode = (System.getenv("VERSION_CODE") ?: (findProperty("versionCode") as String?))
-    ?.toIntOrNull() ?: 1
-val appVersionName = System.getenv("VERSION_NAME") ?: (findProperty("versionName") as String?) ?: "0.0.1"
+    ?.toIntOrNull() ?: buildVersionCode
+val appVersionName = System.getenv("VERSION_NAME") ?: (findProperty("versionName") as String?) ?: buildVersionName
 
 android {
     namespace = "dev.weft.undercurrent"
