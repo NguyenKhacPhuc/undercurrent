@@ -40,16 +40,21 @@ kover {
     }
 }
 
-// When weft is consumed as a published artifact (CI — no `../weft`
-// composite build), the versionless `dev.weft:weft-*` coordinates need a
-// version. The composite `dependencySubstitution` overrides this locally,
-// so this rule only bites when resolving from GitHub Packages.
+// When weft is consumed as a published artifact (CI — no `../weft` composite
+// build), the versionless `dev.weft:weft-*` coordinates need a version. ONLY
+// apply this in artifact mode: in composite mode it forces versions on weft's
+// transitive internal modules, which breaks the composite auto-substitution
+// (project :weft:security -> dev.weft:security:0.0.1 FAILED) and IDE sync.
 val weftVersion = (findProperty("weftVersion") as String?) ?: "0.0.1"
-subprojects {
-    configurations.configureEach {
-        resolutionStrategy.eachDependency {
-            if (requested.group == "dev.weft" || requested.group == "dev.weft.devtools") {
-                useVersion(weftVersion)
+val weftAsArtifacts = !file("../weft").exists() ||
+    providers.gradleProperty("weft.useArtifacts").orNull == "true"
+if (weftAsArtifacts) {
+    subprojects {
+        configurations.configureEach {
+            resolutionStrategy.eachDependency {
+                if (requested.group == "dev.weft" || requested.group == "dev.weft.devtools") {
+                    useVersion(weftVersion)
+                }
             }
         }
     }
