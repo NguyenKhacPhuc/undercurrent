@@ -4,7 +4,7 @@ Three TeamCity configs deploy the app, each building + uploading via **fastlane*
 
 | Config | Target | Tool | Agent |
 |---|---|---|---|
-| `Deploy · Firebase App Distribution` | Android beta | **Gradle** `appDistributionUploadDebug` | Android SDK |
+| `Deploy · Firebase App Distribution` | Android UAT (`.uat`) | **Gradle** `appDistributionUploadUat` | Android SDK |
 | `Deploy · Google Play Console` | Android store | fastlane `android play` | Android SDK |
 | `Deploy · App Store Connect` | iOS store/TestFlight | fastlane `ios appstore` | **macOS + Xcode** |
 
@@ -51,7 +51,7 @@ activates **only** when `RELEASE_KEYSTORE` is set, so normal builds are unaffect
 ### Firebase App Distribution
 | Param | What |
 |---|---|
-| `firebase.app.id` | Firebase Android App ID (`1:123…:android:abc…`) |
+| `firebase.app.id` | Firebase Android App ID (`1:123…:android:abc…`) — register the Firebase app for package **`dev.weft.undercurrent.uat`** (the UAT build's id), not the base package |
 | `firebase.service.credentials.path` | Path to the Firebase service-account JSON (secure file) |
 | (optional) `FIREBASE_GROUPS` | Tester groups, comma-separated (default `testers`) |
 

@@ -1,10 +1,4 @@
-// :androidApp — the Android entrypoint app. Owns Application,
-// MainActivity, AndroidManifest, app-icon, Android-specific theming
-// integration. Hosts the shared :composeApp inside setContent { }.
-//
-// Slim by design — everything that isn't strictly Android-specific
-// lives in :composeApp, :shared, or the feature modules. iOS gets
-// the equivalent shell in iosApp/ (Xcode project).
+
 
 import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import java.util.Properties
@@ -66,21 +60,6 @@ android {
         }
     }
     buildTypes {
-        // Firebase App Distribution for the debug build (uploaded by
-        // `appDistributionUploadDebug`). App id + credentials come from env vars
-        // (TeamCity params); no google-services.json needed.
-        getByName("debug") {
-            firebaseAppDistribution {
-                appId = System.getenv("FIREBASE_APP_ID") ?: ""
-                serviceCredentialsFile = System.getenv("FIREBASE_SERVICE_CREDENTIALS") ?: ""
-                groups = System.getenv("FIREBASE_GROUPS") ?: "testers"
-                releaseNotes = "TeamCity build ${System.getenv("BUILD_NUMBER") ?: "local"}"
-            }
-        }
-
-        // UAT — staging build, installable alongside production via the `.uat`
-        // applicationId suffix. Debug-signed (installable without the release
-        // keystore), non-debuggable.
         create("uat") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".uat"          // dev.weft.undercurrent.uat
@@ -89,6 +68,12 @@ android {
             // Library modules (incl. weft, which publishes only `release`) have
             // no `uat` variant — fall back to release, then debug.
             matchingFallbacks += listOf("release", "debug")
+            firebaseAppDistribution {
+                appId = System.getenv("FIREBASE_APP_ID") ?: ""
+                serviceCredentialsFile = System.getenv("FIREBASE_SERVICE_CREDENTIALS") ?: ""
+                groups = System.getenv("FIREBASE_GROUPS") ?: "testers"
+                releaseNotes = "TeamCity build ${System.getenv("BUILD_NUMBER") ?: "local"}"
+            }
         }
 
         // release — production. applicationId stays dev.weft.undercurrent (no
