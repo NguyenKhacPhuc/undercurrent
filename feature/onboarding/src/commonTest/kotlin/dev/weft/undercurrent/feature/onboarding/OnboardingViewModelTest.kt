@@ -3,9 +3,15 @@ package dev.weft.undercurrent.feature.onboarding
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import dev.mokkery.answering.returns
+import dev.mokkery.every
+import dev.mokkery.matcher.any
+import dev.mokkery.mock
+import dev.weft.undercurrent.core.domain.ModelCatalogRepository
 import dev.weft.undercurrent.core.domain.OnboardingRepository
 import dev.weft.undercurrent.core.navigation.NavigationViewModel
 import dev.weft.undercurrent.core.navigation.Screen
+import dev.weft.undercurrent.feature.settings.providers.ProviderViewModel
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
@@ -59,6 +65,10 @@ class OnboardingViewModelTest : BehaviorSpec({
                 val vm = OnboardingViewModel(
                     repo = repo,
                     navigationVm = navVm,
+                    provider = mock<ProviderViewModel>(),
+                    catalog = mock<ModelCatalogRepository> {
+                        every { modelsForProvider(any()) } returns emptyList()
+                    },
                 )
 
                 vm.dispatch(OnboardingIntent.CompleteOnboarding)
@@ -77,6 +87,10 @@ class OnboardingViewModelTest : BehaviorSpec({
                 val vm = OnboardingViewModel(
                     repo = repo,
                     navigationVm = navVm,
+                    provider = mock<ProviderViewModel>(),
+                    catalog = mock<ModelCatalogRepository> {
+                        every { modelsForProvider(any()) } returns emptyList()
+                    },
                 )
 
                 vm.dispatch(OnboardingIntent.CompleteOnboarding)
@@ -97,6 +111,10 @@ class OnboardingViewModelTest : BehaviorSpec({
                 val vm = OnboardingViewModel(
                     repo = repo,
                     navigationVm = navVm,
+                    provider = mock<ProviderViewModel>(),
+                    catalog = mock<ModelCatalogRepository> {
+                        every { modelsForProvider(any()) } returns emptyList()
+                    },
                 )
 
                 vm.dispatch(OnboardingIntent.CompleteOnboarding)
