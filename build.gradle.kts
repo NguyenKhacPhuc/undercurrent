@@ -40,6 +40,21 @@ kover {
     }
 }
 
+// When weft is consumed as a published artifact (CI — no `../weft`
+// composite build), the versionless `dev.weft:weft-*` coordinates need a
+// version. The composite `dependencySubstitution` overrides this locally,
+// so this rule only bites when resolving from GitHub Packages.
+val weftVersion = (findProperty("weftVersion") as String?) ?: "0.0.1"
+subprojects {
+    configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "dev.weft" || requested.group == "dev.weft.devtools") {
+                useVersion(weftVersion)
+            }
+        }
+    }
+}
+
 tasks.register("clean", Delete::class) {
     delete(layout.buildDirectory)
 }

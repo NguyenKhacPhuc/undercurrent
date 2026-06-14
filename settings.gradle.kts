@@ -21,6 +21,17 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Weft SDK artifacts — used only when the `../weft` composite build is
+        // absent (CI). Locally the composite below supplies them from source.
+        maven {
+            name = "WeftGitHubPackages"
+            url = uri("https://maven.pkg.github.com/NguyenKhacPhuc/android-harness")
+            credentials {
+                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
+                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+            }
+            content { includeGroupByRegex("dev\\.weft.*") }
+        }
     }
 }
 
@@ -28,7 +39,12 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "undercurrent"
 
-includeBuild("../weft") {
+// Hybrid: when the weft source checkout sits beside this repo, build against
+// it live (composite). When it's absent (CI), the `dev.weft:*` coordinates
+// resolve from GitHub Packages instead — see the repository above.
+val useWeftComposite = file("../weft").exists() &&
+    providers.gradleProperty("weft.useArtifacts").orNull != "true"
+if (useWeftComposite) includeBuild("../weft") {
     dependencySubstitution {
         substitute(module("dev.weft:weft-runtime"))
             .using(project(":runtime"))
