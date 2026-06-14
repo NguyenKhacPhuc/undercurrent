@@ -57,7 +57,7 @@ activates **only** when `RELEASE_KEYSTORE` is set, so normal builds are unaffect
 | Param | What |
 |---|---|
 | `firebase.app.id` | Firebase Android App ID (`1:123…:android:abc…`) — register the Firebase app for package **`dev.weft.undercurrent.uat`** (the UAT build's id), not the base package |
-| `firebase.service.credentials.path` | Path to the Firebase service-account JSON (secure file) |
+| `firebase.service.credentials.json` | **Paste the service-account JSON content** (Password param) — the build writes it to a file at upload time. (Or set `FIREBASE_SERVICE_CREDENTIALS` to a file path instead.) |
 | `google.services.b64` | **base64 of the module-root `google-services.json`** (`base64 -i google-services.json`), covering the `.dev` + `.uat` clients. `writeGoogleServices` materializes it at build time (file stays out of git); left empty → google-services processing is skipped so builds still pass. |
 | (optional) `FIREBASE_GROUPS` | Tester groups, comma-separated (default `testers`) |
 

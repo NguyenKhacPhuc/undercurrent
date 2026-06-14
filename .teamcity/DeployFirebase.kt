@@ -18,7 +18,10 @@ object DeployFirebase : BuildType({
         param("env.VERSION_CODE", "%build.counter%")   // monotonic -> Android versionCode
         // Firebase App Distribution
         param("env.FIREBASE_APP_ID", "%firebase.app.id%")
-        param("env.FIREBASE_SERVICE_CREDENTIALS", "%firebase.service.credentials.path%")
+        // Paste the service-account JSON content into the secret param (no file
+        // on the agent); the build materializes it. (A FIREBASE_SERVICE_CREDENTIALS
+        // path still wins if you'd rather use a file.)
+        param("env.FIREBASE_SERVICE_CREDENTIALS_JSON", "%firebase.service.credentials.json%")
         param("env.FIREBASE_GROUPS", "testers")
         // GOOGLE_SERVICES_JSON_B64 is set at the project level (inherited here).
     }

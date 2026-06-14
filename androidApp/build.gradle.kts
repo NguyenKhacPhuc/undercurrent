@@ -40,6 +40,15 @@ val appVersionCode = (System.getenv("VERSION_CODE") ?: (findProperty("versionCod
     ?.toIntOrNull() ?: buildVersionCode
 val appVersionName = System.getenv("VERSION_NAME") ?: (findProperty("versionName") as String?) ?: buildVersionName
 
+// Firebase service-account credentials. Either a direct path
+// (FIREBASE_SERVICE_CREDENTIALS) wins, or the pasted JSON content
+// (FIREBASE_SERVICE_CREDENTIALS_JSON) is materialized to a build file.
+fun envOrNull(name: String) = System.getenv(name)?.takeIf { it.isNotBlank() && !it.startsWith("%") }
+val firebaseCredsPath = envOrNull("FIREBASE_SERVICE_CREDENTIALS")
+val firebaseCredsJson = envOrNull("FIREBASE_SERVICE_CREDENTIALS_JSON")
+val firebaseCredsFile = layout.buildDirectory.file("secrets/firebase-service-account.json")
+val firebaseCredsResolved = firebaseCredsPath ?: firebaseCredsFile.get().asFile.absolutePath
+
 android {
     namespace = "dev.weft.undercurrent"
     defaultConfig {
@@ -89,7 +98,7 @@ android {
             matchingFallbacks += listOf("release", "debug")
             firebaseAppDistribution {
                 appId = System.getenv("FIREBASE_APP_ID") ?: ""
-                serviceCredentialsFile = System.getenv("FIREBASE_SERVICE_CREDENTIALS") ?: ""
+                serviceCredentialsFile = firebaseCredsResolved
                 groups = System.getenv("FIREBASE_GROUPS") ?: "testers"
                 releaseNotes = "TeamCity build ${System.getenv("BUILD_NUMBER") ?: "local"}"
             }
@@ -166,6 +175,34 @@ tasks.matching { it.name.startsWith("process") && it.name.endsWith("GoogleServic
     .configureEach {
         if (hasGoogleServices) dependsOn(writeGoogleServices) else enabled = false
     }
+
+// Typed task (config-cache friendly) that writes text content to a file.
+abstract class WriteTextFile : DefaultTask() {
+    @get:Input
+    @get:Optional
+    abstract val content: Property<String>
+
+    @get:OutputFile
+    abstract val outputFile: RegularFileProperty
+
+    @TaskAction
+    fun write() {
+        val c = content.orNull ?: return
+        val out = outputFile.get().asFile
+        out.parentFile.mkdirs()
+        out.writeText(c)
+        logger.lifecycle("Wrote ${out.path}")
+    }
+}
+
+// Materialize the Firebase service-account JSON (pasted content) to the file the
+// App Distribution upload reads — only when content is provided (no direct path).
+val writeFirebaseCredentials = tasks.register<WriteTextFile>("writeFirebaseCredentials") {
+    if (firebaseCredsPath == null && firebaseCredsJson != null) content.set(firebaseCredsJson)
+    outputFile.set(firebaseCredsFile)
+}
+tasks.matching { it.name == "appDistributionUploadUat" }
+    .configureEach { dependsOn(writeFirebaseCredentials) }
 
 dependencies {
     implementation(projects.composeApp)
