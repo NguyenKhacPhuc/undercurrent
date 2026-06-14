@@ -2,34 +2,25 @@ import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.buildSteps.gradle
 
 /*
- * VCS roots are NOT defined in this DSL — they already exist on the server.
- * Put their "VCS root ID" (TeamCity → VCS Root → identifier) here and every
- * build type references them via AbsoluteId. The weft root must point at the
- * android-harness repo, since undercurrent composite-includes it.
+ * The undercurrent VCS root already exists on the server — referenced by id.
+ * weft is no longer checked out here: it's consumed as a published artifact
+ * (dev.weft:weft-*) from GitHub Packages, so CI needs a single root only.
  */
 const val UNDERCURRENT_VCS_ID = "Undercurent_Undercurrent"
-const val WEFT_VCS_ID = "Weft_Weft"
 
-/**
- * Lays out both repos as siblings so includeBuild("../weft") resolves:
- *
- *   <checkout>/undercurrent   <- this repo   (Gradle workingDir)
- *   <checkout>/weft           <- android-harness
- */
-fun BuildType.sharedComposeCheckout() {
+/** Single-root checkout at the repo root (weft comes from GitHub Packages). */
+fun BuildType.undercurrentCheckout() {
     vcs {
-        root(AbsoluteId(UNDERCURRENT_VCS_ID), "+:. => undercurrent")
-        root(AbsoluteId(WEFT_VCS_ID), "+:. => weft")
+        root(AbsoluteId(UNDERCURRENT_VCS_ID))
         cleanCheckout = true
     }
 }
 
-/** Gradle step rooted in the undercurrent subdir, using the wrapper + agent JDK 17. */
+/** Gradle step at the repo root, using the wrapper + agent JDK 17. */
 fun BuildSteps.gradleStep(stepName: String, gradleTasks: String) {
     gradle {
         name = stepName
         tasks = gradleTasks
-        workingDir = "undercurrent"
         useGradleWrapper = true
         gradleWrapperPath = ""
         jdkHome = "%jdk.home%"

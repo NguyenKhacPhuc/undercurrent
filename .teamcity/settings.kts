@@ -14,10 +14,9 @@ import jetbrains.buildServer.configs.kotlin.*
  *   UatRelease         (UAT distribution build, main branch)
  *   PublishPlayConsole / PublishAppStore   (next-phase scaffolds, paused)
  *
- * Composite-build caveat: undercurrent's settings.gradle.kts does
- * includeBuild("../weft"). CI therefore checks out BOTH repos as siblings:
- *   <checkout>/undercurrent   (this repo)   +   <checkout>/weft   (android-harness)
- * and runs Gradle with workingDir = "undercurrent". See sharedComposeCheckout().
+ * weft is consumed as a published artifact (dev.weft:weft-* from GitHub
+ * Packages), NOT a composite build, so CI uses a single root and builds at
+ * the repo root. The agent needs read:packages creds — see env.GITHUB_* below.
  */
 
 version = "2025.03"
@@ -25,8 +24,8 @@ version = "2025.03"
 project {
     description = "Undercurrent CI — KMP personal-assistant app (Android + iOS)"
 
-    // VCS roots already exist on the server — referenced by ID from Common.kt,
-    // not redefined here. See UNDERCURRENT_VCS_ID / WEFT_VCS_ID.
+    // The VCS root already exists on the server — referenced by ID from
+    // Common.kt (UNDERCURRENT_VCS_ID), not redefined here.
 
     buildType(BuildAndroid)
     buildType(BuildIos)
@@ -42,10 +41,14 @@ project {
         // or set a custom agent property. Used as `jdkHome` in every Gradle step.
         param("jdk.home", "%env.JDK_17_0%")
 
-        // `github.token` (PR commit-status publisher) is a SECRET — do not
-        // declare it here. Add it in the TeamCity UI (Project → Parameters →
-        // Add → type Password). TeamCity stores it securely and writes the
-        // credentialsJSON token back on the next sync. VCS auth itself comes
-        // from the existing server-managed roots, not this param.
+        // GitHub Packages read creds — Gradle pulls dev.weft:weft-* from them.
+        // Injected as env vars so settings.gradle.kts' System.getenv() fallback
+        // picks them up. `github.username` is plain; `github.token` is a SECRET
+        // added in the UI (Project → Parameters → Password) with read:packages
+        // (+ repo:status for the PR publisher). Don't declare the secret here —
+        // TeamCity writes the credentialsJSON token back on sync.
+        param("github.username", "NguyenKhacPhuc")
+        param("env.GITHUB_ACTOR", "%github.username%")
+        param("env.GITHUB_TOKEN", "%github.token%")
     }
 }

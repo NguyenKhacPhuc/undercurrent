@@ -16,9 +16,9 @@ object UatRelease : BuildType({
         param("uat.gradle.tasks", ":androidApp:assembleDebug")
     }
 
-    artifactRules = "undercurrent/androidApp/build/outputs/apk/**/*.apk => uat"
+    artifactRules = "androidApp/build/outputs/apk/**/*.apk => uat"
 
-    sharedComposeCheckout()
+    undercurrentCheckout()
 
     steps {
         gradleStep("assemble UAT", "%uat.gradle.tasks%")

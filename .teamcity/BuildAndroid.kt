@@ -5,11 +5,11 @@ object BuildAndroid : BuildType({
     description = "Compiles Android/JVM, runs all unit tests, generates Kover XML coverage."
 
     artifactRules = """
-        undercurrent/build/reports/kover/report.xml => coverage
-        undercurrent/**/build/reports/tests/** => test-reports
+        build/reports/kover/report.xml => coverage
+        **/build/reports/tests/** => test-reports
     """.trimIndent()
 
-    sharedComposeCheckout()
+    undercurrentCheckout()
 
     steps {
         gradleStep(
@@ -22,7 +22,7 @@ object BuildAndroid : BuildType({
         feature {
             type = "xml-report-plugin"
             param("xmlReportParsing.reportType", "junit")
-            param("xmlReportParsing.reportDirs", "+:undercurrent/**/build/test-results/**/*.xml")
+            param("xmlReportParsing.reportDirs", "+:**/build/test-results/**/*.xml")
         }
     }
 

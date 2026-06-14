@@ -20,7 +20,7 @@ object PublishPlayConsole : BuildType({
         param("play.gradle.tasks", ":androidApp:bundleRelease")
     }
 
-    sharedComposeCheckout()
+    undercurrentCheckout()
 
     steps {
         script {

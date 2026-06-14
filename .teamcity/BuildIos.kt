@@ -4,7 +4,7 @@ object BuildIos : BuildType({
     name = "iOS · compile (SimulatorArm64)"
     description = "Compiles the shared Kotlin/Native iOS target. Requires a macOS agent."
 
-    sharedComposeCheckout()
+    undercurrentCheckout()
 
     steps {
         gradleStep(

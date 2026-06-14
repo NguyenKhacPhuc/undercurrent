@@ -4,9 +4,9 @@ object AssembleDebugApk : BuildType({
     name = "Android · assemble debug APK"
     description = "Builds the debug APK and publishes it as a downloadable artifact."
 
-    artifactRules = "undercurrent/androidApp/build/outputs/apk/debug/*.apk => apk"
+    artifactRules = "androidApp/build/outputs/apk/debug/*.apk => apk"
 
-    sharedComposeCheckout()
+    undercurrentCheckout()
 
     steps {
         gradleStep("assembleDebug", ":androidApp:assembleDebug")

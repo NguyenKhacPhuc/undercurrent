@@ -18,7 +18,7 @@ object PublishAppStore : BuildType({
         param("publish.enabled", "false")
     }
 
-    sharedComposeCheckout()
+    undercurrentCheckout()
 
     steps {
         script {
@@ -29,7 +29,7 @@ object PublishAppStore : BuildType({
                   echo "See .teamcity/PublishAppStore.kt for the enablement checklist."
                   exit 1
                 fi
-                echo "TODO: cd undercurrent/iosApp && fastlane release"
+                echo "TODO: cd iosApp && fastlane release"
             """.trimIndent()
         }
     }
