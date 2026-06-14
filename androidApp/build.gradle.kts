@@ -77,7 +77,17 @@ android {
         }
 
         // release — production. applicationId stays dev.weft.undercurrent (no
-        // suffix; must match the Play Store listing).
+        // suffix; must match the Play Store listing). R8 minify + resource
+        // shrinking; keep rules in proguard-rules.pro.
+        getByName("release") {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
     }
 
     packaging {
