@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>dev.weft.undercurrent</groupId>
+  <artifactId>undercurrent-teamcity-dsl</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <!--
+    Keep this <version> in lock-step with your TeamCity server version.
+    It must match the `version = "..."` declared in settings.kts.
+    The server auto-rewrites both when it imports / re-generates the DSL.
+  -->
+  <parent>
+    <groupId>org.jetbrains.teamcity</groupId>
+    <artifactId>configs-dsl-kotlin-parent</artifactId>
+    <version>2024.12</version>
+  </parent>
+
+  <repositories>
+    <repository>
+      <id>jetbrains-all</id>
+      <url>https://download.jetbrains.com/teamcity-repository</url>
+    </repository>
+    <repository>
+      <id>teamcity-server</id>
+      <url>%teamcity.serverUrl%/app/dsl-plugins-repository</url>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>jetbrains-all</id>
+      <url>https://download.jetbrains.com/teamcity-repository</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <build>
+    <sourceDirectory>${basedir}</sourceDirectory>
+    <plugins>
+      <plugin>
+        <groupId>org.jetbrains.teamcity</groupId>
+        <artifactId>teamcity-configs-maven-plugin</artifactId>
+        <version>${teamcity.dsl.version}</version>
+        <configuration>
+          <format>kotlin</format>
+          <dstDir>target/generated-configs</dstDir>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-maven-plugin</artifactId>
+        <version>${kotlin.version}</version>
+        <executions>
+          <execution>
+            <id>compile</id>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <jvmTarget>1.8</jvmTarget>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

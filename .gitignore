@@ -12,6 +12,9 @@ bin/
 buildSrc/.gradle/
 buildSrc/build/
 
+# TeamCity DSL local compile output (Maven)
+.teamcity/target/
+
 # Local Gradle config (per-developer SDK paths, etc.)
 gradle.properties.local
 local.properties
