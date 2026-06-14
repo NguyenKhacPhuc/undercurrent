@@ -80,6 +80,8 @@ detekt = "1.23.7"
 
 # Coverage
 kover = "0.9.1"
+googleFirebaseAppdistribution = "5.2.1"
+googleGmsGoogleServices = "4.4.4"
 
 [libraries]
 # kotlinx — KMP-friendly (works in commonMain).
@@ -249,3 +251,5 @@ undercurrent-kmp-koin = { id = "undercurrent.kmp.koin" }
 undercurrent-kmp-feature = { id = "undercurrent.kmp.feature" }
 undercurrent-kmp-application = { id = "undercurrent.kmp.application" }
 undercurrent-android-application = { id = "undercurrent.android.application" }
+google-firebase-appdistribution = { id = "com.google.firebase.appdistribution", version.ref = "googleFirebaseAppdistribution" }
+google-gms-google-services = { id = "com.google.gms.google-services", version.ref = "googleGmsGoogleServices" }

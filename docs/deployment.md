@@ -11,9 +11,15 @@ Three TeamCity configs deploy the app, each building + uploading via **fastlane*
 Firebase uses the **Firebase App Distribution Gradle plugin** (configured in
 [`androidApp/build.gradle.kts`](../androidApp/build.gradle.kts)) — no fastlane.
 Play + App Store use fastlane lanes in [`fastlane/Fastfile`](../fastlane/Fastfile).
-All read config from env vars wired by the TeamCity configs. The
-`com.google.gms.google-services` plugin is **not** applied — it's only for
-Firebase SDK products and would require a `google-services.json`.
+All read config from env vars wired by the TeamCity configs.
+
+The `com.google.gms.google-services` plugin **is** applied (for future Firebase
+SDK use), but a `google-services.json` is provided only for the **UAT** variant
+(`androidApp/src/uat/`). Its processing is disabled for `debug`/`release` (they
+have no base-package file) so those builds don't fail. To use Firebase SDK in
+debug/release, add a `google-services.json` for `dev.weft.undercurrent`
+(register that app in Firebase) and remove the disable block in
+`androidApp/build.gradle.kts`.
 
 ## Agent prerequisites (one-time)
 

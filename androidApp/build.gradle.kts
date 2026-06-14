@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.undercurrent.android.application)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.google.firebase.appdistribution)
+    alias(libs.plugins.google.gms.google.services)
 }
 
 val tavilyApiKey: String = run {
@@ -103,6 +104,11 @@ android {
         }
     }
 }
+
+tasks.matching {
+    it.name.startsWith("process") && it.name.endsWith("GoogleServices") &&
+        !it.name.contains("Uat")
+}.configureEach { enabled = false }
 
 dependencies {
     implementation(projects.composeApp)
