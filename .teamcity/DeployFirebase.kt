@@ -30,6 +30,8 @@ object DeployFirebase : BuildType({
 
     steps {
         preflightStep()
+        gradleStep("quality · lint", "lint")
+        gradleStep("test · android", "testDebugUnitTest")
         // Firebase App Distribution Gradle plugin — builds + uploads the UAT APK.
         gradleStep("build + distribute · firebase", ":androidApp:assembleUat :androidApp:appDistributionUploadUat")
     }

@@ -30,6 +30,8 @@ object DeployPlayConsole : BuildType({
 
     steps {
         preflightStep()
+        gradleStep("quality · lint", "lint")
+        gradleStep("test · android", "testDebugUnitTest")
         fastlaneStep("fastlane · android play", "android play")
     }
 

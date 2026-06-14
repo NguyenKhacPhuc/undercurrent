@@ -24,6 +24,9 @@ object DeployAppStore : BuildType({
 
     steps {
         preflightStep()
+        // Shared business-logic tests (commonTest runs via testDebugUnitTest).
+        // Android lint is skipped — it validates nothing iOS-relevant.
+        gradleStep("test · shared logic", "testDebugUnitTest")
         fastlaneStep("fastlane · ios appstore", "ios appstore")
     }
 
@@ -34,4 +37,5 @@ object DeployAppStore : BuildType({
     }
 
     requireMacOs()
+    requireAndroidSdk()   // for the shared-logic test step
 })
