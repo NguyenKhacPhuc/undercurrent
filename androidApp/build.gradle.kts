@@ -13,14 +13,8 @@ plugins {
     alias(libs.plugins.undercurrent.android.application)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.google.firebase.appdistribution)
-    // NOTE: com.google.gms.google-services is intentionally NOT applied — it
-    // requires a google-services.json and is only needed for Firebase SDK
-    // products (Analytics/Crashlytics/Messaging), not App Distribution.
 }
 
-// Tavily key for the web_search tool. Resolution order: local.properties
-// (`tavily.apiKey=…`), then the TAVILY_API_KEY env var, then blank. A
-// blank key is fine — WebSearchTool degrades to a NO_API_KEY error.
 val tavilyApiKey: String = run {
     val props = Properties()
     rootProject.file("local.properties")
@@ -71,10 +65,10 @@ android {
             }
         }
     }
-    // Firebase App Distribution for the debug build (uploaded by
-    // `appDistributionUploadDebug`). App id + credentials come from env vars
-    // (TeamCity params); no google-services.json needed.
     buildTypes {
+        // Firebase App Distribution for the debug build (uploaded by
+        // `appDistributionUploadDebug`). App id + credentials come from env vars
+        // (TeamCity params); no google-services.json needed.
         getByName("debug") {
             firebaseAppDistribution {
                 appId = System.getenv("FIREBASE_APP_ID") ?: ""
@@ -83,6 +77,22 @@ android {
                 releaseNotes = "TeamCity build ${System.getenv("BUILD_NUMBER") ?: "local"}"
             }
         }
+
+        // UAT — staging build, installable alongside production via the `.uat`
+        // applicationId suffix. Debug-signed (installable without the release
+        // keystore), non-debuggable.
+        create("uat") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".uat"          // dev.weft.undercurrent.uat
+            versionNameSuffix = "-uat"
+            isDebuggable = false
+            // Library modules (incl. weft, which publishes only `release`) have
+            // no `uat` variant — fall back to release, then debug.
+            matchingFallbacks += listOf("release", "debug")
+        }
+
+        // release — production. applicationId stays dev.weft.undercurrent (no
+        // suffix; must match the Play Store listing).
     }
 
     packaging {
