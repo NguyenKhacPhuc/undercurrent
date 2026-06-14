@@ -45,11 +45,15 @@ platform :ios do
       issuer_id: ENV.fetch("ASC_ISSUER_ID"),
       key_filepath: ENV.fetch("ASC_KEY_PATH")
     )
+    # Build number from CI so App Store never rejects a duplicate. Requires
+    # the iOS target's CFBundleVersion to be $(CURRENT_PROJECT_VERSION)
+    # (default for modern Xcode projects). Otherwise use increment_build_number.
     build_app(
       project: "iosApp/iosApp.xcodeproj",
       scheme: "iosApp",
       export_method: "app-store",
-      output_directory: "iosApp/build"
+      output_directory: "iosApp/build",
+      xcargs: "CURRENT_PROJECT_VERSION=#{ENV.fetch('BUILD_NUMBER')}"
     )
     upload_to_app_store(
       api_key: api_key,

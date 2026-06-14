@@ -71,9 +71,24 @@ The API key handles auth + signing. If you don't use automatic signing, add
 ## Running a deploy
 
 *Open the config → Run… → (optionally set `PLAY_TRACK` / `FIREBASE_GROUPS`) → Run.*
-The lane builds the signed artifact and uploads it. Bump `versionCode` /
-`versionName` in `androidApp/build.gradle.kts` (and the iOS build number) before
-store uploads — stores reject duplicate versions.
+The lane builds the signed artifact and uploads it.
+
+### Versioning (collision-safe, automatic)
+
+The deploy configs pass the **TeamCity build counter** (`%build.counter%`, monotonic
+per config) into the build, so stores never reject a duplicate:
+
+- **Android** — `VERSION_CODE` env → `versionCode` in
+  [`androidApp/build.gradle.kts`](../androidApp/build.gradle.kts) (defaults to `1`
+  locally).
+- **iOS** — `BUILD_NUMBER` env → `CURRENT_PROJECT_VERSION` via fastlane `xcargs`.
+  Requires the iOS target's `CFBundleVersion` to be `$(CURRENT_PROJECT_VERSION)`
+  (default for modern Xcode projects); if it's a literal, switch the lane to
+  `increment_build_number`.
+
+The user-facing `versionName` / marketing version stays manual (override with
+`-PversionName=…` / `VERSION_NAME`, e.g. from a release tag) — only the
+build *code/number* needs to be unique.
 
 ## Security
 

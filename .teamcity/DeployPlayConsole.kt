@@ -14,6 +14,7 @@ object DeployPlayConsole : BuildType({
 
     params {
         param("env.JAVA_HOME", "%jdk.home%")
+        param("env.VERSION_CODE", "%build.counter%")   // monotonic -> Android versionCode
         // Android release signing
         param("env.RELEASE_KEYSTORE", "%release.keystore.path%")
         param("env.RELEASE_KEYSTORE_PASSWORD", "%release.keystore.password%")
