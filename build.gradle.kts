@@ -66,3 +66,18 @@ subprojects {
     tasks.matching { it.name.startsWith("lintVital") }
         .configureEach { enabled = false }
 }
+
+// Lint baseline: CI gates only NEW lint errors. Regenerate with
+// `./gradlew updateLintBaseline`. Mirrors the Weft SDK's setup.
+subprojects {
+    pluginManager.withPlugin("com.android.library") {
+        extensions.configure<com.android.build.api.dsl.LibraryExtension> {
+            lint { baseline = file("lint-baseline.xml") }
+        }
+    }
+    pluginManager.withPlugin("com.android.application") {
+        extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
+            lint { baseline = file("lint-baseline.xml") }
+        }
+    }
+}

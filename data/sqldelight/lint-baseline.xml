@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.13.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.13.0)" variant="all" version="8.13.0">
+
+    <issue
+        id="Aligned16KB"
+        message="The native library `arm64-v8a/libsqlite3x.so` (from `com.osmerion.sqlite.android:sqlite-android:0.3.0`) is not 16 KB aligned">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.3.1/transforms/45a7a8ff815595a02a506df81f8609ad/transformed/sqlite-android-0.3.0/jni/arm64-v8a/libsqlite3x.so"/>
+    </issue>
+
+    <issue
+        id="Aligned16KB"
+        message="The native library `arm64-v8a/libsqlite3x.so` (from `com.osmerion.sqlite.android:sqlite-android:0.3.0`) is not 16 KB aligned">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.3.1/transforms/45a7a8ff815595a02a506df81f8609ad/transformed/sqlite-android-0.3.0/jni/arm64-v8a/libsqlite3x.so"/>
+    </issue>
+
+    <issue
+        id="Aligned16KB"
+        message="The native library `arm64-v8a/libsqlite3x.so` (from `com.osmerion.sqlite.android:sqlite-android:0.3.0`) is not 16 KB aligned">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.3.1/transforms/45a7a8ff815595a02a506df81f8609ad/transformed/sqlite-android-0.3.0/jni/arm64-v8a/libsqlite3x.so"/>
+    </issue>
+
+    <issue
+        id="UseTomlInstead"
+        message="Use version catalog instead"
+        errorLine1="            api(&quot;dev.weft:weft-contracts&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="34"
+            column="17"/>
+    </issue>
+
+</issues>

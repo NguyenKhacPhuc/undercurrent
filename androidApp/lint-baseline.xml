@@ -1,0 +1,927 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.13.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.13.0)" variant="all" version="8.13.0">
+
+    <issue
+        id="OldTargetApi"
+        message="Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the `android.os.Build.VERSION_CODES` javadoc for details."
+        errorLine1="targetSdk = &quot;35&quot;"
+        errorLine2="            ~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="10"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="SelectedPhotoAccess"
+        message="Your app is currently not handling Selected Photos Access introduced in Android 14+"
+        errorLine1="    &lt;uses-permission android:name=&quot;android.permission.READ_MEDIA_IMAGES&quot; />"
+        errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="64"
+            column="36"/>
+    </issue>
+
+    <issue
+        id="SelectedPhotoAccess"
+        message="Your app is currently not handling Selected Photos Access introduced in Android 14+"
+        errorLine1="    &lt;uses-permission android:name=&quot;android.permission.READ_MEDIA_VIDEO&quot; />"
+        errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="65"
+            column="36"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.application than 8.13.0 is available: 9.2.1. (There is also a newer version of 8.13.𝑥 available, if upgrading to 9.2.1 is difficult: 8.13.2)"
+        errorLine1="agp = &quot;8.13.0&quot;"
+        errorLine2="      ~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="4"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.library than 8.13.0 is available: 9.2.1. (There is also a newer version of 8.13.𝑥 available, if upgrading to 9.2.1 is difficult: 8.13.2)"
+        errorLine1="agp = &quot;8.13.0&quot;"
+        errorLine2="      ~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="4"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.tools.build:gradle than 8.13.0 is available: 9.2.1. (There is also a newer version of 8.13.𝑥 available, if upgrading to 9.2.1 is difficult: 8.13.2)"
+        errorLine1="agp = &quot;8.13.0&quot;"
+        errorLine2="      ~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="4"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlin:kotlin-test than 2.3.10 is available: 2.3.21"
+        errorLine1="kotlin = &quot;2.3.10&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of `compileSdkVersion` than 35 is available: 36"
+        errorLine1="compileSdk = &quot;35&quot;"
+        errorLine2="             ~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="8"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose:compose-bom than 2025.01.00 is available: 2026.05.01"
+        errorLine1="composeBom = &quot;2025.01.00&quot;"
+        errorLine2="             ~~~~~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="21"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.activity:activity than 1.9.3 is available: 1.13.0"
+        errorLine1="activityCompose = &quot;1.9.3&quot;"
+        errorLine2="                  ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="22"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0"
+        errorLine1="activityCompose = &quot;1.9.3&quot;"
+        errorLine2="                  ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="22"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.10.0"
+        errorLine1="lifecycle = &quot;2.8.7&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="23"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-viewmodel than 2.8.7 is available: 2.10.0"
+        errorLine1="lifecycle = &quot;2.8.7&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="23"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.8.7 is available: 2.10.0"
+        errorLine1="lifecycle = &quot;2.8.7&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="23"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.datastore:datastore-preferences than 1.1.1 is available: 1.2.1"
+        errorLine1="datastore = &quot;1.1.1&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="24"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.datastore:datastore-preferences-core than 1.1.1 is available: 1.2.1"
+        errorLine1="datastore = &quot;1.1.1&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="24"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.security:security-crypto than 1.1.0-alpha06 is available: 1.1.0"
+        errorLine1="androidxSecurity = &quot;1.1.0-alpha06&quot;"
+        errorLine2="                   ~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="54"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.core:core-ktx than 1.13.1 is available: 1.19.0"
+        errorLine1="androidx-core-ktx = { module = &quot;androidx.core:core-ktx&quot;, version = &quot;1.13.1&quot; }"
+        errorLine2="                                                                   ~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="134"
+            column="68"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.browser:browser than 1.8.0 is available: 1.10.0"
+        errorLine1="androidx-browser = { module = &quot;androidx.browser:browser&quot;, version = &quot;1.8.0&quot; }"
+        errorLine2="                                                                    ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="135"
+            column="69"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.fragment:fragment-ktx than 1.8.5 is available: 1.8.9"
+        errorLine1="androidx-fragment-ktx = { module = &quot;androidx.fragment:fragment-ktx&quot;, version = &quot;1.8.5&quot; }"
+        errorLine2="                                                                               ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="137"
+            column="80"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlin.android than 2.3.10 is available: 2.4.0"
+        errorLine1="kotlin = &quot;2.3.10&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlin.jvm than 2.3.10 is available: 2.4.0"
+        errorLine1="kotlin = &quot;2.3.10&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlin.multiplatform than 2.3.10 is available: 2.4.0"
+        errorLine1="kotlin = &quot;2.3.10&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlin.plugin.compose than 2.3.10 is available: 2.4.0"
+        errorLine1="kotlin = &quot;2.3.10&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlin.plugin.serialization than 2.3.10 is available: 2.4.0"
+        errorLine1="kotlin = &quot;2.3.10&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.compose than 1.7.3 is available: 1.11.1"
+        errorLine1="composeMultiplatform = &quot;1.7.3&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="15"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.compose.components:components-resources than 1.7.3 is available: 1.11.1"
+        errorLine1="composeMultiplatform = &quot;1.7.3&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="15"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.compose.components:components-ui-tooling-preview than 1.7.3 is available: 1.11.1"
+        errorLine1="composeMultiplatform = &quot;1.7.3&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="15"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.compose.foundation:foundation than 1.7.3 is available: 1.11.1"
+        errorLine1="composeMultiplatform = &quot;1.7.3&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="15"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.compose.material3:material3 than 1.7.3 is available: 1.9.0"
+        errorLine1="composeMultiplatform = &quot;1.7.3&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="15"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.compose.runtime:runtime than 1.7.3 is available: 1.11.1"
+        errorLine1="composeMultiplatform = &quot;1.7.3&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="15"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.compose.ui:ui than 1.7.3 is available: 1.11.1"
+        errorLine1="composeMultiplatform = &quot;1.7.3&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="15"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.compose:compose-gradle-plugin than 1.7.3 is available: 1.11.1"
+        errorLine1="composeMultiplatform = &quot;1.7.3&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="15"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.insert-koin:koin-android than 4.0.0 is available: 4.2.1"
+        errorLine1="koin = &quot;4.0.0&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="29"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.insert-koin:koin-androidx-compose than 4.0.0 is available: 4.2.1"
+        errorLine1="koin = &quot;4.0.0&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="29"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.insert-koin:koin-compose than 4.0.0 is available: 4.2.1"
+        errorLine1="koin = &quot;4.0.0&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="29"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.insert-koin:koin-compose-viewmodel than 4.0.0 is available: 4.2.1"
+        errorLine1="koin = &quot;4.0.0&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="29"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.insert-koin:koin-core than 4.0.0 is available: 4.2.1"
+        errorLine1="koin = &quot;4.0.0&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="29"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of com.squareup.okio:okio than 3.9.1 is available: 3.17.0"
+        errorLine1="okio = &quot;3.9.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="34"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-coroutines-android than 1.9.0 is available: 1.11.0"
+        errorLine1="coroutines = &quot;1.9.0&quot;"
+        errorLine2="             ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="37"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-coroutines-core than 1.9.0 is available: 1.11.0"
+        errorLine1="coroutines = &quot;1.9.0&quot;"
+        errorLine2="             ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="37"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-coroutines-test than 1.9.0 is available: 1.11.0"
+        errorLine1="coroutines = &quot;1.9.0&quot;"
+        errorLine2="             ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="37"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-serialization-json than 1.7.3 is available: 1.11.0"
+        errorLine1="serializationJson = &quot;1.7.3&quot;"
+        errorLine2="                    ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="38"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.ktor:ktor-client-auth than 3.0.1 is available: 3.5.0"
+        errorLine1="ktor = &quot;3.0.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="41"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.ktor:ktor-client-content-negotiation than 3.0.1 is available: 3.5.0"
+        errorLine1="ktor = &quot;3.0.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="41"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.ktor:ktor-client-core than 3.0.1 is available: 3.5.0"
+        errorLine1="ktor = &quot;3.0.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="41"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.ktor:ktor-client-darwin than 3.0.1 is available: 3.5.0"
+        errorLine1="ktor = &quot;3.0.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="41"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.ktor:ktor-client-logging than 3.0.1 is available: 3.5.0"
+        errorLine1="ktor = &quot;3.0.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="41"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.ktor:ktor-client-mock than 3.0.1 is available: 3.5.0"
+        errorLine1="ktor = &quot;3.0.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="41"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.ktor:ktor-client-okhttp than 3.0.1 is available: 3.5.0"
+        errorLine1="ktor = &quot;3.0.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="41"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.ktor:ktor-client-resources than 3.0.1 is available: 3.5.0"
+        errorLine1="ktor = &quot;3.0.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="41"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.ktor:ktor-serialization-kotlinx-json than 3.0.1 is available: 3.5.0"
+        errorLine1="ktor = &quot;3.0.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="41"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of ai.koog:koog-agents than 0.8.0 is available: 1.0.0"
+        errorLine1="koog = &quot;0.8.0&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="45"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of app.cash.sqldelight than 2.0.2 is available: 2.3.2"
+        errorLine1="sqldelight = &quot;2.0.2&quot;"
+        errorLine2="             ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="48"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of app.cash.sqldelight:android-driver than 2.0.2 is available: 2.3.2"
+        errorLine1="sqldelight = &quot;2.0.2&quot;"
+        errorLine2="             ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="48"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of app.cash.sqldelight:coroutines-extensions than 2.0.2 is available: 2.3.2"
+        errorLine1="sqldelight = &quot;2.0.2&quot;"
+        errorLine2="             ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="48"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of app.cash.sqldelight:native-driver than 2.0.2 is available: 2.3.2"
+        errorLine1="sqldelight = &quot;2.0.2&quot;"
+        errorLine2="             ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="48"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of app.cash.sqldelight:runtime than 2.0.2 is available: 2.3.2"
+        errorLine1="sqldelight = &quot;2.0.2&quot;"
+        errorLine2="             ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="48"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of app.cash.sqldelight:sqlite-driver than 2.0.2 is available: 2.3.2"
+        errorLine1="sqldelight = &quot;2.0.2&quot;"
+        errorLine2="             ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="48"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of com.osmerion.sqlite.android:sqlite-android than 0.3.0 is available: 0.12.0"
+        errorLine1="osmerionSqlite = &quot;0.3.0&quot;"
+        errorLine2="                 ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="51"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.coil-kt.coil3:coil-compose than 3.0.4 is available: 3.5.0"
+        errorLine1="coil = &quot;3.0.4&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="57"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.coil-kt.coil3:coil-network-ktor3 than 3.0.4 is available: 3.5.0"
+        errorLine1="coil = &quot;3.0.4&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="57"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.coil-kt.coil3:coil-network-okhttp than 3.0.4 is available: 3.5.0"
+        errorLine1="coil = &quot;3.0.4&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="57"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.junit.jupiter:junit-jupiter than 5.11.3 is available: 6.1.0"
+        errorLine1="junit = &quot;5.11.3&quot;"
+        errorLine2="        ~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="65"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.kotest:kotest-assertions-core than 5.9.1 is available: 6.1.11"
+        errorLine1="kotest = &quot;5.9.1&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="66"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.kotest:kotest-framework-engine than 5.9.1 is available: 6.1.11"
+        errorLine1="kotest = &quot;5.9.1&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="66"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.kotest:kotest-runner-junit5 than 5.9.1 is available: 6.1.11"
+        errorLine1="kotest = &quot;5.9.1&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="66"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of app.cash.turbine:turbine than 1.2.0 is available: 1.2.1"
+        errorLine1="turbine = &quot;1.2.0&quot;"
+        errorLine2="          ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="67"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.mockk:mockk than 1.13.13 is available: 1.14.11"
+        errorLine1="mockk = &quot;1.13.13&quot;"
+        errorLine2="        ~~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="71"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of dev.mokkery than 3.3.0 is available: 3.4.1"
+        errorLine1="mokkery = &quot;3.3.0&quot;"
+        errorLine2="          ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="76"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of dev.mokkery:mokkery-runtime than 3.3.0 is available: 3.4.1"
+        errorLine1="mokkery = &quot;3.3.0&quot;"
+        errorLine2="          ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="76"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.gitlab.arturbosch.detekt than 1.23.7 is available: 1.23.8"
+        errorLine1="detekt = &quot;1.23.7&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="79"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlinx.kover than 0.9.1 is available: 0.9.8"
+        errorLine1="kover = &quot;0.9.1&quot;"
+        errorLine2="        ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="82"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-datetime than 0.7.1 is available: 0.8.0"
+        errorLine1="kotlinx-datetime = { module = &quot;org.jetbrains.kotlinx:kotlinx-datetime&quot;, version = &quot;0.7.1&quot; }"
+        errorLine2="                                                                                  ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="90"
+            column="83"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of com.squareup.okhttp3:okhttp-sse than 5.3.2 is available: 5.4.0"
+        errorLine1="okhttp-sse = { module = &quot;com.squareup.okhttp3:okhttp-sse&quot;, version = &quot;5.3.2&quot; }"
+        errorLine2="                                                                     ~~~~~~~">
+        <location
+            file="$HOME/Documents/mas/undercurrent-workspace/undercurrent/gradle/libs.versions.toml"
+            line="130"
+            column="70"/>
+    </issue>
+
+    <issue
+        id="PermissionImpliesUnsupportedChromeOsHardware"
+        message="Permission exists without corresponding hardware `&lt;uses-feature android:name=&quot;android.hardware.camera&quot; required=&quot;false&quot;>` tag"
+        errorLine1="    &lt;uses-permission android:name=&quot;android.permission.CAMERA&quot; />"
+        errorLine2="     ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="62"
+            column="6"/>
+    </issue>
+
+    <issue
+        id="TrustAllX509TrustManager"
+        message="`checkClientTrusted` is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk15to18/1.72/32faf4d74dbc333fb3a7a6c80c30417cf888fc7a/bcpkix-jdk15to18-1.72.jar"/>
+    </issue>
+
+    <issue
+        id="TrustAllX509TrustManager"
+        message="`checkClientTrusted` is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk15to18/1.72/32faf4d74dbc333fb3a7a6c80c30417cf888fc7a/bcpkix-jdk15to18-1.72.jar"/>
+    </issue>
+
+    <issue
+        id="TrustAllX509TrustManager"
+        message="`checkServerTrusted` is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk15to18/1.72/32faf4d74dbc333fb3a7a6c80c30417cf888fc7a/bcpkix-jdk15to18-1.72.jar"/>
+    </issue>
+
+    <issue
+        id="DataExtractionRules"
+        message="The attribute `android:allowBackup` is deprecated from Android 12 and higher and may be removed in future versions. Consider adding the attribute `android:dataExtractionRules` specifying an `@xml` resource which configures cloud backups and device transfers on Android 12 and higher."
+        errorLine1="        android:allowBackup=&quot;false&quot;"
+        errorLine2="                             ~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="78"
+            column="30"/>
+    </issue>
+
+    <issue
+        id="MissingApplicationIcon"
+        message="Should explicitly set `android:icon`, there is no default"
+        errorLine1="    &lt;application"
+        errorLine2="     ~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="74"
+            column="6"/>
+    </issue>
+
+    <issue
+        id="UseTomlInstead"
+        message="Use version catalog instead"
+        errorLine1="    implementation(&quot;dev.weft:weft-runtime&quot;)"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="86"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="UseTomlInstead"
+        message="Use version catalog instead"
+        errorLine1="    implementation(&quot;dev.weft:weft-compose&quot;)"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="87"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="UseTomlInstead"
+        message="Use version catalog instead"
+        errorLine1="    implementation(&quot;dev.weft:weft-compose-defaults&quot;)"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="88"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="UseTomlInstead"
+        message="Use version catalog instead"
+        errorLine1="    implementation(&quot;dev.weft:weft-oauth&quot;)"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="89"
+            column="20"/>
+    </issue>
+
+</issues>
