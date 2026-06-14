@@ -59,6 +59,7 @@ activates **only** when `RELEASE_KEYSTORE` is set, so normal builds are unaffect
 |---|---|
 | `firebase.app.id` | Firebase Android App ID (`1:123…:android:abc…`) — register the Firebase app for package **`dev.weft.undercurrent.uat`** (the UAT build's id), not the base package |
 | `firebase.service.credentials.path` | Path to the Firebase service-account JSON (secure file) |
+| `google.services.uat.b64` | **base64 of the UAT `google-services.json`** (`base64 -i google-services.json`). The `writeUatGoogleServices` Gradle task materializes it to `src/uat/` at build time, so the file stays out of git. |
 | (optional) `FIREBASE_GROUPS` | Tester groups, comma-separated (default `testers`) |
 
 ### Google Play Console

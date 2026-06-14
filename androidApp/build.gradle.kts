@@ -1,6 +1,15 @@
 
 
 import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
+import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -105,6 +114,44 @@ android {
     }
 }
 
+// CI materializes the UAT google-services.json from a base64 param
+// (GOOGLE_SERVICES_JSON_UAT_B64) before the plugin processes it — keeps the
+// file out of git. Locally the file is already at src/uat/ and this no-ops.
+abstract class WriteGoogleServices : DefaultTask() {
+    @get:Input
+    @get:Optional
+    abstract val googleServicesJsonB64: Property<String>
+
+    @get:OutputFile
+    abstract val outputFile: RegularFileProperty
+
+    @TaskAction
+    fun writeFile() {
+        val out = outputFile.get().asFile
+        if (out.exists()) {
+            logger.lifecycle("google-services.json already present at $out — skipping.")
+            return
+        }
+        val b64 = googleServicesJsonB64.orNull
+            ?: throw GradleException(
+                "google-services.json missing and GOOGLE_SERVICES_JSON_UAT_B64 not set",
+            )
+        out.parentFile.mkdirs()
+        out.writeBytes(Base64.getDecoder().decode(b64))
+        logger.lifecycle("Wrote $out")
+    }
+}
+
+val writeUatGoogleServices = tasks.register<WriteGoogleServices>("writeUatGoogleServices") {
+    val b64 = (findProperty("googleServicesJsonUatB64") as String?)
+        ?: System.getenv("GOOGLE_SERVICES_JSON_UAT_B64")
+    if (b64 != null) googleServicesJsonB64.set(b64)
+    outputFile.set(layout.projectDirectory.file("src/uat/google-services.json"))
+}
+
+// uat processing waits for the file; other variants have no json — disabled.
+tasks.matching { it.name == "processUatGoogleServices" }
+    .configureEach { dependsOn(writeUatGoogleServices) }
 tasks.matching {
     it.name.startsWith("process") && it.name.endsWith("GoogleServices") &&
         !it.name.contains("Uat")
