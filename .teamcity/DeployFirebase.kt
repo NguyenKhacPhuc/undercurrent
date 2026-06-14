@@ -26,7 +26,8 @@ object DeployFirebase : BuildType({
 
     steps {
         preflightStep()
-        fastlaneStep("fastlane · android firebase", "android firebase")
+        // Firebase App Distribution Gradle plugin — builds + uploads the debug APK.
+        gradleStep("build + distribute · firebase", ":androidApp:assembleDebug :androidApp:appDistributionUploadDebug")
     }
 
     triggers {

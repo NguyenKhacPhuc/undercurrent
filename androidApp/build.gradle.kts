@@ -6,11 +6,16 @@
 // lives in :composeApp, :shared, or the feature modules. iOS gets
 // the equivalent shell in iosApp/ (Xcode project).
 
+import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import java.util.Properties
 
 plugins {
     alias(libs.plugins.undercurrent.android.application)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.google.firebase.appdistribution)
+    // NOTE: com.google.gms.google-services is intentionally NOT applied — it
+    // requires a google-services.json and is only needed for Firebase SDK
+    // products (Analytics/Crashlytics/Messaging), not App Distribution.
 }
 
 // Tavily key for the web_search tool. Resolution order: local.properties
@@ -66,6 +71,20 @@ android {
             }
         }
     }
+    // Firebase App Distribution for the debug build (uploaded by
+    // `appDistributionUploadDebug`). App id + credentials come from env vars
+    // (TeamCity params); no google-services.json needed.
+    buildTypes {
+        getByName("debug") {
+            firebaseAppDistribution {
+                appId = System.getenv("FIREBASE_APP_ID") ?: ""
+                serviceCredentialsFile = System.getenv("FIREBASE_SERVICE_CREDENTIALS") ?: ""
+                groups = System.getenv("FIREBASE_GROUPS") ?: "testers"
+                releaseNotes = "TeamCity build ${System.getenv("BUILD_NUMBER") ?: "local"}"
+            }
+        }
+    }
+
     packaging {
         resources {
             // Multiple OkHttp 5.x modules each ship the same Java-9-MR

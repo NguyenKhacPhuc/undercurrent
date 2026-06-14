@@ -3,20 +3,8 @@
 # docs/deployment.md for the full list.
 
 platform :android do
-  # Firebase App Distribution (beta). Uses the DEBUG build — the auto debug
-  # signing key is fine for tester distribution; no release keystore needed.
-  desc "Distribute a debug APK to Firebase App Distribution"
-  lane :firebase do
-    gradle(task: "androidApp:assembleDebug", flags: "--no-configuration-cache --stacktrace")
-    firebase_app_distribution(
-      app: ENV.fetch("FIREBASE_APP_ID"),
-      service_credentials_file: ENV.fetch("FIREBASE_SERVICE_CREDENTIALS"),
-      android_artifact_type: "APK",
-      android_artifact_path: "androidApp/build/outputs/apk/debug/androidApp-debug.apk",
-      groups: ENV["FIREBASE_GROUPS"] || "testers",
-      release_notes: "TeamCity build #{ENV['BUILD_NUMBER']}"
-    )
-  end
+  # Firebase App Distribution is handled by the Gradle plugin
+  # (appDistributionUploadDebug), not fastlane — see androidApp/build.gradle.kts.
 
   # Google Play Console. Uploads a signed AAB to the chosen track as a draft.
   desc "Upload a release AAB to Google Play Console"

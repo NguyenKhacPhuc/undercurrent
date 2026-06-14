@@ -2,15 +2,18 @@
 
 Three TeamCity configs deploy the app, each building + uploading via **fastlane**:
 
-| Config | Target | Lane | Agent |
+| Config | Target | Tool | Agent |
 |---|---|---|---|
-| `Deploy · Firebase App Distribution` | Android beta | `android firebase` | macOS/Linux + Android SDK |
-| `Deploy · Google Play Console` | Android store | `android play` | macOS/Linux + Android SDK |
-| `Deploy · App Store Connect` | iOS store/TestFlight | `ios appstore` | **macOS + Xcode** |
+| `Deploy · Firebase App Distribution` | Android beta | **Gradle** `appDistributionUploadDebug` | Android SDK |
+| `Deploy · Google Play Console` | Android store | fastlane `android play` | Android SDK |
+| `Deploy · App Store Connect` | iOS store/TestFlight | fastlane `ios appstore` | **macOS + Xcode** |
 
-All three are **manual** (no triggers) and build a release artifact, then upload.
-The lanes live in [`fastlane/Fastfile`](../fastlane/Fastfile); they read everything
-from env vars, which the TeamCity configs wire from project parameters.
+Firebase uses the **Firebase App Distribution Gradle plugin** (configured in
+[`androidApp/build.gradle.kts`](../androidApp/build.gradle.kts)) — no fastlane.
+Play + App Store use fastlane lanes in [`fastlane/Fastfile`](../fastlane/Fastfile).
+All read config from env vars wired by the TeamCity configs. The
+`com.google.gms.google-services` plugin is **not** applied — it's only for
+Firebase SDK products and would require a `google-services.json`.
 
 ## Agent prerequisites (one-time)
 
