@@ -156,17 +156,15 @@ val writeGoogleServices = tasks.register<WriteGoogleServices>("writeGoogleServic
     outputFile.set(layout.projectDirectory.file("google-services.json"))
 }
 
-// release has no client → always disabled. debug + uat process google-services
-// only when the file/base64 is available, so PR/dev builds don't fail without it.
+// The module-root google-services.json has clients for all three packages
+// (.dev / .uat / base). Process google-services for every variant when the
+// file/base64 is available; if it's not, skip processing so PR/dev builds
+// (and any deploy without the secret) don't fail.
 val hasGoogleServices = layout.projectDirectory.file("google-services.json").asFile.exists() ||
     googleServicesB64 != null
 tasks.matching { it.name.startsWith("process") && it.name.endsWith("GoogleServices") }
     .configureEach {
-        when {
-            name == "processReleaseGoogleServices" -> enabled = false
-            hasGoogleServices -> dependsOn(writeGoogleServices)
-            else -> enabled = false
-        }
+        if (hasGoogleServices) dependsOn(writeGoogleServices) else enabled = false
     }
 
 dependencies {

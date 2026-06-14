@@ -14,12 +14,11 @@ Play + App Store use fastlane lanes in [`fastlane/Fastfile`](../fastlane/Fastfil
 All read config from env vars wired by the TeamCity configs.
 
 The `com.google.gms.google-services` plugin **is** applied (for Firebase SDK
-use). A module-root `google-services.json` covers the `.dev` (debug) and `.uat`
-clients; `release` has no client so its google-services processing is disabled.
-The file is gitignored and materialized from `GOOGLE_SERVICES_JSON_B64` at build
-time (or skipped entirely if that's unset, so builds still pass). For Firebase
-SDK in production, register a `dev.weft.undercurrent` app, add its client to the
-json, and drop the `processReleaseGoogleServices` disable.
+use). A module-root `google-services.json` carries clients for all three
+packages — `.dev` (debug), `.uat`, and the base `dev.weft.undercurrent`
+(release) — so every variant processes google-services. The file is gitignored
+and materialized from `GOOGLE_SERVICES_JSON_B64` at build time (or processing is
+skipped entirely if that's unset, so builds still pass).
 
 ## Agent prerequisites (one-time)
 
