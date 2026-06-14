@@ -31,7 +31,10 @@ Define these as **Password** params (secrets) or plain params (ids/paths). The
 file-based secrets (keystore, service-account JSONs, `.p8`) are best uploaded via
 *Administration → Project → Secure Files*, then reference the resolved path.
 
-### Android release signing (Firebase + Play)
+### Android release signing (Play only)
+Firebase distributes the **debug** build (debug signing key — no keystore needed).
+Only Play Console needs the release keystore:
+
 | Param | What |
 |---|---|
 | `release.keystore.path` | Path to the upload keystore (`.jks`) on the agent / secure file |
