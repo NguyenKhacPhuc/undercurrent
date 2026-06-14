@@ -1,0 +1,2 @@
+app_identifier("dev.weft.iosApp")        # iOS bundle id
+package_name("dev.weft.undercurrent")    # Android applicationId

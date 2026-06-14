@@ -41,19 +41,11 @@ fun BuildSteps.gradleStep(stepName: String, gradleTasks: String) {
     }
 }
 
-/** A deployment step gated behind `publish.enabled` — a next-phase scaffold. */
-fun BuildSteps.gatedDeployStep(stepName: String, todo: String) {
+/** Runs a fastlane lane (installs the Gemfile bundle first). */
+fun BuildSteps.fastlaneStep(stepName: String, lane: String) {
     script {
         name = stepName
-        scriptContent = """
-            if [ "%publish.enabled%" != "true" ]; then
-              echo "[$stepName] next-phase scaffold (publish.enabled=false) — skipping."
-              echo "TODO: $todo"
-              exit 0
-            fi
-            echo "TODO: $todo"
-            exit 1
-        """.trimIndent()
+        scriptContent = "bundle install --quiet && bundle exec fastlane $lane"
     }
 }
 

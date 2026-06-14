@@ -107,3 +107,11 @@ Package.resolved
 
 # CocoaPods (not currently used; ignored prophylactically)
 Pods/
+
+# fastlane generated output
+fastlane/report.xml
+fastlane/README.md
+fastlane/test_output/
+**/*.p8
+*.keystore
+*.jks

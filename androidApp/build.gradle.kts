@@ -35,6 +35,30 @@ android {
         versionName = "0.0.1"
         buildConfigField("String", "TAVILY_API_KEY", "\"$tavilyApiKey\"")
     }
+
+    // Release signing — ONLY configured when a keystore is provided (CI deploy
+    // builds). Absent for normal dev/CI builds, so they're unaffected. Values
+    // come from env vars (TeamCity secure params) or local.properties.
+    val releaseKeystore = System.getenv("RELEASE_KEYSTORE")
+        ?: (findProperty("release.keystore") as String?)
+    if (releaseKeystore != null) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                    ?: (findProperty("release.keystore.password") as String?)
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                    ?: (findProperty("release.key.alias") as String?)
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+                    ?: (findProperty("release.key.password") as String?)
+            }
+        }
+        buildTypes {
+            getByName("release") {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    }
     packaging {
         resources {
             // Multiple OkHttp 5.x modules each ship the same Java-9-MR

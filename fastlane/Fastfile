@@ -1,0 +1,63 @@
+# Undercurrent deployment lanes. Invoked by the TeamCity deploy configs.
+# All credentials/ids come from env vars (TeamCity secure params) — see
+# docs/deployment.md for the full list.
+
+platform :android do
+  # Firebase App Distribution (beta). Needs a signed release APK.
+  desc "Distribute a release APK to Firebase App Distribution"
+  lane :firebase do
+    gradle(task: "androidApp:assembleRelease", flags: "--no-configuration-cache --stacktrace")
+    firebase_app_distribution(
+      app: ENV.fetch("FIREBASE_APP_ID"),
+      service_credentials_file: ENV.fetch("FIREBASE_SERVICE_CREDENTIALS"),
+      android_artifact_type: "APK",
+      android_artifact_path: "androidApp/build/outputs/apk/release/androidApp-release.apk",
+      groups: ENV["FIREBASE_GROUPS"] || "testers",
+      release_notes: "TeamCity build #{ENV['BUILD_NUMBER']}"
+    )
+  end
+
+  # Google Play Console. Uploads a signed AAB to the chosen track as a draft.
+  desc "Upload a release AAB to Google Play Console"
+  lane :play do
+    gradle(task: "androidApp:bundleRelease", flags: "--no-configuration-cache --stacktrace")
+    upload_to_play_store(
+      package_name: "dev.weft.undercurrent",
+      track: ENV["PLAY_TRACK"] || "internal",
+      aab: "androidApp/build/outputs/bundle/release/androidApp-release.aab",
+      json_key: ENV.fetch("PLAY_SERVICE_ACCOUNT_JSON"),
+      release_status: "draft",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end
+
+platform :ios do
+  # App Store Connect (TestFlight + store). Archives iosApp and uploads via an
+  # App Store Connect API key (.p8 + issuer/key id). Signing is automatic via
+  # the API key; manual provisioning can be wired here if you don't use it.
+  desc "Build and upload iOS to App Store Connect"
+  lane :appstore do
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_KEY_PATH")
+    )
+    build_app(
+      project: "iosApp/iosApp.xcodeproj",
+      scheme: "iosApp",
+      export_method: "app-store",
+      output_directory: "iosApp/build"
+    )
+    upload_to_app_store(
+      api_key: api_key,
+      app_identifier: "dev.weft.iosApp",
+      skip_screenshots: true,
+      skip_metadata: true,
+      precheck_include_in_app_purchases: false,
+      submit_for_review: false
+    )
+  end
+end
