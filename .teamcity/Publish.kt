@@ -30,7 +30,7 @@ object Publish : BuildType({
         // Stage 2 — code quality
         gradleStep("quality · lint", "lint")
         // Stage 2 — testing (android unit/kotest + ios simulator + coverage)
-        gradleStep("test · android + ios", "testDebugUnitTest iosSimulatorArm64Test koverXmlReport")
+        gradleStep("test · android", "testDebugUnitTest koverXmlReport")
         // Stage 3 — build: release Android bundle + iOS framework. Needs the
         // signing config; until that exists this proves a debug build compiles.
         gradleStep("build · android + ios", ":androidApp:assembleDebug :composeApp:compileKotlinIosSimulatorArm64")

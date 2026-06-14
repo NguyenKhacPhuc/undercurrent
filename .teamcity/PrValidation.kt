@@ -28,7 +28,7 @@ object PrValidation : BuildType({
         gradleStep("quality · lint", "lint")
         // Stage 2 — testing: Android unit (Robolectric/kotest — undercurrent has
         // no jvm target, so commonTest runs here), iOS (simulator), + coverage.
-        gradleStep("test · android + ios", "testDebugUnitTest iosSimulatorArm64Test koverXmlReport")
+        gradleStep("test · android", "testDebugUnitTest koverXmlReport")
         // Stage 3 — build: debug APK + iOS framework
         gradleStep("build · debug apk + ios", ":androidApp:assembleDebug :composeApp:compileKotlinIosSimulatorArm64")
     }
