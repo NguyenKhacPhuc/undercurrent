@@ -277,7 +277,7 @@ val appModule = module {
         val chatVm = get<ChatViewModel>()
         WeftMiniAppViewModel(
             context = get(),
-            runtime = get(),
+            uiBridge = get<WeftRuntime>().uiBridge,
             miniAppsRepo = get(),
             navigationVm = get(),
             offerable = OfferableActions.readMostlyDefaults(),
