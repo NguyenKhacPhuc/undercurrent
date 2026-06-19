@@ -7,8 +7,6 @@ import dev.weft.compose.WeftUi
 import dev.weft.compose.components.MiniAppAssistantHandler
 import dev.weft.contracts.KeyVault
 import dev.weft.harness.agents.AgentDeclaration
-import dev.weft.harness.agents.AgentIntent
-import dev.weft.harness.behavior.Turn
 import dev.weft.mcp.McpServerConfig
 import dev.weft.oauth.AndroidOAuthClient
 import dev.weft.oauth.OAuthCallbackChannel
@@ -52,6 +50,7 @@ import dev.weft.undercurrent.data.weft.tools.WebSearchTool
 import dev.weft.undercurrent.feature.auth.authModule
 import dev.weft.undercurrent.feature.chat.ChatViewModel
 import dev.weft.undercurrent.feature.chat.agent.AgentSession
+import dev.weft.undercurrent.feature.chat.agent.askAssistant
 import dev.weft.undercurrent.feature.chat.chatAndroidModule
 import dev.weft.undercurrent.feature.chat.chatModule
 import dev.weft.undercurrent.feature.conversations.conversationsModule
@@ -372,25 +371,12 @@ private fun creatorPreambleFor(kind: CreatorKind): String = when (kind) {
 }
 
 /**
- * The host's [MiniAppAssistantHandler] for `window.weft.sendMessage`: runs
- * the mini-app's request as a one-shot agent turn and returns the reply.
+ * The host's [MiniAppAssistantHandler] for `window.weft.sendMessage`.
  * [agentSession] is resolved lazily (per call) to avoid a DI cycle at
- * WeftUi construction. No assistant ready → throws, which the bridge
- * surfaces to the mini-app as a rejected Promise.
- *
- * v1 limitation: the turn runs on the user's *current* conversation, so
- * the exchange lands in their chat history. Isolating it on an ephemeral
- * conversation is a follow-up.
+ * WeftUi construction. The turn logic is shared with iOS via [askAssistant].
  */
 private fun miniAppAssistantHandler(
     agentSession: () -> AgentSession,
 ): MiniAppAssistantHandler = MiniAppAssistantHandler { _, text ->
-    val agent = agentSession().currentAgent
-        ?: throw IllegalStateException("assistant not ready")
-    agent.dispatchAndAwait(AgentIntent.Send(text = text, streaming = false))
-    agent.state.value.history
-        .filterIsInstance<Turn.Assistant>()
-        .lastOrNull()
-        ?.text
-        ?: throw IllegalStateException("assistant returned no reply")
+    askAssistant(agentSession().currentAgent, text)
 }

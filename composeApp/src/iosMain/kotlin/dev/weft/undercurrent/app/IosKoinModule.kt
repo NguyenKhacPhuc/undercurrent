@@ -7,6 +7,7 @@ import dev.weft.android.WeftRuntime
 import dev.weft.android.create
 import dev.weft.android.persistence.WeftPlatform
 import dev.weft.compose.ComposeUiBridge
+import dev.weft.compose.components.MiniAppAssistantHandler
 import dev.weft.compose.components.WeftComponentRegistry
 import dev.weft.harness.agents.AgentDeclaration
 import dev.weft.harness.prompt.WeftSystemPromptDefaults
@@ -28,6 +29,8 @@ import dev.weft.undercurrent.data.datastore.datastoreIosModule
 import dev.weft.undercurrent.data.network.iosNetworkModule
 import dev.weft.undercurrent.data.sqldelight.databaseIosModule
 import dev.weft.undercurrent.feature.chat.ChatViewModel
+import dev.weft.undercurrent.feature.chat.agent.AgentSlot
+import dev.weft.undercurrent.feature.chat.agent.askAssistant
 import dev.weft.undercurrent.feature.chat.chatModule
 import dev.weft.undercurrent.feature.conversations.conversationsModule
 import dev.weft.undercurrent.feature.creator.CreatorViewModel
@@ -98,12 +101,14 @@ val iosAppModule = module {
             policy = NetworkPolicy.OPEN,
         )
         val miniAppStateStore = MiniAppRepositoryStateStore(miniAppsRepo)
+        val agentSlot = get<AgentSlot>()
         WeftComponentRegistry(
             undercurrentComponents(
                 imageLoader = get(),
                 miniAppInvoker = miniAppActionInvoker(offerable, miniAppStateStore, miniAppHttpClient),
                 miniAppScopeResolver = miniAppScopeResolver({ miniAppsRepo.miniApps.value }, offerable),
                 miniAppStateStore = miniAppStateStore,
+                miniAppAssistant = MiniAppAssistantHandler { _, text -> askAssistant(agentSlot.agent, text) },
             ),
         )
     }
