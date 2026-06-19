@@ -1,7 +1,7 @@
 package dev.weft.undercurrent.feature.miniapps.internal
 
-import dev.weft.android.WeftRuntime
 import dev.weft.contracts.UIUpdate
+import dev.weft.contracts.UiBridge
 import dev.weft.undercurrent.core.domain.MiniAppsRepository
 import dev.weft.undercurrent.core.model.AppEffect
 import dev.weft.undercurrent.core.model.AppState
@@ -18,19 +18,25 @@ import dev.weft.undercurrent.feature.miniapps.toConsentRequest
 import dev.weft.undercurrent.shared.mvi.MviContext
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import kotlin.concurrent.Volatile
 
 /**
- * Mini-app invocation + UI-bridge forwarding (Android impl).
+ * Mini-app invocation + UI-bridge forwarding. Shared (commonMain) so
+ * Android and iOS run the same orchestration; only the [UiBridge] impl
+ * differs per platform.
  *
- * Takes [sendChat] as a callback rather than a [ChatViewModel] ref so
- * `:feature:miniapps/androidMain` doesn't depend on `:feature:chat`
- * (which would cycle — `:feature:chat` already depends on
- * `:feature:miniapps` for the intent + dialog types). The host's DI
- * module wires the lambda to `chatVm.send(...)` at construction time.
+ * Depends on the narrow [UiBridge] contract rather than the full
+ * `WeftRuntime` — the only thing it needs is to emit render trees.
+ *
+ * Takes [sendChat] as a callback rather than a `ChatViewModel` ref so
+ * `:feature:miniapps` doesn't depend on `:feature:chat` (which would
+ * cycle — `:feature:chat` already depends on `:feature:miniapps` for the
+ * intent + dialog types). The host's DI module wires the lambda to
+ * `chatVm.send(...)` at construction time.
  */
 public class WeftMiniAppViewModel(
     private val context: MviContext<AppState, AppEffect>,
-    private val runtime: WeftRuntime,
+    private val uiBridge: UiBridge,
     private val miniAppsRepo: MiniAppsRepository,
     private val navigationVm: NavigationViewModel,
     private val offerable: OfferableActions,
@@ -88,7 +94,7 @@ public class WeftMiniAppViewModel(
                     dev.weft.contracts.ComponentNode.serializer(),
                     cached,
                 )
-                runtime.uiBridge.emit(UIUpdate.RenderTree(tree))
+                uiBridge.emit(UIUpdate.RenderTree(tree))
             }
             if (context.current.screen !is Screen.RenderedTree) {
                 navigationVm.dispatch(NavigationIntent.Navigate(Screen.RenderedTree))
@@ -105,7 +111,7 @@ public class WeftMiniAppViewModel(
 
     /** Render a flexible HTML mini-app instantly via the bridged Html component. */
     private suspend fun renderHtmlMiniApp(miniApp: dev.weft.undercurrent.core.model.MiniApp) {
-        runtime.uiBridge.emit(UIUpdate.RenderTree(htmlMiniAppRenderTree(miniApp)))
+        uiBridge.emit(UIUpdate.RenderTree(htmlMiniAppRenderTree(miniApp)))
         if (context.current.screen !is Screen.RenderedTree) {
             navigationVm.dispatch(NavigationIntent.Navigate(Screen.RenderedTree))
         }

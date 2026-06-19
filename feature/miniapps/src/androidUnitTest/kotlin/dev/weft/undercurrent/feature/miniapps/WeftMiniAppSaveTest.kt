@@ -35,7 +35,7 @@ class WeftMiniAppSaveTest : BehaviorSpec({
 
     fun vmWith(scope: CoroutineScope, repo: MiniAppsRepository) = WeftMiniAppViewModel(
         context = fakeContext(scope),
-        runtime = mockk(relaxed = true),
+        uiBridge = mockk(relaxed = true),
         miniAppsRepo = repo,
         navigationVm = mockk(relaxed = true),
         offerable = OfferableActions(emptyList()),

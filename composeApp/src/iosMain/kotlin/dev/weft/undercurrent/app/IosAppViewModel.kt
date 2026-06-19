@@ -2,6 +2,7 @@ package dev.weft.undercurrent.app
 
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.lifecycle.viewModelScope
 import dev.weft.undercurrent.core.domain.OnboardingRepository
 import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.domain.SessionTokenStore
@@ -17,10 +18,11 @@ import dev.weft.undercurrent.feature.chat.ChatEffect
 import dev.weft.undercurrent.feature.chat.ChatViewModel
 import dev.weft.undercurrent.feature.chat.components.DisplayMessage
 import dev.weft.undercurrent.feature.chat.SkillSummary
-import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
 import dev.weft.undercurrent.feature.settings.providers.ProviderIntent
 import dev.weft.undercurrent.core.domain.KeyVaultRepository
+import dev.weft.undercurrent.shared.mvi.MviContext
 import dev.weft.undercurrent.shared.mvi.MviViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -45,6 +47,16 @@ class IosAppViewModel(
     override val skills: List<SkillSummary> = emptyList()
 
     override val backStack: NavBackStack<Screen> get() = navigationVm.backStack
+
+    val mviContext: MviContext<AppState, AppEffect> =
+        object : MviContext<AppState, AppEffect> {
+            override val current: AppState get() = this@IosAppViewModel.current
+            override val scope: CoroutineScope get() = viewModelScope
+            override fun update(reducer: (AppState) -> AppState) =
+                this@IosAppViewModel.update(reducer)
+            override fun emit(effect: AppEffect) =
+                this@IosAppViewModel.emit(effect)
+        }
 
     init {
         snapshotFlow { backStack.lastOrNull() }.observe { top ->
@@ -93,20 +105,6 @@ class IosAppViewModel(
 
     override fun dismissPermissionDialog() {
         update { it.copy(pendingPermissionDialog = null) }
-    }
-
-    internal fun dispatchMiniApp(intent: MiniAppIntent) {
-        when (intent) {
-            is MiniAppIntent.InvokeMiniApp -> launch { chatVm.send(intent.triggerPrompt) }
-            is MiniAppIntent.UiBridgeUpdate -> Unit
-            // Save and consent both gate the HTML render path, which is
-            // Android-only today (iOS uses StubUiBridgeRepository) — no-op
-            // until iOS render lands.
-            is MiniAppIntent.SaveCurrentRenderAsMiniApp,
-            is MiniAppIntent.ApproveConsent,
-            is MiniAppIntent.DenyConsent,
-            -> Unit
-        }
     }
 
     internal fun dispatchProvider(intent: ProviderIntent) {

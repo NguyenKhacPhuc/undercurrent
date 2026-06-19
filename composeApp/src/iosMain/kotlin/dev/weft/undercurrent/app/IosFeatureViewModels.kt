@@ -2,8 +2,6 @@ package dev.weft.undercurrent.app
 
 import dev.weft.undercurrent.feature.creator.CreatorIntent
 import dev.weft.undercurrent.feature.creator.CreatorViewModel
-import dev.weft.undercurrent.feature.miniapps.MiniAppIntent
-import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
 import dev.weft.undercurrent.feature.settings.providers.ProviderIntent
 import dev.weft.undercurrent.feature.settings.providers.ProviderState
 import dev.weft.undercurrent.feature.settings.providers.ProviderStateStore
@@ -34,12 +32,6 @@ internal class IosProviderViewModel(
             else -> app.dispatchProvider(intent)
         }
     }
-}
-
-internal class IosMiniAppViewModel(
-    private val app: IosAppViewModel,
-) : MiniAppViewModel {
-    override fun dispatch(intent: MiniAppIntent) = app.dispatchMiniApp(intent)
 }
 
 internal class NoOpCreatorViewModel : CreatorViewModel {
