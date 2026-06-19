@@ -27,11 +27,13 @@ import dev.weft.undercurrent.core.ui.components.undercurrentComponents
 import dev.weft.undercurrent.data.datastore.datastoreIosModule
 import dev.weft.undercurrent.data.network.iosNetworkModule
 import dev.weft.undercurrent.data.sqldelight.databaseIosModule
+import dev.weft.undercurrent.feature.chat.ChatViewModel
 import dev.weft.undercurrent.feature.chat.chatModule
 import dev.weft.undercurrent.feature.conversations.conversationsModule
 import dev.weft.undercurrent.feature.creator.CreatorViewModel
 import dev.weft.undercurrent.feature.memories.memoriesModule
 import dev.weft.undercurrent.feature.miniapps.MiniAppViewModel
+import dev.weft.undercurrent.feature.miniapps.internal.WeftMiniAppViewModel
 import dev.weft.undercurrent.feature.miniapps.miniAppsModule
 import dev.weft.undercurrent.feature.onboarding.onboardingModule
 import dev.weft.undercurrent.feature.personas.personasModule
@@ -169,7 +171,17 @@ val iosAppModule = module {
             ),
         )
     }
-    single<MiniAppViewModel> { IosMiniAppViewModel(get<AppViewModel>() as IosAppViewModel) }
+    single<MiniAppViewModel> {
+        val chatVm = get<ChatViewModel>()
+        WeftMiniAppViewModel(
+            context = (get<AppViewModel>() as IosAppViewModel).mviContext,
+            uiBridge = get<WeftRuntime>().uiBridge,
+            miniAppsRepo = get(),
+            navigationVm = get(),
+            offerable = OfferableActions.readMostlyDefaults(),
+            sendChat = { text -> chatVm.send(text) },
+        )
+    }
     single<CreatorViewModel> { NoOpCreatorViewModel() }
     single<TraceExportViewModel> { NoOpTraceExportViewModel() }
 
