@@ -30,6 +30,7 @@ import dev.weft.undercurrent.core.model.ModelTier
 import dev.weft.undercurrent.core.model.ThemeMode
 import dev.weft.undercurrent.core.resources.Res
 import dev.weft.undercurrent.core.resources.chat_thinking
+import dev.weft.undercurrent.feature.chat.components.ActivityIndicator
 import dev.weft.undercurrent.feature.chat.components.AddToChatSheet
 import dev.weft.undercurrent.feature.chat.components.AssistantActions
 import dev.weft.undercurrent.feature.chat.components.BlinkingCursor
@@ -150,10 +151,7 @@ fun ChatScreen(
             }
             if (messages.inFlight && !lastIsAssistant) {
                 item("inflight") {
-                    Text(
-                        text = stringResource(Res.string.chat_thinking),
-                        style = typography.sansSmall.copy(color = colors.inkMuted),
-                    )
+                    ActivityIndicator(baseLabel = stringResource(Res.string.chat_thinking))
                 }
             }
             messages.lastError?.let { e ->
