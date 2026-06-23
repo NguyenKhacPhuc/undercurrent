@@ -17,6 +17,8 @@ import dev.weft.undercurrent.core.domain.AgentSummary
  */
 data class ChatState(
     val inFlight: Boolean = false,
+    /** The action the live indicator narrates now; null = dead-air hints. */
+    val currentAction: CurrentAction? = null,
     val lastError: String? = null,
     /**
      * Active conversation id, mirrored from

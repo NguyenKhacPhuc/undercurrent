@@ -25,6 +25,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.model.AppPalette
+import dev.weft.undercurrent.core.model.describeAction
 import dev.weft.undercurrent.core.model.MiniApp
 import dev.weft.undercurrent.core.model.ModelTier
 import dev.weft.undercurrent.core.model.ThemeMode
@@ -151,7 +152,14 @@ fun ChatScreen(
             }
             if (messages.inFlight && !lastIsAssistant) {
                 item("inflight") {
-                    ActivityIndicator(baseLabel = stringResource(Res.string.chat_thinking))
+                    val actionText = messages.currentAction?.let { action ->
+                        val described = describeAction(action.toolName)
+                        if (action.failed) described.failure else described.present
+                    }
+                    ActivityIndicator(
+                        baseLabel = stringResource(Res.string.chat_thinking),
+                        currentActionText = actionText,
+                    )
                 }
             }
             messages.lastError?.let { e ->
@@ -250,6 +258,7 @@ class ChatHeaderConfig(
 class ChatMessagesConfig(
     val displayMessages: SnapshotStateList<DisplayMessage>,
     val inFlight: Boolean,
+    val currentAction: CurrentAction? = null,
     val lastError: String?,
     val activePersonaName: String,
     val onCopyText: (String) -> Unit,

@@ -117,6 +117,7 @@ fun ChatRoute(
                 messages = ChatMessagesConfig(
                     displayMessages = chatVm.displayMessages,
                     inFlight = chatState.inFlight,
+                    currentAction = chatState.currentAction,
                     lastError = chatState.lastError,
                     activePersonaName = personaLabel,
                     onCopyText = onCopyText,

@@ -151,11 +151,17 @@ class ChatViewModel(
             if (current.inFlight) {
                 update { it.copy(inFlight = false) }
             }
+            // Turn ended without an explicit Done — drop any lingering
+            // action so the indicator never narrates a stale step.
+            if (current.currentAction != null) {
+                update { it.copy(currentAction = null) }
+            }
         }
         streamingTurn?.join()
     }
 
     private fun foldChunk(chunk: ChatChunk) {
+        update { it.copy(currentAction = nextCurrentAction(it.currentAction, chunk)) }
         when (chunk) {
             is ChatChunk.TextDelta -> {
                 val id = streamingMessageId
