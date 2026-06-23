@@ -12,6 +12,7 @@ import dev.weft.undercurrent.core.domain.usecase.chat.SelectAgentUseCase
 import dev.weft.undercurrent.core.domain.usecase.chat.SelectConversationUseCase
 import dev.weft.undercurrent.core.model.ModelTier
 import dev.weft.undercurrent.feature.chat.components.DisplayMessage
+import dev.weft.undercurrent.feature.chat.components.TrailStep
 import dev.weft.undercurrent.shared.mvi.MviViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +35,9 @@ class ChatViewModel(
 
     private var streamingTurn: Job? = null
     private var streamingMessageId: Long? = null
+
+    /** The per-turn step-trail message being accumulated, if any. */
+    private var trailMessageId: Long? = null
 
     init {
         observeChatState().collectInto { snap ->
@@ -143,6 +147,7 @@ class ChatViewModel(
         }
 
         streamingMessageId = null
+        trailMessageId = null
         update { it.copy(inFlight = true, lastError = null) }
 
         streamingTurn = launch {
@@ -181,20 +186,12 @@ class ChatViewModel(
                 }
             }
             is ChatChunk.ToolStart ->
-                displayMessages += DisplayMessage.toolStart(chunk.toolName)
+                Unit // in-progress is narrated by the live indicator (currentAction)
             is ChatChunk.ToolDone ->
-                displayMessages += DisplayMessage.toolDone(chunk.toolName)
+                appendTrailStep(TrailStep(chunk.toolName, failed = false))
             is ChatChunk.ToolFail -> {
-                val payload = chunk.permissionDialog
-                if (payload != null) {
-                    displayMessages += DisplayMessage.toolFail(
-                        chunk.toolName,
-                        "Needs permission — see dialog.",
-                    )
-                    emit(ChatEffect.PermissionNeeded(payload))
-                } else {
-                    displayMessages += DisplayMessage.toolFail(chunk.toolName, chunk.message)
-                }
+                appendTrailStep(TrailStep(chunk.toolName, failed = true))
+                chunk.permissionDialog?.let { emit(ChatEffect.PermissionNeeded(it)) }
             }
             ChatChunk.Done -> {
                 streamingMessageId = null
@@ -203,6 +200,26 @@ class ChatViewModel(
             is ChatChunk.Error -> {
                 update { it.copy(inFlight = false, lastError = chunk.message) }
                 emit(ChatEffect.Error(chunk.message))
+            }
+        }
+    }
+
+    /**
+     * Append a completed step to this turn's trail message, creating it on
+     * the first step. One compact trail per turn replaces the old per-tool
+     * bubbles — a reply with no steps gets no trail at all.
+     */
+    private fun appendTrailStep(step: TrailStep) {
+        val id = trailMessageId
+        if (id == null) {
+            val msg = DisplayMessage.trail(listOf(step))
+            trailMessageId = msg.id
+            displayMessages += msg
+        } else {
+            val idx = displayMessages.indexOfLast { it.id == id }
+            if (idx >= 0) {
+                val existing = displayMessages[idx]
+                displayMessages[idx] = existing.copy(steps = existing.steps + step)
             }
         }
     }
