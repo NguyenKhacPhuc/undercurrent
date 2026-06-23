@@ -26,7 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.weft.undercurrent.core.designsystem.UndercurrentTheme
 import dev.weft.undercurrent.core.resources.Res
+import dev.weft.undercurrent.core.resources.chat_thinking
 import dev.weft.undercurrent.core.resources.creator_subtitle
+import dev.weft.undercurrent.feature.chat.components.ActivityIndicator
 import dev.weft.undercurrent.core.resources.creator_thinking
 import dev.weft.undercurrent.core.resources.creator_title_fallback
 import org.jetbrains.compose.resources.stringResource
@@ -87,10 +89,28 @@ fun CreatorScreen(
         }
         HorizontalDivider(color = cs.divider)
 
-        if (hasTree) {
-            body()
-        } else {
-            CreatorThinking(error = lastError)
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            if (hasTree) {
+                body()
+            } else {
+                CreatorThinking(error = lastError)
+            }
+            // While the agent is working over an already-rendered step — most
+            // notably the long, silent generation of a mini-app's HTML — the
+            // tree underneath looks frozen and the header spinner alone is easy
+            // to miss. Float an alive indicator so it never reads as stuck.
+            if (inFlight && hasTree) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                        .clip(UndercurrentTheme.shapes.large)
+                        .background(cs.surfaceMuted)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                ) {
+                    ActivityIndicator(baseLabel = stringResource(Res.string.chat_thinking))
+                }
+            }
         }
     }
 }

@@ -15,12 +15,14 @@ kotlin {
             // `AppIntent` parent marker — CreatorIntent extends it.
             implementation(projects.core.domain)
             implementation(projects.shared)
+            // CreatorScreen reuses the chat feature's live ActivityIndicator
+            // for an alive "still working" cue during long generations.
+            implementation(projects.feature.chat)
         }
         androidMain.dependencies {
             // Substrate — WeftCreatorViewModel drives WeftAgent via
             // AgentSession + ChatViewModel.send.
             implementation("dev.weft:weft-harness-agents")
-            implementation(projects.feature.chat)
         }
     }
 }
