@@ -41,6 +41,7 @@ internal val DeadAirHints: List<String> = listOf(
 @Composable
 internal fun ActivityIndicator(
     baseLabel: String,
+    currentActionText: String? = null,
     hints: List<String> = DeadAirHints,
     timings: ActivityIndicatorTimings = ActivityIndicatorTimings(),
 ) {
@@ -48,9 +49,13 @@ internal fun ActivityIndicator(
     val typography = UndercurrentTheme.typography
 
     // Coarse quiet clock — only seconds matter (threshold/cadence), so a
-    // light tick keeps recomposition cheap while in-flight.
+    // light tick keeps recomposition cheap while in-flight. Restart it
+    // whenever the action changes, and only tick during genuine dead air
+    // (no specific action showing) so hints resume cleanly between steps.
     var quietElapsedMs by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(currentActionText) {
+        quietElapsedMs = 0L
+        if (currentActionText != null) return@LaunchedEffect
         val step = 200L
         while (true) {
             delay(step)
@@ -69,7 +74,9 @@ internal fun ActivityIndicator(
         label = "activity-alpha",
     )
 
-    val text = deadAirHintIndex(quietElapsedMs, hints.size, timings)?.let { hints[it] } ?: baseLabel
+    val text = currentActionText
+        ?: deadAirHintIndex(quietElapsedMs, hints.size, timings)?.let { hints[it] }
+        ?: baseLabel
 
     Crossfade(
         targetState = text,
@@ -88,5 +95,13 @@ internal fun ActivityIndicator(
 private fun ActivityIndicatorPreview() {
     UndercurrentTheme {
         ActivityIndicator(baseLabel = "Thinking…")
+    }
+}
+
+@Preview
+@Composable
+private fun ActivityIndicatorNarratingPreview() {
+    UndercurrentTheme {
+        ActivityIndicator(baseLabel = "Thinking…", currentActionText = "Looking at the map…")
     }
 }
