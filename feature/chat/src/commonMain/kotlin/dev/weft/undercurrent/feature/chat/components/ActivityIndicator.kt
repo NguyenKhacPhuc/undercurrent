@@ -23,7 +23,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * mob does a tone pass before release). Shown only after a quiet stretch
  * crosses the threshold, so a quick reply never flashes one.
  */
-internal val DeadAirHints: List<String> = listOf(
+val DeadAirHints: List<String> = listOf(
     "Still thinking…",
     "Working on it…",
     "Gathering my thoughts…",
@@ -39,7 +39,7 @@ internal val DeadAirHints: List<String> = listOf(
  * surface it.
  */
 @Composable
-internal fun ActivityIndicator(
+fun ActivityIndicator(
     baseLabel: String,
     currentActionText: String? = null,
     hints: List<String> = DeadAirHints,
