@@ -12,12 +12,11 @@ import dev.weft.undercurrent.core.domain.usecase.chat.SelectAgentUseCase
 import dev.weft.undercurrent.core.domain.usecase.chat.SelectConversationUseCase
 import dev.weft.undercurrent.core.model.ModelTier
 import dev.weft.undercurrent.feature.chat.components.DisplayRole
-import dev.weft.undercurrent.feature.chat.components.ToolStatus
+import dev.weft.undercurrent.feature.chat.components.TrailStep
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -148,7 +147,7 @@ class ChatViewModelTest : BehaviorSpec({
     // ── streaming fold: tool lifecycle ───────────────────────────────
 
     Given("a ChatViewModel handed a stream with ToolStart + ToolDone") {
-        Then("the user message + two tool bubbles append in order") {
+        Then("a single compact step trail appends after the user message") {
             runTest {
                 val repo = FakeChatRepository()
                 repo.sendFlow = flowOf(
@@ -162,18 +161,40 @@ class ChatViewModelTest : BehaviorSpec({
                 vm.dispatch(ChatIntent.SendChat("run tool"))
                 advanceUntilIdle()
 
-                vm.displayMessages.size shouldBe 3
+                vm.displayMessages.size shouldBe 2
                 vm.displayMessages[0].role shouldBe DisplayRole.USER
-                vm.displayMessages[1].role shouldBe DisplayRole.TOOL
-                vm.displayMessages[1].tool?.status shouldBe ToolStatus.RUNNING
-                vm.displayMessages[2].role shouldBe DisplayRole.TOOL
-                vm.displayMessages[2].tool?.status shouldBe ToolStatus.DONE
+                vm.displayMessages[1].role shouldBe DisplayRole.TRAIL
+                vm.displayMessages[1].steps shouldBe listOf(TrailStep("read_file", failed = false))
+            }
+        }
+    }
+
+    Given("a ChatViewModel handed two tool completions in one turn") {
+        Then("both land as steps in the same trail, in order") {
+            runTest {
+                val repo = FakeChatRepository()
+                repo.sendFlow = flowOf(
+                    ChatChunk.ToolDone("open_map"),
+                    ChatChunk.ToolFail("web_search", "404"),
+                    ChatChunk.Done,
+                )
+                val vm = build(repo)
+                advanceUntilIdle()
+
+                vm.dispatch(ChatIntent.SendChat("two"))
+                advanceUntilIdle()
+
+                vm.displayMessages.count { it.role == DisplayRole.TRAIL } shouldBe 1
+                vm.displayMessages.last().steps shouldBe listOf(
+                    TrailStep("open_map", failed = false),
+                    TrailStep("web_search", failed = true),
+                )
             }
         }
     }
 
     Given("a ChatViewModel handed a ToolFail without a permission payload") {
-        Then("a failed tool bubble appends after the user message") {
+        Then("a failed step lands in the trail") {
             runTest {
                 val repo = FakeChatRepository()
                 repo.sendFlow = flowOf(
@@ -188,8 +209,8 @@ class ChatViewModelTest : BehaviorSpec({
 
                 vm.displayMessages.size shouldBe 2
                 vm.displayMessages[0].role shouldBe DisplayRole.USER
-                vm.displayMessages[1].tool?.status shouldBe ToolStatus.FAILED
-                vm.displayMessages[1].tool?.resultPreview shouldBe "disk full"
+                vm.displayMessages[1].role shouldBe DisplayRole.TRAIL
+                vm.displayMessages[1].steps shouldBe listOf(TrailStep("write_file", failed = true))
             }
         }
     }
@@ -214,9 +235,8 @@ class ChatViewModelTest : BehaviorSpec({
                 advanceUntilIdle()
 
                 vm.displayMessages.size shouldBe 2
-                val tool = vm.displayMessages[1].tool
-                tool shouldNotBe null
-                tool?.status shouldBe ToolStatus.FAILED
+                vm.displayMessages[1].role shouldBe DisplayRole.TRAIL
+                vm.displayMessages[1].steps shouldBe listOf(TrailStep("open_camera", failed = true))
             }
         }
     }

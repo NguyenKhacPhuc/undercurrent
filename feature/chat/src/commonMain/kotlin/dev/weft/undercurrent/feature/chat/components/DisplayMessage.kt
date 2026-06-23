@@ -5,6 +5,7 @@ data class DisplayMessage(
     val role: DisplayRole,
     val text: String,
     val tool: ToolInfo? = null,
+    val steps: List<TrailStep> = emptyList(),
     val agentName: String? = null,
 ) {
     companion object {
@@ -42,6 +43,9 @@ data class DisplayMessage(
                 ),
             )
 
+        fun trail(steps: List<TrailStep>): DisplayMessage =
+            DisplayMessage(role = DisplayRole.TRAIL, text = "", steps = steps)
+
         fun event(
             action: String,
             label: String?,
@@ -65,6 +69,7 @@ enum class DisplayRole(val label: String) {
     USER("You"),
     ASSISTANT("Undercurrent"),
     TOOL("Tool"),
+    TRAIL("Steps"),
     EVENT("UI event"),
 }
 

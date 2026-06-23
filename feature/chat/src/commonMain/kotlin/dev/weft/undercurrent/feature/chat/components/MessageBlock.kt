@@ -46,8 +46,27 @@ internal fun MessageBlock(
             val info = msg.tool
             if (info != null) ToolPill(info) else InlineNote(text = msg.text, mono = true)
         }
+        DisplayRole.TRAIL -> StepTrailRow(steps = msg.steps)
         DisplayRole.EVENT -> InlineNote(text = msg.text, mono = false)
     }
+}
+
+/**
+ * The compact, low-contrast record of the steps a reply took, shown above
+ * the answer (live-activity story 04). One quiet line that wraps; the
+ * detailed trace screen remains the place for depth. Empty steps render
+ * nothing — an actionless reply shows no trail.
+ */
+@Composable
+private fun StepTrailRow(steps: List<TrailStep>) {
+    if (steps.isEmpty()) return
+    val colors = UndercurrentTheme.colors
+    val typography = UndercurrentTheme.typography
+    Text(
+        text = trailLine(steps),
+        style = typography.sansSmall.copy(color = colors.inkMuted),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+    )
 }
 
 @Composable
@@ -255,6 +274,16 @@ private fun MessageBlockPreview() {
             )
             MessageBlock(
                 msg = DisplayMessage.toolFail("search_docs", "404 not found"),
+                activePersonaName = "Default",
+                onOpenUrl = { },
+            )
+            MessageBlock(
+                msg = DisplayMessage.trail(
+                    listOf(
+                        TrailStep("open_map", failed = false),
+                        TrailStep("web_search", failed = true),
+                    ),
+                ),
                 activePersonaName = "Default",
                 onOpenUrl = { },
             )
