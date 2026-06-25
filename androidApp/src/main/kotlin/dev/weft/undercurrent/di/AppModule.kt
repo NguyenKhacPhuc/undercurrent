@@ -15,8 +15,8 @@ import dev.weft.oauth.OAuthTokenStore
 import dev.weft.osbridge.keyvault.AndroidKeyVault
 import dev.weft.security.NetworkPolicy
 import dev.weft.security.whitelistingHttpClient
+import dev.weft.harness.prompt.WeftSystemPromptDefaults
 import dev.weft.undercurrent.app.AppViewModel
-import dev.weft.undercurrent.core.ASSISTANT_APP_PREAMBLE
 import dev.weft.undercurrent.core.WeftAppViewModel
 import dev.weft.undercurrent.core.domain.IntegrationsRepository
 import dev.weft.undercurrent.core.domain.MiniAppsRepository
@@ -24,6 +24,7 @@ import dev.weft.undercurrent.core.domain.PersonaRepository
 import dev.weft.undercurrent.core.domain.ThemeRepository
 import dev.weft.undercurrent.core.domain.auth.BE_BASE_URL_QUALIFIER
 import dev.weft.undercurrent.core.domain.auth.authRepositoryModule
+import dev.weft.undercurrent.core.domain.prompt.PromptConfigRepository
 import dev.weft.undercurrent.core.domain.prompt.promptConfigModule
 import dev.weft.undercurrent.core.domain.repositoryAndroidModule
 import dev.weft.undercurrent.core.domain.repositoryModule
@@ -79,6 +80,8 @@ import dev.weft.undercurrent.feature.settings.usage.usageModule
 import dev.weft.undercurrent.shared.mvi.MviContext
 import dev.weft.undercurrent.tools.SetThemeModeTool
 import dev.weft.undercurrent.tools.SetThemePaletteTool
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -142,10 +145,18 @@ val appModule = module {
 
         val mcpServers = mcpServersFor(integrationsRepo, tokenStore)
 
+        // Backend-driven base prompt (backend-driven-prompt D4): no compiled-in
+        // fallback — the cold-start gate guarantees a config is cached before
+        // the runtime is ever built, so this read resolves immediately. The
+        // substrate defaults stay client-side (version-coupled to the SDK).
+        val servedPreamble = runBlocking {
+            get<PromptConfigRepository>().current.filterNotNull().first()
+        }.preamble
+
         WeftRuntime.create(
             context = androidContext(),
             uiBridge = get<ComposeUiBridge>(),
-            appPromptPreamble = ASSISTANT_APP_PREAMBLE,
+            appPromptPreamble = servedPreamble + WeftSystemPromptDefaults.STANDARD,
             mcpServers = mcpServers,
             dataSources = listOf(
                 SqlDelightDataSource(
