@@ -263,6 +263,7 @@ val appModule = module {
             chatVm = get(),
             uiBridgeRepo = get(),
             sessionTokenStore = get(),
+            promptConfig = get(),
         )
     }
 

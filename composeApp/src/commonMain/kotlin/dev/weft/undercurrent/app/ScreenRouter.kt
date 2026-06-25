@@ -19,6 +19,7 @@ import dev.weft.undercurrent.feature.onboarding.OnboardingRoute
 import dev.weft.undercurrent.feature.personas.PersonasRoute
 import dev.weft.undercurrent.feature.settings.providers.ProvidersRoute
 import dev.weft.undercurrent.feature.settings.SettingsRoute
+import dev.weft.undercurrent.feature.auth.PromptSetupRoute
 import dev.weft.undercurrent.feature.auth.SignInRoute
 import dev.weft.undercurrent.feature.theme.AppearanceRoute
 import dev.weft.undercurrent.feature.traces.TracesRoute
@@ -36,6 +37,7 @@ internal fun ScreenRouter(platform: PlatformAdapter) {
         when (entry) {
             Screen.Loading -> LoadingPlaceholder()
             Screen.SignIn -> SignInRoute(onSignedIn = { appVm.resume() })
+            Screen.PromptSetup -> PromptSetupRoute(onReady = { appVm.resume() })
             Screen.Onboarding -> OnboardingRoute()
             Screen.KeyPaste -> KeyPasteRoute(onOpenConsole = platform.onOpenUrl)
             Screen.Chat -> ChatGate { platform.chatRoute() }

@@ -19,4 +19,7 @@ val authModule = module {
             sessionTokenStore = get(),
         )
     }
+    viewModel {
+        PromptSetupViewModel(promptConfig = get())
+    }
 }

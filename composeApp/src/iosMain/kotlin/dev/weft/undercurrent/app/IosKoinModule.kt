@@ -162,6 +162,7 @@ val iosAppModule = module {
             navigationVm = get(),
             chatVm = get(),
             sessionTokenStore = get(),
+            promptConfig = get(),
         )
     }
 

@@ -26,6 +26,9 @@ sealed interface Screen : NavKey {
      */
     data object SignIn : Screen
 
+    /** Cold-start gate: block until the backend-driven base prompt is available. */
+    data object PromptSetup : Screen
+
     data object Onboarding : Screen
     data object KeyPaste : Screen
     data object Chat : Screen

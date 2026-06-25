@@ -37,6 +37,7 @@ class IosAppViewModel(
     private val navigationVm: NavigationViewModel,
     private val chatVm: ChatViewModel,
     private val sessionTokenStore: SessionTokenStore,
+    private val promptConfig: dev.weft.undercurrent.core.domain.prompt.PromptConfigRepository,
 ) : MviViewModel<AppState, Nothing, AppEffect>(
     initialState = AppState.initial(),
 ), AppViewModel {
@@ -186,6 +187,13 @@ class IosAppViewModel(
         val sessionToken = withContext(Dispatchers.Default) { sessionTokenStore.read() }
         if (sessionToken == null) {
             setRootScreen(Screen.SignIn)
+            return
+        }
+        // Prompt gate (backend-driven-prompt D4): no compiled-in fallback, so
+        // block until a base prompt is available. PromptSetup owns the
+        // fetch/retry; on success it re-runs this cascade via resume().
+        if (promptConfig.current.first() == null) {
+            setRootScreen(Screen.PromptSetup)
             return
         }
         val onboardingDone = onboardingRepo.completedFlow.first()
