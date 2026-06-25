@@ -2,6 +2,7 @@ package dev.weft.undercurrent.feature.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,6 +36,7 @@ import dev.weft.undercurrent.feature.chat.components.ActivityIndicator
 import dev.weft.undercurrent.feature.chat.components.AddToChatSheet
 import dev.weft.undercurrent.feature.chat.components.AssistantActions
 import dev.weft.undercurrent.feature.chat.components.BlinkingCursor
+import dev.weft.undercurrent.feature.chat.components.ChatEmptyState
 import dev.weft.undercurrent.feature.chat.components.ChatHeader
 import dev.weft.undercurrent.feature.chat.components.DegradedModeBanner
 import dev.weft.undercurrent.feature.chat.components.DisplayMessage
@@ -112,6 +114,11 @@ fun ChatScreen(
 
         DegradedModeBanner(degradedMode = degradedMode)
 
+        if (messages.displayMessages.isEmpty() && !messages.inFlight) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                ChatEmptyState()
+            }
+        } else {
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f),
             state = listState,
@@ -177,6 +184,7 @@ fun ChatScreen(
                     )
                 }
             }
+        }
         }
 
         TierChipRow(

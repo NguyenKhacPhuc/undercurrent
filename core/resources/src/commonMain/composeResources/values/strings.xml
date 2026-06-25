@@ -328,6 +328,8 @@
     <!-- Chat                                                         -->
     <!-- ============================================================ -->
     <string name="chat_thinking">Thinking…</string>
+    <string name="chat_empty_greeting">Hi there</string>
+    <string name="chat_empty_subtitle">Ask me anything — or build something.</string>
     <string name="chat_input_placeholder">Write a paragraph back…</string>
     <string name="chat_header_new">New</string>
     <string name="chat_delete_thread_menu">Delete thread</string>
