@@ -72,7 +72,7 @@ internal fun undercurrentSpacing(token: String): Dp = when (token.lowercase()) {
  * render. Always add the verbatim icon name to the component
  * description that uses it so the model knows what's available.
  */
-internal fun undercurrentIcon(name: String): ImageVector = when (name.lowercase()) {
+fun undercurrentIcon(name: String): ImageVector = when (name.lowercase()) {
     "add" -> Icons.Filled.Add
     "arrow_back" -> Icons.AutoMirrored.Filled.ArrowBack
     "arrow_forward" -> Icons.AutoMirrored.Filled.ArrowForward
