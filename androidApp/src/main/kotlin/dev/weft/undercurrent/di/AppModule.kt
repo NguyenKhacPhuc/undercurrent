@@ -24,6 +24,7 @@ import dev.weft.undercurrent.core.domain.PersonaRepository
 import dev.weft.undercurrent.core.domain.ThemeRepository
 import dev.weft.undercurrent.core.domain.auth.BE_BASE_URL_QUALIFIER
 import dev.weft.undercurrent.core.domain.auth.authRepositoryModule
+import dev.weft.undercurrent.core.domain.prompt.promptConfigModule
 import dev.weft.undercurrent.core.domain.repositoryAndroidModule
 import dev.weft.undercurrent.core.domain.repositoryModule
 import dev.weft.undercurrent.core.domain.usecase.chat.chatUseCasesModule
@@ -305,6 +306,7 @@ val allModules = listOf(
     androidNetworkModule,
     repositoryAndroidModule,
     authRepositoryModule,
+    promptConfigModule,
     authModule,
     chatModule,
     chatAndroidModule,

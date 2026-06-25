@@ -9,11 +9,15 @@ import dev.weft.undercurrent.core.domain.OnboardingRepository
 import dev.weft.undercurrent.core.domain.PersonaRepository
 import dev.weft.undercurrent.core.domain.ProviderPrefsRepository
 import dev.weft.undercurrent.core.domain.ThemeRepository
+import dev.weft.undercurrent.core.domain.prompt.DataStorePromptConfigCache
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val datastoreAndroidModule = module {
+    single<DataStore<Preferences>>(named(DataStorePromptConfigCache.FILE_NAME)) {
+        createPreferencesDataStore(androidContext(), DataStorePromptConfigCache.FILE_NAME)
+    }
     single<DataStore<Preferences>>(named(ThemeRepository.FILE_NAME)) {
         createPreferencesDataStore(androidContext(), ThemeRepository.FILE_NAME)
     }
