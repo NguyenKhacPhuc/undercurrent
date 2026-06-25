@@ -75,7 +75,11 @@ import dev.weft.undercurrent.core.domain.WeftConversationStoreRepository
 import dev.weft.undercurrent.core.domain.WeftMemoryStoreRepository
 import dev.weft.undercurrent.core.domain.WeftTraceStoreRepository
 import dev.weft.undercurrent.core.domain.WeftUsageRepository
+import dev.weft.undercurrent.core.domain.prompt.PromptConfigRepository
 import dev.weft.undercurrent.feature.chat.chatHostModule
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -122,10 +126,17 @@ val iosAppModule = module {
     // stories. mcpServers / dataSources / componentMetadata and the full
     // tuned app preamble are deferred — see ios-agent-bringup 06 / 08.
     single<WeftRuntime> {
+        // Backend-driven base prompt (backend-driven-prompt D4): no compiled-in
+        // fallback — the cold-start gate guarantees a config is cached before
+        // the runtime is ever built, so this read resolves immediately. The
+        // substrate defaults stay client-side (version-coupled to the SDK).
+        val servedPreamble = runBlocking {
+            get<PromptConfigRepository>().current.filterNotNull().first()
+        }.preamble
         WeftRuntime.create(
             platform = WeftPlatform(),
             uiBridge = get<ComposeUiBridge>(),
-            appPromptPreamble = IOS_APP_PREAMBLE,
+            appPromptPreamble = servedPreamble + WeftSystemPromptDefaults.STANDARD,
             networkPolicy = NetworkPolicy.OPEN,
             agents = iosAgentDeclarations(),
         )
@@ -223,23 +234,6 @@ val iosAllModules = listOf(
     usageModule,
     settingsModule,
 )
-
-/**
- * Minimal iOS app preamble. Mirrors the *shape* of the Android
- * `ASSISTANT_APP_PREAMBLE` (app intro + [WeftSystemPromptDefaults.STANDARD])
- * but with a short intro for now — unifying with the full tuned Android
- * preamble is deferred to a follow-up (the Android `AppPreamble.kt` is
- * mid-refactor; see ios-agent-bringup [[open-questions]] Q1).
- */
-private val IOS_APP_PREAMBLE: String = IOS_APP_INTRO + WeftSystemPromptDefaults.STANDARD
-
-private const val IOS_APP_INTRO: String = """
-You are Undercurrent's assistant — a capable, general-purpose AI running
-on the user's own iPhone. You call device tools, remember durable facts
-across conversations, and search the live web. Your training has a
-knowledge cutoff, so for the current date, time, locale, and device
-state, read system_user_context rather than assuming.
-"""
 
 /**
  * The addressable agents, mirroring the Android registration (default +
