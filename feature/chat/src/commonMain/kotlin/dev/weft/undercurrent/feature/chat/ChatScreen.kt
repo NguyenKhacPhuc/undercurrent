@@ -112,7 +112,6 @@ fun ChatScreen(
 
         DegradedModeBanner(degradedMode = degradedMode)
 
-        val lastIsAssistant = messages.displayMessages.lastOrNull()?.role == DisplayRole.ASSISTANT
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f),
             state = listState,
@@ -150,15 +149,23 @@ fun ChatScreen(
                     }
                 }
             }
-            if (messages.inFlight && !lastIsAssistant) {
+            if (messages.inFlight) {
                 item("inflight") {
                     val actionText = messages.currentAction?.let { action ->
                         val described = describeAction(action.toolName)
                         if (action.failed) described.failure else described.present
                     }
+                    // Changes whenever new content arrives (a message lands or
+                    // the streaming reply grows); the indicator uses it to tell
+                    // a silent stretch from an actively streaming answer, so it
+                    // yields while text flows and reappears when the model goes
+                    // quiet mid-turn (e.g. generating a mini-app's HTML).
+                    val last = messages.displayMessages.lastOrNull()
+                    val contentKey = messages.displayMessages.size to (last?.text?.length ?: 0)
                     ActivityIndicator(
                         baseLabel = stringResource(Res.string.chat_thinking),
                         currentActionText = actionText,
+                        contentKey = contentKey,
                     )
                 }
             }

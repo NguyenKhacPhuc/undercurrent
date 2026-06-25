@@ -42,26 +42,31 @@ val DeadAirHints: List<String> = listOf(
 fun ActivityIndicator(
     baseLabel: String,
     currentActionText: String? = null,
+    contentKey: Any? = null,
     hints: List<String> = DeadAirHints,
     timings: ActivityIndicatorTimings = ActivityIndicatorTimings(),
 ) {
     val colors = UndercurrentTheme.colors
     val typography = UndercurrentTheme.typography
 
-    // Coarse quiet clock — only seconds matter (threshold/cadence), so a
-    // light tick keeps recomposition cheap while in-flight. Restart it
-    // whenever the action changes, and only tick during genuine dead air
-    // (no specific action showing) so hints resume cleanly between steps.
+    // Coarse quiet clock — only seconds matter, so a light tick keeps
+    // recomposition cheap. Restart it whenever the action changes OR new
+    // content arrives ([contentKey]); time since then is how we tell a
+    // silent stretch from an actively streaming reply.
     var quietElapsedMs by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(currentActionText) {
+    LaunchedEffect(currentActionText, contentKey) {
         quietElapsedMs = 0L
-        if (currentActionText != null) return@LaunchedEffect
         val step = 200L
         while (true) {
             delay(step)
             quietElapsedMs += step
         }
     }
+
+    // Stay out of the way while the reply is actively streaming; reappear
+    // during a silent stretch (e.g. the long, text-less mini-app HTML
+    // generation) even after the assistant has already spoken.
+    if (!shouldShowIndicator(quietElapsedMs, currentActionText, timings.showAfterQuietMs)) return
 
     val pulse = rememberInfiniteTransition(label = "activity-pulse")
     val alpha by pulse.animateFloat(
@@ -94,7 +99,12 @@ fun ActivityIndicator(
 @Composable
 private fun ActivityIndicatorPreview() {
     UndercurrentTheme {
-        ActivityIndicator(baseLabel = "Thinking…")
+        // showAfterQuietMs=0 so it renders in the static preview (the quiet
+        // clock doesn't advance there).
+        ActivityIndicator(
+            baseLabel = "Thinking…",
+            timings = ActivityIndicatorTimings(showAfterQuietMs = 0L),
+        )
     }
 }
 
