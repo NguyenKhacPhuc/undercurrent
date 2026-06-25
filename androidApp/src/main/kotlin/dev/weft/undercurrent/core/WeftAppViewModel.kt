@@ -45,6 +45,7 @@ internal class WeftAppViewModel(
     private val chatVm: ChatViewModel,
     uiBridgeRepo: UiBridgeRepository,
     private val sessionTokenStore: dev.weft.undercurrent.core.domain.SessionTokenStore,
+    private val promptConfig: dev.weft.undercurrent.core.domain.prompt.PromptConfigRepository,
 ) : MviViewModel<AppState, Nothing, AppEffect>(
     initialState = AppState.initial(),
 ), AppViewModel {
@@ -111,6 +112,13 @@ internal class WeftAppViewModel(
         val sessionToken = withContext(Dispatchers.IO) { sessionTokenStore.read() }
         if (sessionToken == null) {
             agentSession.setRootScreen(Screen.SignIn)
+            return
+        }
+        // Prompt gate (backend-driven-prompt D4): no compiled-in fallback, so
+        // block until a base prompt is available. The PromptSetup screen owns
+        // the fetch/retry; on success it re-runs this cascade via resume().
+        if (promptConfig.current.first() == null) {
+            agentSession.setRootScreen(Screen.PromptSetup)
             return
         }
         val onboardingDone = onboardingRepo.completedFlow.first()

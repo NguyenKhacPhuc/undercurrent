@@ -36,6 +36,8 @@
     <!-- Auth — sign-in / register screen                             -->
     <!-- ============================================================ -->
     <string name="auth_sign_in_title">Welcome back</string>
+    <string name="prompt_setup_connecting">Getting set up…</string>
+    <string name="prompt_setup_failed">Couldn\'t connect. Check your connection.</string>
     <string name="auth_register_title">Create your account</string>
     <string name="auth_sign_in_subtitle">Sign in with your email and password.</string>
     <string name="auth_register_subtitle">Pick a display name, email, and password.</string>
