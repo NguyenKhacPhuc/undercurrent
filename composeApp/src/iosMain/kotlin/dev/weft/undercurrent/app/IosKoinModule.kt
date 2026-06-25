@@ -21,6 +21,7 @@ import dev.weft.undercurrent.feature.miniapps.miniAppActionInvoker
 import dev.weft.undercurrent.feature.miniapps.miniAppScopeResolver
 import dev.weft.undercurrent.core.domain.auth.BE_BASE_URL_QUALIFIER
 import dev.weft.undercurrent.core.domain.auth.authRepositoryModule
+import dev.weft.undercurrent.core.domain.prompt.promptConfigModule
 import dev.weft.undercurrent.core.domain.repositoryModule
 import dev.weft.undercurrent.core.domain.usecase.chat.chatUseCasesModule
 import dev.weft.undercurrent.core.navigation.navigationModule
@@ -209,6 +210,7 @@ val iosAllModules = listOf(
     databaseIosModule,
     iosNetworkModule,
     authRepositoryModule,
+    promptConfigModule,
     authModule,
     chatModule,
     themeModule,
