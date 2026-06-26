@@ -30,11 +30,21 @@ val tavilyApiKey: String = run {
         ?: ""
 }
 
+// Signing/secret values may live in local.properties — which Gradle's
+// findProperty does NOT read (it only sees gradle.properties / -P / env).
+// Load it once so release-signing props placed there are actually picked up.
+val localProperties = Properties().apply {
+    rootProject.file("local.properties")
+        .takeIf { it.exists() }
+        ?.inputStream()
+        ?.use { load(it) }
+}
+
 // versionCode/Name derive from CI (the TeamCity build counter, passed as
 // VERSION_CODE / VERSION_NAME) so auto-deploys never collide. When TeamCity
 // doesn't supply them (local dev, PR builds), these defaults are used.
 val buildVersionCode = 1
-val buildVersionName = "0.0.1"
+val buildVersionName = "1.0.0"
 
 val appVersionCode = (System.getenv("VERSION_CODE") ?: (findProperty("versionCode") as String?))
     ?.toIntOrNull() ?: buildVersionCode
@@ -60,18 +70,22 @@ android {
 
     // Release signing — ONLY configured when a keystore is provided (CI deploy
     // builds). Absent for normal dev/CI builds, so they're unaffected. Values
-    // come from env vars (TeamCity secure params) or local.properties.
+    // come from env vars (TeamCity secure params), local.properties, or -P.
     val releaseKeystore = System.getenv("RELEASE_KEYSTORE")
+        ?: localProperties.getProperty("release.keystore")
         ?: (findProperty("release.keystore") as String?)
     if (releaseKeystore != null) {
         signingConfigs {
             create("release") {
                 storeFile = file(releaseKeystore)
                 storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                    ?: localProperties.getProperty("release.keystore.password")
                     ?: (findProperty("release.keystore.password") as String?)
                 keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                    ?: localProperties.getProperty("release.key.alias")
                     ?: (findProperty("release.key.alias") as String?)
                 keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+                    ?: localProperties.getProperty("release.key.password")
                     ?: (findProperty("release.key.password") as String?)
             }
         }
