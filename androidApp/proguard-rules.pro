@@ -31,3 +31,12 @@
 # ---- Crash readability: keep source file + line numbers --------------------
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# ---- Missing optional/JVM-only references (unreachable on Android) ----------
+# PDFBox's JPEG2000 filter references an optional codec we don't bundle; Ktor's
+# debugger detector touches java.lang.management, absent on Android. Neither is
+# reached at runtime — suppress the R8 missing-class errors.
+-dontwarn com.gemalto.jp2.JP2Decoder
+-dontwarn com.gemalto.jp2.JP2Encoder
+-dontwarn java.lang.management.ManagementFactory
+-dontwarn java.lang.management.RuntimeMXBean
