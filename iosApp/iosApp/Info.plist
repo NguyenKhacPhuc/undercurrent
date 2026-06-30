@@ -15,5 +15,21 @@
 	<string>Undercurrent uses speech recognition to turn what you say into chat messages.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Undercurrent records your voice so you can dictate chat messages.</string>
+
+	<!-- Permission-gated OsCapabilities the assistant can invoke as tools.
+	     iOS shows each string the first time the matching capability is
+	     used; the key must exist or the app crashes on that request. -->
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Undercurrent reads and edits your calendar when you ask it to check, create, or change events.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Undercurrent looks up your contacts when you ask it to find someone's details.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Undercurrent uses your location when you ask for things nearby or for directions.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Undercurrent opens the camera when you ask it to take a photo.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Undercurrent accesses your photos when you ask it to pick or look through images.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Undercurrent reads your step count when you ask about your activity.</string>
 </dict>
 </plist>
