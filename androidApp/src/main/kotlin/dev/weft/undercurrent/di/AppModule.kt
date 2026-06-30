@@ -146,17 +146,21 @@ val appModule = module {
         val mcpServers = mcpServersFor(integrationsRepo, tokenStore)
 
         // Backend-driven base prompt (backend-driven-prompt D4): no compiled-in
-        // fallback — the cold-start gate guarantees a config is cached before
-        // the runtime is ever built, so this read resolves immediately. The
-        // substrate defaults stay client-side (version-coupled to the SDK).
-        val servedPreamble = runBlocking {
-            get<PromptConfigRepository>().current.filterNotNull().first()
-        }.preamble
+        // fallback. Deferred (suspend) so building the runtime never blocks on
+        // the cache — the prompt is resolved when the system prompt is first
+        // assembled (at agent build), which only happens past the cold-start
+        // gate that guarantees a config is cached. Resolving it eagerly here
+        // would deadlock a fresh install (no cached config yet). Substrate
+        // defaults stay client-side (version-coupled to the SDK).
+        val promptConfigRepo = get<PromptConfigRepository>()
 
         WeftRuntime.create(
             context = androidContext(),
             uiBridge = get<ComposeUiBridge>(),
-            appPromptPreamble = servedPreamble + WeftSystemPromptDefaults.STANDARD,
+            appPromptPreamble = {
+                promptConfigRepo.current.filterNotNull().first().preamble +
+                    WeftSystemPromptDefaults.STANDARD
+            },
             mcpServers = mcpServers,
             dataSources = listOf(
                 SqlDelightDataSource(

@@ -79,7 +79,6 @@ import dev.weft.undercurrent.core.domain.prompt.PromptConfigRepository
 import dev.weft.undercurrent.feature.chat.chatHostModule
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -127,16 +126,18 @@ val iosAppModule = module {
     // tuned app preamble are deferred — see ios-agent-bringup 06 / 08.
     single<WeftRuntime> {
         // Backend-driven base prompt (backend-driven-prompt D4): no compiled-in
-        // fallback — the cold-start gate guarantees a config is cached before
-        // the runtime is ever built, so this read resolves immediately. The
-        // substrate defaults stay client-side (version-coupled to the SDK).
-        val servedPreamble = runBlocking {
-            get<PromptConfigRepository>().current.filterNotNull().first()
-        }.preamble
+        // fallback. Deferred (suspend) so building the runtime never blocks on
+        // the cache — resolved when the system prompt is first assembled (at
+        // agent build), past the cold-start gate that guarantees a cached
+        // config. Substrate defaults stay client-side.
+        val promptConfigRepo = get<PromptConfigRepository>()
         WeftRuntime.create(
             platform = WeftPlatform(),
             uiBridge = get<ComposeUiBridge>(),
-            appPromptPreamble = servedPreamble + WeftSystemPromptDefaults.STANDARD,
+            appPromptPreamble = {
+                promptConfigRepo.current.filterNotNull().first().preamble +
+                    WeftSystemPromptDefaults.STANDARD
+            },
             networkPolicy = NetworkPolicy.OPEN,
             agents = iosAgentDeclarations(),
         )
