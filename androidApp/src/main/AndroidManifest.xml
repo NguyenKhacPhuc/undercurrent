@@ -74,6 +74,8 @@
     <application
         android:name=".core.UndercurrentApp"
         android:label="Undercurrent"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.Undercurrent"
         android:allowBackup="false"
         android:supportsRtl="true">
